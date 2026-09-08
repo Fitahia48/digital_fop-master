@@ -1,0 +1,42 @@
+const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
+
+/**
+ * Middleware: vérifie le JWT Bearer token
+ */
+const authenticate = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ detail: 'Token manquant.' });
+  }
+
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || !['Bearer', 'JWT'].includes(parts[0])) {
+    return res.status(401).json({ detail: 'Format de token invalide.' });
+  }
+
+  const token = parts[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.user_id]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ detail: 'Utilisateur non trouvé.' });
+    }
+    req.user = result.rows[0];
+    next();
+  } catch (err) {
+    return res.status(401).json({ detail: 'Token invalide ou expiré.' });
+  }
+};
+
+/**
+ * Middleware: vérifie que l'utilisateur est admin (is_staff ou is_superuser)
+ */
+const isAdmin = (req, res, next) => {
+  if (!req.user || (!req.user.is_staff && !req.user.is_superuser)) {
+    return res.status(403).json({ detail: 'Accès réservé aux administrateurs.' });
+  }
+  next();
+};
+
+module.exports = { authenticate, isAdmin };
