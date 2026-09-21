@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
 import { Line } from 'react-chartjs-2';
 import axiosInstance from './AxiosConfig';
@@ -100,7 +99,7 @@ const DocumentStatsDropdown = () => {
                 params.end_date = endDate;
             }
             // Récupérer les statistiques des documents
-            const documentResponse = await axios.get(`http://localhost:8000/api/documents-stats/`, { params });
+            const documentResponse = await axiosInstance.get('/api/documents-stats/', { params });
 
             setDocumentStats({
                 daily: documentResponse.data.daily_count || 0,
@@ -109,7 +108,7 @@ const DocumentStatsDropdown = () => {
             });
 
             // Récupérer les statistiques des corps
-            const corpsResponse = await axios.get(`http://localhost:8000/api/corps-stats1/`, { params });
+            const corpsResponse = await axiosInstance.get('/api/corps-stats1/', { params });
 
             setCorpsStats({
                 daily: corpsResponse.data.daily_count || 0,
@@ -131,14 +130,14 @@ const DocumentStatsDropdown = () => {
 
     // Récupérer le total des documents
     useEffect(() => {
-        axios.get('http://localhost:8000/api/document-stats/')
+        axiosInstance.get('/api/document-stats/')
             .then(response => setTotalDocuments(response.data.total_documents))
             .catch(error => console.error("Erreur lors de la récupération du total des documents :", error));
     }, []);
 
     // Récupérer le total des corps
     useEffect(() => {
-        axios.get('http://localhost:8000/api/corps-stats/')
+        axiosInstance.get('/api/corps-stats/')
             .then(response => setTotalCorps(response.data.total_corps))
             .catch(error => console.error("Erreur lors de la récupération du total des corps:", error));
     }, []);
@@ -147,7 +146,7 @@ const DocumentStatsDropdown = () => {
     const handleTypeChange = (event) => {
         const type = event.target.value;
         setSelectedType(type);
-        axios.get(`http://localhost:8000/api/document-stats/`, { params: { type } })
+        axiosInstance.get('/api/document-stats/', { params: { type } })
             .then(response => setDocumentCount(response.data.count || 0))
             .catch(error => setDocumentCount(null));
     };
@@ -156,7 +155,7 @@ const DocumentStatsDropdown = () => {
     const handleNomChange = (event) => {
         const nom = event.target.value;
         setSelectedNom(nom);
-        axios.get(`http://localhost:8000/api/corps-stats/`, { params: { nom } })
+        axiosInstance.get('/api/corps-stats/', { params: { nom } })
             .then(response => setCorpsCount(response.data.count || 0))
             .catch(error => setCorpsCount(null));
     };

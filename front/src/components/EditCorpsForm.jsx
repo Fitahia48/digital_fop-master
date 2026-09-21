@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "./AxiosConfig";
 import { toast } from "react-toastify";
 import { getCsrfToken } from "./Utils";
 import { useParams } from "react-router-dom";
@@ -21,8 +21,8 @@ const EditCorpsForm = () => {
 
     // Charger les catégories de type de corps depuis l'API
     useEffect(() => {
-        axios
-            .get("http://localhost:8000/api/typecorps/")
+        axiosInstance
+            .get("/api/typecorps/")
             .then((response) => setTypeCorps(response.data.results))
             .catch((error) =>
                 console.error("Erreur lors de la récupération des types de corps :", error)
@@ -32,8 +32,8 @@ const EditCorpsForm = () => {
     // Charger les données du corps spécifique pour modification
     useEffect(() => {
         if (corpsId) {
-            axios
-                .get(`http://localhost:8000/api/corps/${corpsId}/`)
+            axiosInstance
+                .get(`/api/corps/${corpsId}/`)
                 .then((response) => setFormData(response.data))
                 .catch((error) =>
                     console.error("Erreur lors de la récupération du corps :", error)
@@ -70,11 +70,8 @@ const EditCorpsForm = () => {
         }
 
         try {
-            const user = JSON.parse(localStorage.getItem("user"));
-            const token = user?.access;
-            await axios.put(`http://localhost:8000/api/corps/${corpsId}/`, data, {
+            await axiosInstance.put(`/api/corps/${corpsId}/`, data, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data",
                 },
             });

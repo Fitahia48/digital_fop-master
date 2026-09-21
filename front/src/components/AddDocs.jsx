@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import axiosInstance from "./AxiosConfig";
+import HelpTooltip from "./HelpTooltip";
 import { ThreeDots } from "react-loader-spinner"
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +15,7 @@ const AjouterDocument = () => {
     conseil: "",
     domaine: "",
     status: "",
+    resume_simplifie: "",
     fichier: null,
     inclusJournal: false,
     dateJournal: "",
@@ -103,6 +105,7 @@ const AjouterDocument = () => {
             <div>
               <label className="block text-gray-700 font-medium mb-2">
                 Type de document
+                <HelpTooltip text="Choisissez la nature du texte : Constitution, loi, ordonnance, décret, arrêté, circulaire… En cas de doute, reportez-vous à l'intitulé exact figurant au Journal Officiel." />
               </label>
               <select
                 name="type"
@@ -140,6 +143,25 @@ const AjouterDocument = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="Entrez l'objet du document"
               />
+            </div>
+
+            {/* Résumé en langage clair */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Résumé en langage clair (optionnel)
+              </label>
+              <textarea
+                name="resume_simplifie"
+                value={formData.resume_simplifie}
+                onChange={handleChange}
+                rows={4}
+                maxLength={1000}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="Expliquez ce texte en 2-3 phrases simples, sans jargon administratif"
+              />
+              <p className="text-xs text-gray-500 text-right mt-1">
+                {formData.resume_simplifie.length}/1000 caractères
+              </p>
             </div>
 
             {/* Référence */}
@@ -210,10 +232,11 @@ const AjouterDocument = () => {
               </select>
             </div>
 
-            {/* Accès */}
+            {/* Statut juridique */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
-                Status
+                Statut juridique
+                <HelpTooltip text="« En vigueur » : le texte est applicable en l'état. « Abrogé » : il a été officiellement supprimé. « Modifié » : il reste applicable mais a été changé par un texte postérieur (à définir ensuite dans la vie juridique du document)." />
               </label>
               <select
                 name="status"
@@ -224,6 +247,7 @@ const AjouterDocument = () => {
               >
                 <option value="En vigueur">En vigueur</option>
                 <option value="Abrogé">Abrogé</option>
+                <option value="Modifié">Modifié</option>
               </select>
             </div>
 
@@ -244,6 +268,7 @@ const AjouterDocument = () => {
             <div>
               <label className="block text-gray-700 font-medium mb-2">
                 Inclus dans le Journal Officiel ?
+                <HelpTooltip text="Cochez si le texte a été publié au Journal Officiel : vous pourrez alors renseigner sa date, son numéro et sa page de parution, indispensables pour la référence officielle." />
               </label>
               <input
                 type="checkbox"

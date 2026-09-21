@@ -124,6 +124,8 @@ const Modal = ({ show, onClose, actu, onUpdate, onDelete, isAdmin }) => {
 
 const AfficheActus = ({ isAdminE }) => {
     const [actualite, setActualite] = useState([]);
+    const [offres, setOffres] = useState([]);
+    const [nouveautes, setNouveautes] = useState([]);
     const [selectedActu, setSelectedActu] = useState(null);
 
     useEffect(() => {
@@ -134,6 +136,12 @@ const AfficheActus = ({ isAdminE }) => {
             .catch(() => {
                 toast.error('Erreur lors de la récupération des actualités.');
             });
+        axiosInstance.get('/api/actualites/?categorie=offre')
+            .then(response => setOffres(response.data.results || []))
+            .catch(() => {});
+        axiosInstance.get('/api/actualites/?categorie=nouveaute')
+            .then(response => setNouveautes(response.data.results || []))
+            .catch(() => {});
     }, []);
 
     const conseilMinistre = actualite.filter((actus) => actus.conseil === 'CONSEIL DES MINISTRES');
@@ -214,9 +222,7 @@ const AfficheActus = ({ isAdminE }) => {
                             <p className="text-gray-500">Aucune actualité disponible.</p>
                         )}
                     </div>
-                </div>
-
-                {selectedActu && (
+                </div>                {selectedActu && (
                     <Modal
                         show={!!selectedActu}
                         onClose={closeModal}
@@ -226,6 +232,50 @@ const AfficheActus = ({ isAdminE }) => {
                         isAdmin={isAdminE}
                     />
                 )}
+
+                {/* ─── Offres du MTeFOP ─── */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-bold mb-3 text-black text-center">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full mr-2 align-middle">Offres</span>
+                        Offres du MTeFOP
+                    </h3>
+                    {offres.length > 0 ? (
+                        offres.map((actus) => (
+                            <div
+                                key={actus.id}
+                                className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md text-gray-900 mb-3 cursor-pointer"
+                                onClick={() => openModal(actus.id)}
+                            >
+                                <p className="font-medium">{actus.titre}</p>
+                                <p className="text-sm text-gray-500">{actus.date} — {actus.lieu}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-gray-500 text-center">Aucune offre disponible.</p>
+                    )}
+                </div>
+
+                {/* ─── Nouveautés ─── */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-bold mb-3 text-black text-center">
+                        <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mr-2 align-middle">Nouveautés</span>
+                        Nouveautés
+                    </h3>
+                    {nouveautes.length > 0 ? (
+                        nouveautes.map((actus) => (
+                            <div
+                                key={actus.id}
+                                className="bg-green-50 border-l-4 border-green-600 p-4 rounded-md text-gray-900 mb-3 cursor-pointer"
+                                onClick={() => openModal(actus.id)}
+                            >
+                                <p className="font-medium">{actus.titre}</p>
+                                <p className="text-sm text-gray-500">{actus.date} — {actus.lieu}</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-gray-500 text-center">Aucune nouveauté disponible.</p>
+                    )}
+                </div>
             </div>
         </div>
 

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackward, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import { faReadme } from '@fortawesome/free-brands-svg-icons';
 import axiosInstance from './AxiosConfig';
+import { resolveFileUrl } from './Utils';
 import { toast } from 'react-toastify';
 
 const CorpsFilteredList = ({ isAdmin }) => {
@@ -22,8 +22,8 @@ const CorpsFilteredList = ({ isAdmin }) => {
     }, [currentPage]);
 
     const fetchCorpsList = (page) => {
-        axios
-            .get(`http://localhost:8000/api/corps/?page=${page}`)
+        axiosInstance
+            .get(`/api/corps/?page=${page}`)
             .then((response) => {
                 setCorpsList(response.data.results);
 
@@ -36,20 +36,17 @@ const CorpsFilteredList = ({ isAdmin }) => {
     };
 
     const handleChangeStatus = async (id, newStatus) => {
-        const response = await axiosInstance.patch(
-            `/api/corps/${id}/`,
-            {
-                status: newStatus,
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-                },
-            }
-        );
-        setCorpsList(
-            corpsList.map((corps) => (corps.id === id ? response.data : corps))
-        );
+        try {
+            const response = await axiosInstance.patch(
+                `/api/corps/${id}/`,
+                { status: newStatus }
+            );
+            setCorpsList(
+                corpsList.map((corps) => (corps.id === id ? response.data : corps))
+            );
+        } catch (error) {
+            console.error("Erreur changement statut corps :", error);
+        }
     };
 
     // Supprimer un corps
@@ -74,7 +71,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
 
     // Charger les options de la liste déroulante au démarrage
     useEffect(() => {
-        axios.get('http://localhost:8000/api/corps-professionnels/')
+        axiosInstance.get('/api/corps-professionnels/')
             .then(response => {
                 setCorpsOptions(response.data);
             })
@@ -84,7 +81,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
     }, []);
 
     useEffect(() => {
-        axios.get('http://localhost:8000/api/typecorps/')
+        axiosInstance.get('/api/typecorps/')
             .then(response => setTypeCorps(response.data.results))
             .catch(error => console.error("Une erreur est survenue lors du récupération:", error));
     }, []);
@@ -92,7 +89,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
     // Charger les corps filtrés quand le filtre change
     useEffect(() => {
         if (selectedCorps) {
-            axios.get(`http://localhost:8000/api/corps-filter/?corps=${selectedCorps}`)
+            axiosInstance.get(`/api/corps-filter/?corps=${selectedCorps}`)
                 .then(response => {
                     setCorpsList(response.data);
                 })
@@ -103,9 +100,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
     }, [selectedCorps]);
 
     const handleView = async (fileUrl, fileType, corpsId) => {
-        if (!fileUrl.startsWith("http://")) {
-            fileUrl = `http://localhost:8000${fileUrl}`;
-        }
+        fileUrl = resolveFileUrl(fileUrl);
 
         if (fileType === "pdf") {
             window.open(fileUrl, "_blank");

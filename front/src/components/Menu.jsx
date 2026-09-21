@@ -1,24 +1,30 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { logout, reset } from '../features/auth/authSlice'
-import { toast } from 'react-toastify'
 import { userContext } from './Context'
 import biblio from "../assets/logo.png"
-import axios from 'axios'
+import axiosInstance from './AxiosConfig'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRightFromBracket, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { faRightFromBracket, faHouse, faCircleQuestion, faFileSignature, faFolderOpen, faUserPlus, faStar } from '@fortawesome/free-solid-svg-icons';
+import { requestOnboardingRestart } from './OnboardingTour';
 const Menu = ({ onSelectDomaine }) => {
   const [domaines, setDomaines] = useState([])
   const [isMenuOpen, SetisMenuOpen] = useState(false)
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const { t } = useTranslation()
+  const handleRevoirGuide = () => {
+    SetisMenuOpen(false)
+    requestOnboardingRestart(navigate)
+  }
 
   const toggleMenu = () => {
     SetisMenuOpen(!isMenuOpen)
   }
   useEffect(() => {
-    axios.get('http://localhost:8000/api/domaines/')
+    axiosInstance.get('/api/domaines/')
       .then(response => setDomaines(response.data.results))
       .catch(error => console.error("Erreur est survenue lors du recuperation des domaines", error))
   }, [])
@@ -45,7 +51,7 @@ const Menu = ({ onSelectDomaine }) => {
         <div className="flex items-center justify-between">
           <div className='gap-x-4 flex  text-black text-lg font-bold ml-8'>
             <div className='shrink-0'>
-              <img src={biblio} alt='logo' className='size-6 ' />
+              <img src={biblio} alt='' className='size-6 ' />
             </div>
             <div>
               <h3 className='text-yellow-950 sm:text-sm md:text-lg'>Digital Library</h3>
@@ -54,14 +60,22 @@ const Menu = ({ onSelectDomaine }) => {
           </div>
 
           <div className="md:hidden ">
-            <button className="text-black" onClick={toggleMenu}>
+            <button
+              className="text-black"
+              onClick={toggleMenu}
+              aria-label={isMenuOpen ? t('menu.fermer_menu') : t('menu.ouvrir_menu')}
+              aria-expanded={isMenuOpen}
+              aria-controls="menu-principal-mobile"
+            >
               <svg
                 fill="none"
                 stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
                 className="w-6 h-6">
 
 
@@ -79,15 +93,16 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    <FontAwesomeIcon icon={faHouse} className='px-2 mb-0.5' />Accueil
+                    <FontAwesomeIcon icon={faHouse} className='px-2 mb-0.5' />{t('menu.accueil')}
                   </Link>
                 </li>
                 <li>
                   <select
                     name="domaine"
                     onChange={handleChangeDomaine}
+                    aria-label={t('menu.acces_par_theme_label')}
                     className="text-gray-700 border rounded-lg px-3 py-1">
-                    <option value="">Acces par theme</option>
+                    <option value="">{t('menu.acces_par_theme')}</option>
                     {
                       domaines.map((dom) => (
                         <option key={dom.id} value={dom.id}>{dom.nom}</option>
@@ -100,7 +115,7 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/status"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Status Particuliers
+                    {t('menu.status_particuliers')}
                   </Link>
                 </li>
                 <li>
@@ -108,7 +123,15 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/AfficherDoc"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Recherche
+                    {t('menu.recherche')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/organigramme"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.organigramme')}
                   </Link>
                 </li>
                 <li>
@@ -116,8 +139,42 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/dashboard"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Dashboard
+                    {t('menu.dashboard')}
                   </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/demarches/nouvelle"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faFileSignature} className='px-2 mb-0.5' />{t('menu.demarches_en_ligne')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/mes-demarches"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faFolderOpen} className='px-2 mb-0.5' />{t('menu.mes_demarches')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/mes-favoris"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faStar} className='px-2 mb-0.5' />{t('menu.mes_favoris')}
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleRevoirGuide}
+                    title={t('menu.revoir_guide_title')}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faCircleQuestion} className='px-2 mb-0.5' />{t('menu.revoir_guide')}
+                  </button>
                 </li>
                 <li>
                   <Link
@@ -125,7 +182,7 @@ const Menu = ({ onSelectDomaine }) => {
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Déconnecter<FontAwesomeIcon icon={faRightFromBracket} className='px-2' />
+                    {t('menu.deconnecter')}<FontAwesomeIcon icon={faRightFromBracket} className='px-2' />
                   </Link>
                 </li>
               </>
@@ -137,15 +194,16 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Accueil
+                    {t('menu.accueil')}
                   </Link>
                 </li>
                 <li>
                   <select
                     name="domaine"
                     onChange={handleChangeDomaine}
+                    aria-label={t('menu.acces_par_theme_label')}
                     className="text-gray-700 border rounded-lg px-3 py-1">
-                    <option value="">Acces par theme</option>
+                    <option value="">{t('menu.acces_par_theme')}</option>
                     {
                       domaines.map((dom) => (
                         <option key={dom.id} value={dom.id}>{dom.nom}</option>
@@ -158,7 +216,7 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/status"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Status Particuliers
+                    {t('menu.status_particuliers')}
                   </Link>
                 </li>
                 <li>
@@ -166,15 +224,49 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/AfficherDoc"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Recherche
+                    {t('menu.recherche')}
                   </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/organigramme"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.organigramme')}
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleRevoirGuide}
+                    title={t('menu.revoir_guide_title')}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.revoir_guide')}
+                  </button>
                 </li>
                 <li>
                   <Link
                     to={"/animated"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    A propos
+                    {t('menu.a_propos')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/login"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.se_connecter')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/register"}
+                    className="inline-flex items-center gap-1.5 bg-blue-900 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faUserPlus} />{t('menu.creer_compte')}
                   </Link>
                 </li>
               </>
@@ -182,7 +274,7 @@ const Menu = ({ onSelectDomaine }) => {
           </ul>
         </div>
         {isMenuOpen && (
-          <ul className="flex-col md:hidden  animate__animated animate__zoomInRight">
+          <ul id="menu-principal-mobile" className="flex-col md:hidden  animate__animated animate__zoomInRight">
             {user?.refresh ? (
               <>
                 <li>
@@ -190,15 +282,16 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Accueil
+                    {t('menu.accueil')}
                   </Link>
                 </li>
                 <li>
                   <select
                     name="domaine"
                     onChange={handleChangeDomaine}
+                    aria-label={t('menu.acces_par_theme_label')}
                     className="text-gray-700 border rounded-lg px-3 py-1">
-                    <option value="">Acces par theme</option>
+                    <option value="">{t('menu.acces_par_theme')}</option>
                     {
                       domaines.map((dom) => (
                         <option key={dom.id} value={dom.id}>{dom.nom}</option>
@@ -211,7 +304,22 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/status"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Status Particuliers
+                    {t('menu.status_particuliers')}
+                  </Link>
+                </li>
+                <li>
+                  <Link to={"/demarches/nouvelle"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
+                    {t('menu.demarches_en_ligne')}
+                  </Link>
+                </li>
+                <li>
+                  <Link to={"/mes-demarches"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
+                    {t('menu.mes_demarches')}
+                  </Link>
+                </li>
+                <li>
+                  <Link to={"/mes-favoris"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
+                    {t('menu.mes_favoris')}
                   </Link>
                 </li>
                 <li>
@@ -219,7 +327,15 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/dashboard"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Dashboard
+                    {t('menu.dashboard')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/organigramme"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.organigramme')}
                   </Link>
                 </li>
                 <li>
@@ -228,7 +344,7 @@ const Menu = ({ onSelectDomaine }) => {
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Déconnecter
+                    {t('menu.deconnecter')}
                   </Link>
                 </li>
               </>
@@ -240,21 +356,30 @@ const Menu = ({ onSelectDomaine }) => {
                     to={"/"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    Accueil
+                    {t('menu.accueil')}
                   </Link>
                 </li>
                 <li>
                   <select
                     name="domaine"
                     onChange={handleChangeDomaine}
+                    aria-label={t('menu.acces_par_theme_label')}
                     className="text-gray-700 border rounded-lg px-3 py-1">
-                    <option value="">Acces par theme</option>
+                    <option value="">{t('menu.acces_par_theme')}</option>
                     {
                       domaines.map((dom) => (
                         <option key={dom.id} value={dom.id}>{dom.nom}</option>
                       ))
                     }
                   </select>
+                </li>
+                <li>
+                  <Link
+                    to={"/AfficherDoc"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.recherche')}
+                  </Link>
                 </li>
                 <li>
                   <Link
@@ -266,10 +391,44 @@ const Menu = ({ onSelectDomaine }) => {
                 </li>
                 <li>
                   <Link
+                    to={"/organigramme"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.organigramme')}
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleRevoirGuide}
+                    title={t('menu.revoir_guide_title')}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.revoir_guide')}
+                  </button>
+                </li>
+                <li>
+                  <Link
                     to={"/animated"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
-                    A propos
+                    {t('menu.a_propos')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/login"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.se_connecter')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={"/register"}
+                    className="inline-flex items-center gap-1.5 bg-blue-900 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 transition duration-200"
+                  >
+                    <FontAwesomeIcon icon={faUserPlus} />{t('menu.creer_compte')}
                   </Link>
                 </li>
               </>

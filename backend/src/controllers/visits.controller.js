@@ -3,7 +3,25 @@ const pool = require('../config/db');
 // Middleware: Enregistre automatiquement chaque visite (équivalent du middleware Django)
 const trackVisit = async (req, res, next) => {
   try {
-    const ip = req.ip || req.connection.remoteAddress || '0.0.0.0';
+    if (req.method !== 'GET') return next();
+
+    const path = req.path || req.originalUrl || '';
+    // Ne pas compter les appels de récupération de stats, suggestions, media et fichiers statiques
+    if (
+      path.includes('visit-statistics') ||
+      path.includes('suggestions') ||
+      path.includes('app-ratings') ||
+      path.startsWith('/media') ||
+      path.endsWith('.ico') ||
+      path.endsWith('.png') ||
+      path.endsWith('.jpg') ||
+      path.endsWith('.css') ||
+      path.endsWith('.js')
+    ) {
+      return next();
+    }
+
+    const ip = req.ip || req.connection?.remoteAddress || '0.0.0.0';
     const userAgent = req.headers['user-agent'] || '';
     const today = new Date().toISOString().split('T')[0];
 

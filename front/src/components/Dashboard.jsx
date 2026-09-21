@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
+import axiosInstance from './AxiosConfig';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faFileSignature } from '@fortawesome/free-solid-svg-icons';
 import { FaStar } from "react-icons/fa";
 import { userContext } from './Context';
 import { faSquarePlus } from '@fortawesome/free-solid-svg-icons';
@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import Documents from './AfficherDocs';
 import AfficheActus from './AfficheActus';
 import AdminRemarks from './AdminRemarks';
+import AdminDemarches from './AdminDemarches';
 import VisitStatistics from './VisitStatistics';
 import DocumentStatsDropdown from './StatistiqueDocs';
 import CorpsFilteredList from './CorpsFilteredList';
@@ -19,6 +20,7 @@ import CorpsFilteredList from './CorpsFilteredList';
 const Dashboard = () => {
   const { user } = useContext(userContext);
   const [showRemarks, setShowRemarks] = useState(false);
+  const [showDemarches, setShowDemarches] = useState(false);
   const [totalStars, setTotalStars] = useState(0);
 
   // Refs pour chaque section
@@ -27,6 +29,7 @@ const Dashboard = () => {
     status: useRef(null),
     actus: useRef(null),
     remarques: useRef(null),
+    demarches: useRef(null),
     statistiques: useRef(null),
     etoiles: useRef(null)
   };
@@ -38,7 +41,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStars = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/app-ratings/total_stars/");
+        const res = await axiosInstance.get("/api/app-ratings/total_stars/");
         setTotalStars(res.data.total_stars);
       } catch (error) {
         console.error("Erreur lors de la récupération des étoiles :", error);
@@ -58,6 +61,7 @@ const Dashboard = () => {
     { label: "Status", icon: faUsers, section: "status" },
     { label: "Actualités", icon: faNewspaper, section: "actus" },
     { label: "Remarques", icon: faComment, section: "remarques" },
+    { label: "Démarches", icon: faFileSignature, section: "demarches" },
     { label: "Statistiques", icon: faChartBar, section: "statistiques" },
     { label: "Étoiles", icon: faStar, section: "etoiles" },
   ];
@@ -139,6 +143,20 @@ const Dashboard = () => {
           </button>
         </div>
         {showRemarks && <AdminRemarks />}
+      </section>
+
+      <section ref={sections.demarches} className="flex flex-col items-center justify-center mt-10">
+        <div className="flex items-center space-x-4">
+          <h2 className="text-2xl font-semibold text-gray-300">Démarches en ligne des usagers</h2>
+          <button
+            onClick={() => setShowDemarches(!showDemarches)}
+            aria-label="Afficher les démarches"
+            className="focus:outline-none"
+          >
+            <FontAwesomeIcon icon={faFileSignature} className="text-white h-10 w-10 hover:text-yellow-300" />
+          </button>
+        </div>
+        {showDemarches && <AdminDemarches />}
       </section>
 
       <section ref={sections.statistiques} className="mt-10">

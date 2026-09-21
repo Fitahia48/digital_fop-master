@@ -1,11 +1,13 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import { useDispatch, useSelector } from 'react-redux'
 import { resetPassword } from '../features/auth/authSlice'
 import { Puff } from 'react-loader-spinner'
 const ResetPassword = () => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         "email": "",
     })
@@ -33,8 +35,8 @@ const ResetPassword = () => {
                 email
             }
             dispatch(resetPassword(userData))
-        } catch (error) {
-            toast.error("une erreur est survenue lors de l'envoye de l'email")
+        } catch {
+            toast.error(t('auth.reset_erreur'))
         } finally {
             setLoading(false)
         }
@@ -46,7 +48,7 @@ const ResetPassword = () => {
         }
         if (isSuccess) {
             navigate("/")
-            toast.success("un email de reset password vous a été envoyer")
+            toast.success(t('auth.reset_succes'))
         }
     }, [isError, isSuccess, message, navigate, dispatch])
     return (
@@ -61,7 +63,7 @@ const ResetPassword = () => {
                         }}>
                     </div>
                     <div className="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
-                        <h1 className="text-xl font-semibold text-center text-gray-800 mb-4">Oublier mot de passe</h1>
+                        <h1 className="text-xl font-semibold text-center text-gray-800 mb-4">{t('auth.reset_oublie_titre')}</h1>
                         {isLoading && (
                             <div className="flex justify-center">
                                 <Puff
@@ -76,7 +78,8 @@ const ResetPassword = () => {
                             <input
                                 type="email"
                                 name="email"
-                                placeholder="Email"
+                                placeholder={t('auth.email')}
+                                aria-label={t('auth.email')}
                                 onChange={handleChange}
                                 value={email}
                                 required
@@ -87,7 +90,7 @@ const ResetPassword = () => {
                                 onClick={handleSubmit}
                                 className="w-full px-4 py-2 text-white bg-blue-900 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
                             >
-                                Reset password
+                                {t('auth.reset_bouton')}
                             </button>
                         </form>
                     </div>

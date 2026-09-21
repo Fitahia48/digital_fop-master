@@ -70,7 +70,7 @@ const AnimatedCard = () => {
                     CardsData.map(({ id, img, title,desc, desc1, logo_img }) => {
                         return (
                             <div key={id} className='text-white shadow-md rounded-lg overflow-hidden relative group'>
-                                <img src={img} alt="" className='w-full max-w-[400px] h-[290px] rounded-lg bg-white' />
+                                <img src={img} alt={`Illustration : ${title}`} className='w-full max-w-[400px] h-[290px] rounded-lg bg-white' />
                                 <div className='absolute left-0 top-[-100%] opacity-0 group-hover:opacity-100 group-hover:top-[0] p-4 w-full h-full bg-black/60 group
                         group-hover:backdrop-blur-sm duration-500'>
 

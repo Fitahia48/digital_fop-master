@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS documents (
     domaine_id INTEGER REFERENCES domaines(id) ON DELETE SET NULL,
     fichier VARCHAR(500),
     pdf_file VARCHAR(500),
-    status VARCHAR(10) DEFAULT 'En vigueur',
+    status VARCHAR(30) DEFAULT 'en_vigueur' CHECK (status IN ('en_vigueur', 'abrogé', 'modifié', 'abroge', 'modifie')),
+    date_entree_vigueur DATE,
     last_modified_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     last_modified_at TIMESTAMPTZ,
     modification_details TEXT,
@@ -54,6 +55,26 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE INDEX IF NOT EXISTS idx_documents_objet ON documents(objet);
 CREATE INDEX IF NOT EXISTS idx_documents_numero ON documents(numero);
+
+-- DOCUMENT RELATIONS (Vie juridique des textes)
+CREATE TABLE IF NOT EXISTS document_relations (
+    id SERIAL PRIMARY KEY,
+    document_source_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    document_cible_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    type_relation VARCHAR(20) NOT NULL CHECK (type_relation IN ('modifie', 'abroge', 'complete')),
+    date_creation TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_doc_relation UNIQUE (document_source_id, document_cible_id, type_relation),
+    CONSTRAINT chk_no_self_relation CHECK (document_source_id != document_cible_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_rel_source ON document_relations(document_source_id);
+CREATE INDEX IF NOT EXISTS idx_doc_rel_cible ON document_relations(document_cible_id);
+
+-- API QUOTA USAGE (Google PSE quota journalier)
+CREATE TABLE IF NOT EXISTS api_quota_usage (
+    date DATE PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0
+);
 
 -- DOCUMENT STATS
 CREATE TABLE IF NOT EXISTS document_stats (
@@ -130,3 +151,17 @@ CREATE TABLE IF NOT EXISTS app_ratings (
     session_id VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ORGANIGRAMME
+CREATE TABLE IF NOT EXISTS organigramme (
+    id SERIAL PRIMARY KEY,
+    nom VARCHAR(150) NOT NULL,
+    poste VARCHAR(150) NOT NULL,
+    service VARCHAR(150) DEFAULT 'Cabinet',
+    parent_id INTEGER REFERENCES organigramme(id) ON DELETE CASCADE,
+    ordre INTEGER DEFAULT 0,
+    actif BOOLEAN DEFAULT TRUE
+);
+
+-- CATEGORIES ACTUALITES (actualite / offre / nouveaute)
+ALTER TABLE actualites ADD COLUMN IF NOT EXISTS categorie VARCHAR(30) DEFAULT 'actualite';

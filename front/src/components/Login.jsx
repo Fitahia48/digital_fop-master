@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import axiosInstance from './AxiosConfig';
 import { useDispatch, useSelector } from 'react-redux'
 import { login, reset } from '../features/auth/authSlice'
 import { toast } from 'react-toastify';
 import { userContext } from './Context';
 
 function Login() {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         "email": "",
         "password": "",
@@ -38,7 +41,7 @@ function Login() {
     }
     useEffect(() => {
         if (isError) {
-            toast.error("Mot de passe incorrect ou l'utilisateur inconnu")
+            toast.error(t('auth.identifiants_invalides'))
         }
 
         if (isSuccess || user) {
@@ -47,8 +50,27 @@ function Login() {
 
             if (JSON.parse(localStorage.getItem('user'))) {
                 setUser(JSON.parse(localStorage.getItem('user')))
-                navigate("/dashboard");
-                toast.success("Bienvenue sur le tableau de bord !");
+                // Redirection différenciée : admin → dashboard, usager standard → accueil
+                const redirectAfterLogin = async () => {
+                    try {
+                        const stored = JSON.parse(localStorage.getItem('user'));
+                        const res = await axiosInstance.get('/api/v1/auth/users/me/', {
+                            headers: { Authorization: `Bearer ${stored?.access}` },
+                        });
+                        const isAdminUser = Boolean(res.data.is_staff || res.data.is_superuser);
+                        if (isAdminUser) {
+                            navigate("/dashboard");
+                            toast.success(t('auth.bienvenue_dashboard'));
+                        } else {
+                            navigate("/");
+                            toast.success(t('auth.bienvenue_usager'));
+                        }
+                    } catch {
+                        // En cas d'échec du profil, comportement historique par prudence
+                        navigate("/dashboard");
+                    }
+                };
+                redirectAfterLogin();
             }
 
         }
@@ -67,7 +89,7 @@ function Login() {
 
                 {/* Form Section */}
                 <div className="w-full md:w-1/2 p-6 animate__animated animate__jackInTheBox">
-                    <h1 className="text-2xl font-semibold text-center text-gray-800 mb-4">Se connecter</h1>
+                    <h1 className="text-2xl font-semibold text-center text-gray-800 mb-4">{t('auth.se_connecter')}</h1>
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4">
                             <input
@@ -75,7 +97,8 @@ function Login() {
                                 name="email"
                                 value={email}
                                 onChange={handleChange}
-                                placeholder="Email"
+                                placeholder={t('auth.email')}
+                                aria-label={t('auth.email')}
                                 className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>
@@ -85,21 +108,28 @@ function Login() {
                                 name="password"
                                 value={password}
                                 onChange={handleChange}
-                                placeholder="Mot de passe"
+                                placeholder={t('auth.mot_de_passe')}
+                                aria-label={t('auth.mot_de_passe')}
                                 className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
                         </div>
                         <div className="flex items-center justify-between mb-4">
                             <a href="/resetpassword" className="text-sm text-indigo-500 hover:underline">
-                                Mot de passe oublié ?
+                                {t('auth.mot_de_passe_oublie')}
                             </a>
                         </div>
                         <button
                             type="submit"
-                            className="w-full px-4 py-2 text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-800 to-teal-200 hover:from-blue-400 hover:to-yellow-200 ..."
+                            className="w-full px-4 py-2 text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-800 to-teal-600 hover:from-blue-600 hover:to-teal-700 transition ..."
                         >
-                            Se connecter
+                            {t('auth.se_connecter')}
                         </button>
+                        <p className="text-sm text-gray-600 text-center mt-4">
+                            {t('auth.pas_encore_compte')}{' '}
+                            <Link to="/register" className="text-indigo-500 hover:underline">
+                                {t('auth.creer_compte')}
+                            </Link>
+                        </p>
                     </form>
                 </div>
             </div>

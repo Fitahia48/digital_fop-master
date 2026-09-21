@@ -50,12 +50,25 @@ const deleteTypeCorps = async (req, res) => {
 // GET /api/corps/
 const getCorps = async (req, res) => {
   try {
-    const { page = 1, page_size = 10 } = req.query;
+    const { page = 1, page_size = 10, search } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(page_size);
-    const count = await pool.query('SELECT COUNT(*) FROM corps');
+
+    const params = [];
+    let where = '';
+    if (search && search.trim()) {
+      where = 'WHERE (c.nom ILIKE $1 OR c.numero ILIKE $1 OR c.description ILIKE $1)';
+      params.push(`%${search.trim()}%`);
+    }
+
+    const count = await pool.query(`SELECT COUNT(*) FROM corps c ${where}`, params);
     const r = await pool.query(
-      `SELECT c.*, t.nom AS type_nom FROM corps c LEFT JOIN type_corps t ON c.type_id = t.id ORDER BY c.id DESC LIMIT $1 OFFSET $2`,
-      [parseInt(page_size), offset]
+      `SELECT c.*, t.nom AS type_nom
+       FROM corps c
+       LEFT JOIN type_corps t ON c.type_id = t.id
+       ${where}
+       ORDER BY c.id DESC
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, parseInt(page_size), offset]
     );
     return res.json({ count: parseInt(count.rows[0].count), results: r.rows });
   } catch (err) {

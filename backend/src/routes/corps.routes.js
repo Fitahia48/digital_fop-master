@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const upload = require('../middleware/upload');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, isAdmin } = require('../middleware/auth');
 const {
   getTypeCorps, createTypeCorps, deleteTypeCorps,
   getCorps, getCorpsById, createCorps, updateCorps, deleteCorps, updateCorpsStatus,
@@ -11,17 +11,17 @@ const {
 
 // ─── TYPE CORPS ───────────────────────────────────────────────────────────────
 router.get('/typecorps/', getTypeCorps);
-router.post('/typecorps/', authenticate, createTypeCorps);
-router.delete('/typecorps/:id/', authenticate, deleteTypeCorps);
+router.post('/typecorps/', authenticate, isAdmin, createTypeCorps);
+router.delete('/typecorps/:id/', authenticate, isAdmin, deleteTypeCorps);
 
 // ─── CORPS ────────────────────────────────────────────────────────────────────
 router.get('/corps/', getCorps);
-router.post('/corps/', authenticate, upload.single('fichier'), createCorps);
+router.post('/corps/', authenticate, isAdmin, upload.single('fichier'), createCorps);
 router.get('/corps/:id/', getCorpsById);
-router.put('/corps/:id/', authenticate, upload.single('fichier'), updateCorps);
-router.patch('/corps/:id/', authenticate, upload.single('fichier'), updateCorps);
-router.delete('/corps/:id/', authenticate, deleteCorps);
-router.patch('/corps/:id/update_status/', authenticate, updateCorpsStatus);
+router.put('/corps/:id/', authenticate, isAdmin, upload.single('fichier'), updateCorps);
+router.patch('/corps/:id/', authenticate, isAdmin, upload.single('fichier'), updateCorps);
+router.delete('/corps/:id/', authenticate, isAdmin, deleteCorps);
+router.patch('/corps/:id/update_status/', authenticate, isAdmin, updateCorpsStatus);
 
 // ─── STATS & FILTRES ─────────────────────────────────────────────────────────
 router.get('/corps-filter/', getFilteredCorps);

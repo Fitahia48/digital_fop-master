@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getCsrfToken } from "./Utils";
@@ -16,6 +15,7 @@ const EditDocument = () => {
     conseil: "",
     domaine: "",
     status: "",
+    resume_simplifie: "",
     fichier: null,
   });
 
@@ -23,8 +23,8 @@ const EditDocument = () => {
 
   // Récupérer les domaines depuis l'API
   useEffect(() => {
-    axios
-      .get("http://localhost:8000/api/domaines/")
+    axiosInstance
+      .get("/api/domaines/")
       .then((response) => setDomaines(response.data.results))
       .catch((error) =>
         console.error("Erreur lors de la récupération des domaines :", error)
@@ -34,8 +34,8 @@ const EditDocument = () => {
   // Récupérer les données actuelles du document
   useEffect(() => {
     if (documentId) {
-      axios
-        .get(`http://localhost:8000/api/documents/${documentId}/`)
+      axiosInstance
+        .get(`/api/documents/${documentId}/`)
         .then((response) => setFormData(response.data))
         .catch((error) =>
           console.error("Erreur lors de la récupération du document :", error)
@@ -81,19 +81,12 @@ const EditDocument = () => {
     formDataToSend.append("conseil", formData.conseil);
     formDataToSend.append("domaine", formData.domaine);
     formDataToSend.append("status", formData.status);
+    // Chaîne vide = suppression du résumé côté backend
+    formDataToSend.append("resume_simplifie", formData.resume_simplifie ?? "");
 
-    // Ajoutez le fichier
-    if (formData.fichier) {
+    // Ajoutez le nouveau fichier si sélectionné
+    if (formData.fichier instanceof File) {
       formDataToSend.append("fichier", formData.fichier);
-    } else {
-      console.error("Aucun fichier n'a été sélectionné.");
-      toast.error("Aucun fichier sélectionné.");
-      return;
-    }
-
-    // Debug : Affichez le contenu de FormData
-    for (let pair of formDataToSend.entries()) {
-      console.log(`${pair[0]}:`, pair[1]);
     }
 
     try {
@@ -168,6 +161,25 @@ const EditDocument = () => {
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             placeholder="Entrez l'objet du document"
           />
+        </div>
+
+        {/* Résumé en langage clair */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Résumé en langage clair (optionnel)
+          </label>
+          <textarea
+            name="resume_simplifie"
+            value={formData.resume_simplifie || ""}
+            onChange={handleChange}
+            rows={4}
+            maxLength={1000}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            placeholder="Expliquez ce texte en 2-3 phrases simples, sans jargon administratif"
+          />
+          <p className="text-xs text-gray-500 text-right mt-1">
+            {(formData.resume_simplifie || "").length}/1000 caractères
+          </p>
         </div>
 
         {/* Référence */}

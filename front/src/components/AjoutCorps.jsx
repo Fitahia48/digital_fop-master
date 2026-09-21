@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { getCsrfToken } from './Utils';
+import HelpTooltip from './HelpTooltip';
 import axiosInstance from './AxiosConfig';
 import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +21,7 @@ const CorpsForm = () => {
     const navigate = useNavigate()
 
     useEffect(() => {
-        axios.get('http://localhost:8000/api/typecorps/')
+        axiosInstance.get('/api/typecorps/')
             .then(response => setTypeCorps(response.data.results))
             .catch(error => console.error("Une erreur est survenue lors du récupération:", error))
     }, [])
@@ -84,7 +84,9 @@ const CorpsForm = () => {
 
                         {/* Nom du corps : Liste déroulante */}
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégories des corps professionnels dans la fonction publique</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégories des corps professionnels dans la fonction publique
+                                <HelpTooltip text="Sélectionnez la catégorie ministerielle à laquelle appartient le corps : chaque regroupement thématique facilite la recherche par statut particulier." />
+                            </label>
                             <select
                                 name="nom"
                                 value={formData.nom}
@@ -172,7 +174,9 @@ const CorpsForm = () => {
                         </div>
 
                         <div className="mb-6">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Statut</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Statut
+                                <HelpTooltip text="« Actif » : le corps existe actuellement et recrute. « Inactif » : il n'est plus utilisé (supprimé ou fusionné avec un autre corps)." />
+                            </label>
                             <select
                                 name="status"
                                 value={formData.status}

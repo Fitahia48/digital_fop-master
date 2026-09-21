@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 
 const AddActus = () => {
     const [formData, setFormData] = useState({
+        categorie: "actualite",
         conseil: "",
         titre: "",
         date: "",
@@ -49,15 +50,32 @@ const AddActus = () => {
                     <form className='flex flex-col gap-4' onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-gray-700 font-medium mb-2">
+                                Catégorie
+                            </label>
+                            <select
+                                name="categorie"
+                                value={formData.categorie}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="actualite">Actualité</option>
+                                <option value="offre">Offre</option>
+                                <option value="nouveaute">Nouveauté</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 font-medium mb-2">
                                 Type de conseil
                             </label>
                             <select
                                 name="conseil"
                                 value={formData.conseil}
                                 onChange={handleChange}
-                                required
+                                required={formData.categorie === 'actualite'}
                                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                             >
+                                <option value="">— Non applicable (offres / nouveautés) —</option>
                                 <option value="CONSEIL DES MINISTRES">Conseil des ministres</option>
                                 <option value="CONSEIL DU GOUVERNEMENT">Conseil du Gouvernement</option>
                             </select>

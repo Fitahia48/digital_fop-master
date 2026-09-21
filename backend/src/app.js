@@ -9,6 +9,13 @@ const documentsRoutes = require('./routes/documents.routes');
 const corpsRoutes = require('./routes/corps.routes');
 const visitsRoutes = require('./routes/visits.routes');
 const appratingRoutes = require('./routes/apprating.routes');
+const searchRoutes = require('./routes/search.routes');
+const organigrammeRoutes = require('./routes/organigramme.routes');
+const subscribersRoutes = require('./routes/subscribers.routes');
+const demarchesRoutes = require('./routes/demarches.routes');
+const favorisRoutes = require('./routes/favoris.routes');
+const faqRoutes = require('./routes/faq.routes');
+const transparenceRoutes = require('./routes/transparence.routes');
 const { trackVisit } = require('./controllers/visits.controller');
 
 const app = express();
@@ -48,6 +55,13 @@ app.use('/api', documentsRoutes);
 app.use('/api', corpsRoutes);
 app.use('/api', visitsRoutes);
 app.use('/api', appratingRoutes);
+app.use('/api', searchRoutes);
+app.use('/api', organigrammeRoutes);
+app.use('/api', subscribersRoutes);
+app.use('/api', demarchesRoutes);
+app.use('/api', favorisRoutes);
+app.use('/api', faqRoutes);
+app.use('/api', transparenceRoutes);
 
 // Routes directes (pour compatibilité avec certains appels sans préfixe /api)
 app.use('/', visitsRoutes);

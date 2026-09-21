@@ -1,8 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
-const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const { sendActivationEmail, sendResetPasswordEmail } = require('../config/mailer');
+const { resolveRequestLang } = require('../config/emailTemplates');
 
 // Génère access + refresh tokens
 const generateTokens = (user) => {
@@ -10,24 +11,6 @@ const generateTokens = (user) => {
   const access = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES || '120m' });
   const refresh = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRES || '60d' });
   return { access, refresh };
-};
-
-// Envoi d'email d'activation
-const sendActivationEmail = async (email, uid, token) => {
-  if (!process.env.EMAIL_USER) return; // Skip si email non configuré
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD },
-  });
-  const activationUrl = `${process.env.DOMAIN}/activate/${uid}/${token}`;
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: `Activation de votre compte - ${process.env.SITE_NAME}`,
-    html: `<p>Cliquez sur ce lien pour activer votre compte :</p><a href="${activationUrl}">${activationUrl}</a>`,
-  });
 };
 
 // POST /api/v1/auth/users/ — Inscription
@@ -54,14 +37,19 @@ const register = async (req, res) => {
     const uid = uuidv4();
     const activationToken = jwt.sign({ email, uid }, process.env.JWT_SECRET, { expiresIn: '24h' });
 
+    // Langue préférée : champ explicite du formulaire, sinon en-tête Accept-Language
+    const langue_preferee = resolveRequestLang(req, req.body.langue_preferee);
+
     const result = await pool.query(
-      `INSERT INTO users (nom, prenom, email, password, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, nom, prenom, email, is_active, date_joined`,
-      [nom, prenom, email, hashedPassword, false]
+      `INSERT INTO users (nom, prenom, email, password, is_active, langue_preferee)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, nom, prenom, email, is_active, langue_preferee, date_joined`,
+      [nom, prenom, email, hashedPassword, false, langue_preferee]
     );
 
     // Tenter d'envoyer l'email d'activation (ne bloque pas si echec)
     try {
-      await sendActivationEmail(email, uid, activationToken);
+      await sendActivationEmail(email, uid, activationToken, langue_preferee);
     } catch (mailErr) {
       console.warn('Email d\'activation non envoyé:', mailErr.message);
     }
@@ -177,6 +165,7 @@ const getMe = async (req, res) => {
     is_staff: user.is_staff,
     is_superuser: user.is_superuser,
     is_active: user.is_active,
+    langue_preferee: user.langue_preferee,
     date_joined: user.date_joined,
   });
 };
@@ -188,33 +177,25 @@ const resetPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({ detail: 'Email requis.' });
     }
-    const result = await pool.query('SELECT id, email FROM users WHERE email = $1', [email]);
+    const result = await pool.query('SELECT id, email, langue_preferee FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
       // Pour des raisons de sécurité, on retourne succès même si inexistant
       return res.status(200).json({ detail: 'Email de réinitialisation envoyé si le compte existe.' });
     }
     const token = jwt.sign({ user_id: result.rows[0].id, email }, process.env.JWT_SECRET, { expiresIn: '1h' });
     const uid = Buffer.from(String(result.rows[0].id)).toString('base64');
-    
-    // Tenter d'envoyer l'email
-    if (process.env.EMAIL_USER) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.EMAIL_PORT) || 587,
-          secure: false,
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD },
-        });
-        const resetUrl = `${process.env.DOMAIN}/password/reset/confirm/${uid}/${token}`;
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM,
-          to: email,
-          subject: `Réinitialisation de mot de passe - ${process.env.SITE_NAME}`,
-          html: `<p>Cliquez sur ce lien pour réinitialiser votre mot de passe :</p><a href="${resetUrl}">${resetUrl}</a>`,
-        });
-      } catch (mailErr) {
-        console.warn('Erreur envoi email reset password:', mailErr.message);
-      }
+
+    // Langue préférée du compte (repli sur l'en-tête Accept-Language)
+    const langue_preferee = resolveRequestLang(req, result.rows[0].langue_preferee);
+    const siteUrl =
+      process.env.FRONTEND_URL || process.env.SITE_URL || process.env.DOMAIN || 'http://localhost:5173';
+    const resetUrl = `${siteUrl}/password/reset/confirm/${uid}/${token}`;
+
+    // Tenter d'envoyer l'email (ne bloque pas si echec)
+    try {
+      await sendResetPasswordEmail(email, resetUrl, langue_preferee);
+    } catch (mailErr) {
+      console.warn('Erreur envoi email reset password:', mailErr.message);
     }
 
     return res.status(200).json({ detail: 'Email de réinitialisation envoyé avec succès.' });

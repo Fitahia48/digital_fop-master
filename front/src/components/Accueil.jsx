@@ -1,15 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import img1 from "/1.jpg";
 import img2 from "/3.jpg";
 import img3 from "/9.jpg";
 import Documents from './AfficherDocs';
 import AfficheActus from './AfficheActus';
 import AnimatedCard from './AnimatedCard';
-import axios from 'axios';
+import axiosInstance from './AxiosConfig';
 import AppRating from './AppRating';
+import SubscribeForm from './SubscribeForm';
+import OnboardingTour from './OnboardingTour';
 import { motion } from "framer-motion";
 
 const Accueil = () => {
+  const { t } = useTranslation();
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState(0);
   const [data, setData] = useState({ totalVisits: 0, uniqueVisitors: 0, totalVisitsPerDay: [], uniqueVisitorsPerDay: [], visitsToday: 0 });
@@ -20,23 +24,27 @@ const Accueil = () => {
   const nameRef = useRef("");
   const textRef = useRef("");
 
-  const sliderContent = [
+  // Textes des slides : les clés i18n contiennent du <strong> (rendu innerHTML, contenu statique des JSON)
+  const sliderContent = useMemo(() => [
     {
       img: img1,
-      name: "Bienvenue",
-      Text: 'Afin d’améliorer sa visibilité et de conduire les programmes de réforme de la Fonction Publique, pilier du développement de notre pays, <strong> le Ministère du Travail, de l’Emploi et de la Fonction Publique et des Lois Sociales </strong> est à pied d\'œuvre dans la mise en place d\'une bibliothèque numérique en son sein.'
+      name: t('accueil.slide1_titre'),
+      Text: t('accueil.slide1_texte'),
+      textKey: 'accueil.slide1_texte',
     },
     {
       img: img2,
-      name: "Réforme en cours",
-      Text: "<strong> Le Ministère du Travail,de l'Emploi  et de la fonction publique </strong> met en place des initiatives pour moderniser l'administration publique et améliorer l'efficacité des services offerts aux citoyens. Une bibliothèque numérique est une des pierres angulaires de ces réformes."
+      name: t('accueil.slide2_titre'),
+      Text: t('accueil.slide2_texte'),
+      textKey: 'accueil.slide2_texte',
     },
     {
       img: img3,
-      name: "Notre vision",
-      Text: "Dans une démarche continue d'amélioration de la transparence et de l'accessibilité de ses services, <strong> le Ministère </strong> œuvre pour la mise en place de solutions numériques, y compris une bibliothèque numérique qui soutiendra la gestion des informations et de la diffusion des ressources publiques."
-    }
-  ];
+      name: t('accueil.slide3_titre'),
+      Text: t('accueil.slide3_texte'),
+      textKey: 'accueil.slide3_texte',
+    },
+  ], [t]);
   const formatNumber = (num) => {
     if (num >= 1_000_000) {
       return (num / 1_000_000).toFixed(1) + "M";
@@ -75,7 +83,8 @@ const Accueil = () => {
     // Simulate slide transition
     setTimeout(() => {
       nameRef.current.innerText = sliderContent[active].name;
-      textRef.current.innerHTML = sliderContent[active].Text;  // Use HTML content
+      // Les traductions contiennent du <strong> : innerHTML assumé (contenu statique des JSON, pas d'entrée utilisateur)
+      textRef.current.innerHTML = sliderContent[active].Text;
       contentRef.current.style.left = '5%';
       prevRef.current.style.left = '0%';
       nextRef.current.style.right = '0%';
@@ -88,11 +97,11 @@ const Accueil = () => {
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [active]);
+  }, [active, sliderContent]);
   useEffect(() => { fetchStatistics(); }, []);
   const fetchStatistics = async () => {
     try {
-      const { data: stats } = await axios.get("http://localhost:8000/api/visit-statistics/");
+      const { data: stats } = await axiosInstance.get("/api/visit-statistics/");
       setData({
         totalVisits: stats.total_visits || 0,
         uniqueVisitors: stats.unique_visitors || 0,
@@ -108,6 +117,8 @@ const Accueil = () => {
 
   return (
     <>
+      {/* Visite guidée (1re visite uniquement, relançable depuis le pied de page) */}
+      <OnboardingTour />
       <div className="relative shadow-lg overflow-hidden ">
         {/* Slider Container */}
         <div className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] relative">
@@ -179,9 +190,19 @@ const Accueil = () => {
       {/* Other Components */}
       <Documents />
       <div>
-        <h1 className="text-2xl font-semibold text-gray-400 px-5 py-5 flex flex-col items-center justify-center">Actualités</h1>
+        <h1 id="onboarding-news" className="text-2xl font-semibold text-gray-400 px-5 py-5 flex flex-col items-center justify-center">{t('accueil.actualites')}</h1>
         <AfficheActus />
       </div>
+      {/* Alertes de publication (abonnement email) */}
+      <section
+        id="subscribe-section"
+        className="bg-gray-900 py-8 px-4 sm:px-12 mt-10"
+        aria-label="S'abonner aux alertes de publication"
+      >
+        <div className="max-w-3xl mx-auto">
+          <SubscribeForm />
+        </div>
+      </section>
       <div className='bg-gradient-to-br from-primary/70 grid place-items-center'>
         <AnimatedCard />
       </div>

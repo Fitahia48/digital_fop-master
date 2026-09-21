@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "./AxiosConfig";
 import { Line } from "react-chartjs-2";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine } from '@fortawesome/free-solid-svg-icons';
@@ -17,7 +17,7 @@ const VisitStatistics = () => {
 
     const fetchStatistics = async () => {
         try {
-            const { data: stats } = await axios.get("http://localhost:8000/api/visit-statistics/", {
+            const { data: stats } = await axiosInstance.get("/api/visit-statistics/", {
                 params: { start_date: filters.startDate, end_date: filters.endDate },
             });
             setData({

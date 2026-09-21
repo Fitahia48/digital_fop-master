@@ -1,0 +1,8 @@
+/* AfficherDocs.css — styles complémentaires pour la section web search */
+
+/* Legacy wrapper pour compatibilité avec le HTML généré (notamment le inline <style>
+   du spinner). Sans effet visuel direct, ce fichier assure que le module CSS est bien
+   importé et que les futurs styles dédiés à la recherche web peuvent y vivre. */
+.web-results-section {
+  @apply w-full max-w-6xl;
+}
