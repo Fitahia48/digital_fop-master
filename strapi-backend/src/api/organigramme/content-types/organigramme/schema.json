@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_organigramme",
+  "info": {
+    "singularName": "organigramme",
+    "pluralName": "organigrammes",
+    "displayName": "Organigramme",
+    "description": "Fiche de l'organigramme du ministère avec hiérarchie (ancienne table SQL `organigramme`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nom": {
+      "type": "string",
+      "required": true
+    },
+    "poste": {
+      "type": "string",
+      "required": true
+    },
+    "service": {
+      "type": "string",
+      "default": "Cabinet"
+    },
+    "parent": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::organigramme.organigramme",
+      "inversedBy": "enfants"
+    },
+    "enfants": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::organigramme.organigramme",
+      "mappedBy": "parent"
+    },
+    "ordre": {
+      "type": "integer",
+      "default": 0
+    },
+    "actif": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

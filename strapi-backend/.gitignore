@@ -1,0 +1,10 @@
+# Strapi
+node_modules/
+build/
+dist/
+.tmp/
+.tmp-scripts/
+.cache/
+.env
+*.log
+coverage/

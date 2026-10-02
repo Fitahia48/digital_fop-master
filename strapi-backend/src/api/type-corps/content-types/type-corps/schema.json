@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_type_corps",
+  "info": {
+    "singularName": "type-corps",
+    "pluralName": "types-corps",
+    "displayName": "Type de corps",
+    "description": "Types de corps/organismes (ancienne table SQL `type_corps`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nom": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "corps": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::corps.corps",
+      "mappedBy": "type"
+    }
+  }
+}

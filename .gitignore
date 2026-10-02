@@ -1,10 +1,10 @@
 .env
+.freebuff/
 front/node-modules
 front/media
 node_modules/
 desktop.ini
 *.exe
-backend/.env
 
 
 # Logs
@@ -31,5 +31,3 @@ front/*.ntvs*
 front/*.njsproj
 front/*.sln
 front/*.sw?
-
-backend/media/

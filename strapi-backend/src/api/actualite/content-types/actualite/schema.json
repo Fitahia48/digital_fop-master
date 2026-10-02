@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_actualites",
+  "info": {
+    "singularName": "actualite",
+    "pluralName": "actualites",
+    "displayName": "Actualité",
+    "description": "Actualités, offres et nouveautés (ancienne table SQL `actualites`, endpoints AddActus/AfficheActus)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "conseil": {
+      "type": "string",
+      "default": "CONSEIL DES MINISTRES"
+    },
+    "titre": {
+      "type": "string",
+      "required": true
+    },
+    "date": {
+      "type": "date"
+    },
+    "lieu": {
+      "type": "string",
+      "required": true
+    },
+    "texte": {
+      "type": "text",
+      "required": true
+    },
+    "categorie": {
+      "type": "enumeration",
+      "enum": ["actualite", "offre", "nouveaute"],
+      "default": "actualite"
+    }
+  }
+}

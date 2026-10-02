@@ -1,0 +1,104 @@
+{
+  "attributes": {
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "unique": true,
+      "configurable": false,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "minLength": 6,
+      "configurable": false,
+      "required": true
+    },
+    "provider": {
+      "type": "string",
+      "configurable": false
+    },
+    "password": {
+      "type": "password",
+      "minLength": 6,
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "resetPasswordToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmationToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "role": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.role",
+      "inversedBy": "users",
+      "configurable": false
+    },
+    "nom": {
+      "type": "string"
+    },
+    "prenom": {
+      "type": "string"
+    },
+    "langue_preferee": {
+      "type": "enumeration",
+      "enum": ["fr", "en", "mg"],
+      "default": "fr"
+    },
+    "documents_modified": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::document.document",
+      "mappedBy": "last_modified_by"
+    },
+    "demarches": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche.demarche",
+      "mappedBy": "user"
+    },
+    "demarches_affectees": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche.demarche",
+      "mappedBy": "agent_affecte"
+    },
+    "timeline_edits": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche-timeline.demarche-timeline",
+      "mappedBy": "modifie_par"
+    },
+    "favoris": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::favori.favori",
+      "mappedBy": "user"
+    },
+    "historique_recherches": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::historique-recherche.historique-recherche",
+      "mappedBy": "user"
+    }
+  }
+}

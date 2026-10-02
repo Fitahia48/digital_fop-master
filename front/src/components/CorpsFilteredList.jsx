@@ -58,11 +58,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
             return;
         }
         try {
-            await axiosInstance.delete(`/api/corps/${id}/`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            await axiosInstance.delete(`/api/corps/${id}/`);
             toast.success("Document supprimé avec succès !");
         } catch (error) {
             console.error("Erreur lors de la suppression :", error.response || error);
@@ -117,7 +113,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
 
     const handleDownload = async (fileUrl, fileName, corpsId) => {
         try {
-            const response = await axios.get(fileUrl, {
+            const response = await axiosInstance.get(fileUrl, {
                 responseType: "blob",
             });
 

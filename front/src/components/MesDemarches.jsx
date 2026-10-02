@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import axiosInstance from './AxiosConfig';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleInfo, faRoute } from '@fortawesome/free-solid-svg-icons';
+import { faCircleInfo, faRoute, faFileArrowDown, faCopy } from '@fortawesome/free-solid-svg-icons';
 import DemarcheTimelineModal from './DemarcheTimelineModal';
 
 const STATUT_STYLES = {
@@ -21,6 +21,41 @@ const MesDemarches = () => {
   const [demarches, setDemarches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timelineId, setTimelineId] = useState(null); // démarche affichée dans la modale
+
+  // Libellés des types : i18n pour les 4 codes legacy, sinon libellé du catalogue
+  const typeLabel = (d) => {
+    const code = d.type_code || d.type_demarche;
+    if (d.type_libelle?.fr || d.type_libelle?.en) {
+      const lang = ['fr', 'en', 'mg'].includes(i18n.language) ? i18n.language : 'fr';
+      return d.type_libelle[lang] || d.type_libelle.fr || code;
+    }
+    return t(`demarches.${code}`, { defaultValue: code });
+  };
+
+  const copierNumero = async (numero) => {
+    try {
+      await navigator.clipboard.writeText(numero);
+      toast.success(t('demarches.numero_copie'));
+    } catch {
+      /* clipboard indisponible (http) : silencieux */
+    }
+  };
+
+  const telechargerAr = async (d) => {
+    try {
+      const res = await axiosInstance.get(`/api/demarches/${d.documentId}/accuse-reception/`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accuse-reception-${d.numero_dossier || d.documentId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t('demarches.ar_erreur'));
+    }
+  };
 
   useEffect(() => {
     axiosInstance
@@ -69,7 +104,7 @@ const MesDemarches = () => {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-blue-800 bg-blue-100 px-2.5 py-1 rounded">
-                    {t(`demarches.${d.type_demarche}`)}
+                    {typeLabel(d)}
                   </span>
                   <span
                     className={`ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${STATUT_STYLES[d.statut] || STATUT_STYLES.soumise}`}
@@ -83,6 +118,32 @@ const MesDemarches = () => {
               </div>
 
               <p className="mt-3 text-gray-800">{d.objet}</p>
+
+              {d.numero_dossier && (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-xs uppercase tracking-wider text-gray-500">
+                    {t('demarches.numero_dossier')} :
+                  </span>
+                  <span className="font-mono font-semibold text-blue-900">{d.numero_dossier}</span>
+                  <button
+                    type="button"
+                    aria-label={t('demarches.copier_numero')}
+                    title={t('demarches.copier_numero')}
+                    onClick={() => copierNumero(d.numero_dossier)}
+                    className="text-gray-400 hover:text-blue-700 transition"
+                  >
+                    <FontAwesomeIcon icon={faCopy} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => telechargerAr(d)}
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 hover:underline font-medium"
+                  >
+                    <FontAwesomeIcon icon={faFileArrowDown} />
+                    {t('demarches.accuse_reception')}
+                  </button>
+                </p>
+              )}
 
               {d.document_numero && (
                 <p className="mt-2 text-xs text-gray-600">

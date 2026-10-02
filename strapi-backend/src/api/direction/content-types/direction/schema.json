@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_directions",
+  "info": {
+    "singularName": "direction",
+    "pluralName": "directions",
+    "displayName": "Direction",
+    "description": "Directions du ministère (décret n°2024-055 du 20 janvier 2024). Routage des démarches spécialisées. Aucune route content-API exposée (usage back-office + relations)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "nom": {
+      "type": "string",
+      "required": true
+    },
+    "parent": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::direction.direction",
+      "inversedBy": "enfants"
+    },
+    "enfants": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::direction.direction",
+      "mappedBy": "parent"
+    },
+    "types_demarche": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::type-demarche.type-demarche",
+      "mappedBy": "direction"
+    },
+    "demarches": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche.demarche",
+      "mappedBy": "direction"
+    }
+  }
+}

@@ -178,6 +178,14 @@ const Menu = ({ onSelectDomaine }) => {
                 </li>
                 <li>
                   <Link
+                    to={"/a-propos"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.a_propos')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     to={"/"}
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
@@ -247,7 +255,7 @@ const Menu = ({ onSelectDomaine }) => {
                 </li>
                 <li>
                   <Link
-                    to={"/animated"}
+                    to={"/a-propos"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
                     {t('menu.a_propos')}
@@ -340,6 +348,14 @@ const Menu = ({ onSelectDomaine }) => {
                 </li>
                 <li>
                   <Link
+                    to={"/a-propos"}
+                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+                  >
+                    {t('menu.a_propos')}
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     to={"/"}
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
@@ -409,7 +425,7 @@ const Menu = ({ onSelectDomaine }) => {
                 </li>
                 <li>
                   <Link
-                    to={"/animated"}
+                    to={"/a-propos"}
                     className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
                   >
                     {t('menu.a_propos')}

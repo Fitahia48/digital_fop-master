@@ -31,6 +31,15 @@ const TYPE_LABELS = {
   autre: 'Autre demande',
 };
 
+// Libellé d'affichage : mapping statique pour les 4 codes legacy,
+// sinon libellé trilingue du catalogue (type_libelle) renvoyé par l'API.
+const typeLabel = (d) => {
+  const code = d.type_code || d.type_demarche;
+  if (TYPE_LABELS[code]) return TYPE_LABELS[code];
+  if (d.type_libelle?.fr) return d.type_libelle.fr;
+  return code;
+};
+
 const AdminDemarches = () => {
   const [demarches, setDemarches] = useState([]);
   const [statut, setStatut] = useState('');
@@ -114,7 +123,7 @@ const AdminDemarches = () => {
               <div className="flex flex-wrap justify-between items-center gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-blue-800 bg-blue-100 px-2.5 py-1 rounded">
-                    {TYPE_LABELS[d.type_demarche] || d.type_demarche}
+                    {typeLabel(d)}
                   </span>
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${STATUT_STYLES[d.statut] || STATUT_STYLES.soumise}`}
@@ -129,8 +138,16 @@ const AdminDemarches = () => {
 
               <p className="mt-2 text-sm text-gray-800">{d.objet}</p>
 
+              {d.numero_dossier && (
+                <p className="mt-1 text-xs text-gray-600">
+                  <strong>Dossier :</strong>{' '}
+                  <span className="font-mono font-semibold text-blue-900">{d.numero_dossier}</span>
+                </p>
+              )}
+
               <p className="mt-1 text-xs text-gray-600">
                 <strong>Usager :</strong> {d.usager_prenom} {d.usager_nom} ({d.usager_email})
+                {d.direction?.nom ? ` — ${d.direction.nom}` : ''}
                 {d.document_numero ? ` — Texte lié : ${d.document_type || 'document'} n° ${d.document_numero}` : ''}
                 {d.nb_pieces_jointes > 0 ? ` — ${d.nb_pieces_jointes} pièce(s) jointe(s)` : ''}
               </p>

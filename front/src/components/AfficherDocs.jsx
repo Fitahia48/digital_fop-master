@@ -7,11 +7,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "./AxiosConfig";
 import { toast } from "react-toastify";
 import { userContext } from "./Context";
-import { resolveFileUrl } from "./Utils";
+import { resolveFileUrl, statusLabel } from "./Utils";
 import { Link } from "react-router-dom";
 import { Oval } from "react-loader-spinner";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faEye, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faEye, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import { faReadme } from '@fortawesome/free-brands-svg-icons';
 import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
@@ -56,6 +56,9 @@ const Documents = ({ isAdmin }) => {
 
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   const estConnecte = Boolean(user?.access);
+
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
+  const [pdfViewerDoc, setPdfViewerDoc] = useState(null);
 
   // Chargement des favoris de l'usager au montage (silencieux en cas d'échec)
   useEffect(() => {
@@ -213,37 +216,18 @@ const Documents = ({ isAdmin }) => {
       return;
     }
     try {
-      await axiosInstance.delete(`/api/documents/${id}/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axiosInstance.delete(`/api/documents/${id}/`);
       toast.success("Document supprimé avec succès !");
+      // Retire immédiatement le document de la liste sans rechargement de page
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
     } catch (error) {
       console.error("Erreur lors de la suppression :", error.response || error);
+      toast.error("Erreur lors de la suppression du document.");
     }
   };
 
-  const updateStatus = async (id, newStatus) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const token = user?.access;
-    const response = await axiosInstance.patch(
-      `/api/documents/${id}/status/`,
-      {
-        status: newStatus,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    setDocuments(
-      documents.map((doc) =>
-        doc.id === id ? { ...doc, ...response.data } : doc
-      )
-    );
-  };
+  // P1 : le changement de statut juridique n'existe plus ici — il passe par la
+  // modale Vie juridique (DocumentLifecycleModal) qui exige une justification.
 
   const handleEdit = (id) => {
     navigate(`/edit/${id}`);
@@ -252,7 +236,8 @@ const Documents = ({ isAdmin }) => {
   const handleView = async (fileUrl, fileType, documentId) => {
     fileUrl = resolveFileUrl(fileUrl);
     if (fileType === "pdf") {
-      window.open(fileUrl, "_blank");
+      setPdfViewerUrl(fileUrl);
+      setPdfViewerDoc(documentId);
 
       // Enregistrer la visite
       try {
@@ -488,7 +473,7 @@ const Documents = ({ isAdmin }) => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700 mb-4">
                     <p><strong>Date :</strong> {detailDoc.date || "—"}</p>
-                    <p><strong>Statut :</strong> {detailDoc.status || "—"}</p>
+                    <p><strong>Statut :</strong> {statusLabel(detailDoc.status)}</p>
                     <p><strong>Domaine :</strong> {detailDoc.domaine_nom || "—"}</p>
                     <p><strong>Conseil :</strong> {detailDoc.conseil || "—"}</p>
                   </div>
@@ -626,18 +611,31 @@ const Documents = ({ isAdmin }) => {
                     <td className="py-3 px-2 sm:px-4">{doc?.type}</td>
                     <td className="py-3 px-2 sm:px-4">
                       <span className="inline-flex items-center gap-2">
-                        <span className="max-w-xs md:max-w-md truncate" title={doc?.objet}>{doc?.objet}</span>
+                        {/* P1 : l'objet est un lien vers la fiche à URL stable.
+                            Le state conserve la recherche → « retour » fidèle. */}
+                        <Link
+                          to={`/documents/${doc.id}`}
+                          state={{ from: 'liste', searchValue }}
+                          title={t('documents.voir_detail')}
+                          className="max-w-xs md:max-w-md truncate text-blue-800 hover:underline"
+                        >
+                          {doc?.objet}
+                        </Link>
                         <OfficialBadge />
                       </span>
                     </td>
                     <td className="py-3 px-2 sm:px-4">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${doc?.status !== "En vigueur"
-                          ? "bg-yellow-100 text-yellow-600"
-                          : "bg-green-100 text-green-600"
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          /* « Non vérifié » affiché sans ambiguïté (neutre/gris) */
+                          doc?.status === "en_vigueur"
+                            ? "bg-green-100 text-green-600"
+                            : doc?.status === "abroge"
+                              ? "bg-yellow-100 text-yellow-600"
+                              : "bg-gray-100 text-gray-600"
                           }`}
                       >
-                        {doc?.status}
+                        {statusLabel(doc?.status)}
                       </span>
                     </td>
                     <td className="py-3 px-2 sm:px-4">
@@ -706,10 +704,13 @@ const Documents = ({ isAdmin }) => {
                           >
                             <FontAwesomeIcon icon={faTrash} />
                           </button>
+                          {/* P1 : plus aucune bascule de statut sans justification.
+                              La confirmation juridique passe par la modale
+                              Vie juridique (justification obligatoire + audit). */}
                           <button
-                            onClick={() => updateStatus(doc.id,
-                              doc.status === "En vigueur" ? "Abrogé" : "En vigueur")}
+                            onClick={() => openLifecycleModal(doc.id)}
                             className="text-yellow-500 hover:underline"
+                            title={t('documents.confirmer_statut_title')}
                           >
                             <FontAwesomeIcon icon={faCashRegister} />
                           </button>
@@ -893,6 +894,42 @@ const Documents = ({ isAdmin }) => {
           />
         )}
       </div>
+
+      {/* Modal Visionneuse PDF */}
+      {pdfViewerUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col animate__animated animate__fadeIn">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="font-bold text-lg text-gray-800">Lecture du document</h3>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleDownload(pdfViewerUrl, "pdf", pdfViewerDoc)}
+                  className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faDownload} />
+                  Télécharger
+                </button>
+                <button 
+                  onClick={() => {
+                    setPdfViewerUrl(null);
+                    setPdfViewerDoc(null);
+                  }}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm transition"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 p-2 bg-gray-100">
+              <iframe 
+                src={pdfViewerUrl} 
+                className="w-full h-full border-0 rounded"
+                title="Visionneuse PDF"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

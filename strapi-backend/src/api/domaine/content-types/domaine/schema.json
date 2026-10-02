@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_domaines",
+  "info": {
+    "singularName": "domaine",
+    "pluralName": "domaines",
+    "displayName": "Domaine",
+    "description": "Domaines thématiques des documents (ancienne table SQL `domaines`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nom": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "documents": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::document.document",
+      "mappedBy": "domaine"
+    }
+  }
+}

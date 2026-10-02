@@ -38,25 +38,43 @@ import AdminFaq from './components/AdminFaq';
 import ChatWidget from './components/ChatWidget';
 import OfflineBanner from './components/OfflineBanner';
 import TransparencePage from './components/TransparencePage';
+import DocumentFiche from './components/DocumentFiche';
+import AProposPage from './components/AProposPage';
 axios.defaults.withCredentials = true;
 
 const App = () => {
     const { user, setUser, isAdmin, setIsAdmin, setSelectedDomaine } = useContext(userContext)
-    const [token] = useState(JSON.parse(localStorage.getItem('user')))
+    const [token] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('user') || 'null')
+        } catch {
+            return null
+        }
+    })
     useEffect(() => {
         if (token) {
             setUser(token)
         }
     }, [])
-    // Récupère le profil (rôle admin) quand un token est présent
+    // Récupère le profil (rôle admin) quand un token est présent.
+    // Étape 7 : /api/v1/auth/users/me/ est servi par Strapi (module auth-compat),
+    // la forme de réponse legacy est conservée (is_staff/is_superuser issus du
+    // rôle U&P). On ne force PAS l'en-tête Authorization ici : l'intercepteur
+    // d'AxiosConfig ajoute le Bearer et gère son renouvellement, et un header
+    // figé au montage empêcherait ce renouvellement (401 définitif).
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await axiosInstance.get('/api/v1/auth/users/me/', {
-                    headers: { Authorization: `Bearer ${token.access}` },
-                });
+                const res = await axiosInstance.get('/api/v1/auth/users/me/');
                 setIsAdmin(Boolean(res.data.is_staff || res.data.is_superuser));
             } catch (err) {
+                const status = err.response?.status;
+                // 401 = plus de session valide : on repasse en visiteur anonyme.
+                if (status === 401) {
+                    setUser({});
+                    setIsAdmin(false);
+                    return;
+                }
                 console.error('Erreur lors de la récupération du profil :', err);
                 setIsAdmin(false);
             }
@@ -64,6 +82,16 @@ const App = () => {
         if (token?.access) {
             fetchProfile();
         }
+    }, [])
+
+    // Session purgée par AxiosConfig (refresh refusé) → on vide le contexte.
+    useEffect(() => {
+        const onExpired = () => {
+            setUser({})
+            setIsAdmin(false)
+        }
+        window.addEventListener('auth:session-expired', onExpired)
+        return () => window.removeEventListener('auth:session-expired', onExpired)
     }, [])
 
     return (
@@ -93,6 +121,9 @@ const App = () => {
                         <Route path='/AjoutActus' element={<ProtectedRoute isAuthenticated={user.refresh}><AddActus /></ProtectedRoute>} />
                         <Route path="/remarks" element={<RemarkForm />} />
                         <Route path='/AfficherDoc' element={<Documents isAdmin={isAdmin} />} />
+                        {/* Fiche documentaire à URL stable (P1) — publique, le serveur
+                            renvoie 404 pour les notices non validées */}
+                        <Route path='/documents/:id' element={<DocumentFiche />} />
                         <Route path='/status' element={<CorpsFilteredList />} />
                         <Route path="/admin/remarks" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminRemarks /></ProtectedRoute>} />
                         <Route path="/animated" element={<AnimatedCard />} />
@@ -100,6 +131,8 @@ const App = () => {
                         <Route path="/aide" element={<HelpPage />} />
                         {/* Page publique (F12) : accessible sans connexion, aucune route protégée */}
                         <Route path="/transparence" element={<TransparencePage />} />
+                        {/* Page institutionnelle publique « À propos » (Single Type éditable en admin) */}
+                        <Route path="/a-propos" element={<AProposPage />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/activate/:uid/:token" element={<ActivateAccountPage />} />
                         <Route path="/demarches/nouvelle" element={<DemarcheForm />} />

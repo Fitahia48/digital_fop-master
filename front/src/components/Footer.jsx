@@ -8,7 +8,7 @@ import RemarkForm from './RemarkForm'
 import SubscribeForm from './SubscribeForm'
 import { requestOnboardingRestart } from './OnboardingTour'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircleQuestion, faMapLocationDot, faScaleBalanced } from '@fortawesome/free-solid-svg-icons'
+import { faCircleInfo, faCircleQuestion, faMapLocationDot, faScaleBalanced } from '@fortawesome/free-solid-svg-icons'
 
 const Footer = () => {
   const navigate = useNavigate()
@@ -46,6 +46,13 @@ const Footer = () => {
           className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
         >
           <FontAwesomeIcon icon={faScaleBalanced} /> {t('footer.transparence')}
+        </Link>
+        <span className="text-gray-600" aria-hidden="true">|</span>
+        <Link
+          to="/a-propos"
+          className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
+        >
+          <FontAwesomeIcon icon={faCircleInfo} /> {t('footer.a_propos')}
         </Link>
         <span className="text-gray-600" aria-hidden="true">|</span>
         <button

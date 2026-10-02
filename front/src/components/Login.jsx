@@ -53,10 +53,10 @@ function Login() {
                 // Redirection différenciée : admin → dashboard, usager standard → accueil
                 const redirectAfterLogin = async () => {
                     try {
-                        const stored = JSON.parse(localStorage.getItem('user'));
-                        const res = await axiosInstance.get('/api/v1/auth/users/me/', {
-                            headers: { Authorization: `Bearer ${stored?.access}` },
-                        });
+                        // Pas d'en-tête Authorization en dur : l'intercepteur
+                        // d'AxiosConfig attache le token à jour depuis le
+                        // localStorage et le renouvelle au besoin.
+                        const res = await axiosInstance.get('/api/v1/auth/users/me/');
                         const isAdminUser = Boolean(res.data.is_staff || res.data.is_superuser);
                         if (isAdminUser) {
                             navigate("/dashboard");

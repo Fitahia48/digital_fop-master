@@ -1,0 +1,67 @@
+{
+  "kind": "singleType",
+  "collectionName": "a_propos",
+  "info": {
+    "singularName": "a-propos",
+    "pluralName": "a-proposes",
+    "displayName": "A propos"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "titre": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "mission": {
+      "type": "richtext",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "presentation_application": {
+      "type": "richtext",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "document_legal": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::document.document"
+    },
+    "contact_email": {
+      "type": "email"
+    },
+    "contact_telephone": {
+      "type": "string"
+    },
+    "contact_adresse": {
+      "type": "text",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "liens_utiles": {
+      "type": "component",
+      "repeatable": true,
+      "component": "liens.lien"
+    }
+  }
+}

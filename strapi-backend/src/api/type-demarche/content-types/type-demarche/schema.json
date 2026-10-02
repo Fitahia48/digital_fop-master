@@ -1,0 +1,52 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_type_demarches",
+  "info": {
+    "singularName": "type-demarche",
+    "pluralName": "types-demarche",
+    "displayName": "Type de démarche",
+    "description": "Catalogue des démarches spécialisées (décret n°2024-055) : pièces requises, champs spécifiques, direction compétente, délai cible. Libellés en JSON trilingue {fr,en,mg} (décision D3)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "libelles": {
+      "type": "json",
+      "required": true
+    },
+    "direction": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::direction.direction",
+      "inversedBy": "types_demarche"
+    },
+    "delai_cible_jours": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "pieces_requises": {
+      "type": "json"
+    },
+    "champs_specifiques": {
+      "type": "json"
+    },
+    "actif": {
+      "type": "boolean",
+      "default": true
+    },
+    "demarches": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche.demarche",
+      "mappedBy": "type"
+    }
+  }
+}

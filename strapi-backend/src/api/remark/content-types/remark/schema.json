@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_remarks",
+  "info": {
+    "singularName": "remark",
+    "pluralName": "remarks",
+    "displayName": "Remarque",
+    "description": "Remarques usagers transmises aux administrateurs (ancienne table SQL `remarks`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "message": {
+      "type": "text",
+      "required": true
+    }
+  }
+}

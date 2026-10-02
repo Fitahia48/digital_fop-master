@@ -1,0 +1,59 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_corps",
+  "info": {
+    "singularName": "corps",
+    "pluralName": "organismes",
+    "displayName": "Corps",
+    "description": "Corps/organismes rattachés (ancienne table SQL `corps`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nom": {
+      "type": "string"
+    },
+    "numero": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "type": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::type-corps.type-corps",
+      "inversedBy": "corps"
+    },
+    "date_creation": {
+      "type": "date",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["actif", "inactif"],
+      "default": "actif"
+    },
+    "fichier": {
+      "type": "media",
+      "multiple": false
+    },
+    "pdf_file": {
+      "type": "media",
+      "multiple": false
+    },
+    "visits": {
+      "type": "integer",
+      "default": 0
+    },
+    "telechargements": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

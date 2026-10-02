@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_app_ratings",
+  "info": {
+    "singularName": "app-rating",
+    "pluralName": "app-ratings",
+    "displayName": "Note de l'application",
+    "description": "Notes (étoiles) données par les usagers à l'application (ancienne table SQL `app_ratings`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "stars": {
+      "type": "integer",
+      "required": true,
+      "min": 1,
+      "max": 5
+    },
+    "session_id": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

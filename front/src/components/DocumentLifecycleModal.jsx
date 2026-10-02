@@ -12,6 +12,8 @@ import {
   faPen,
   faCalendarAlt,
   faFileContract,
+  faTriangleExclamation,
+  faHistory,
 } from "@fortawesome/free-solid-svg-icons";
 
 const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated }) => {
@@ -25,6 +27,9 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
   const [selectedCible, setSelectedCible] = useState(null);
   const [submittingRelation, setSubmittingRelation] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
+  // P1 — circuit de validation juridique : choix + justification obligatoire
+  const [statutChoisi, setStatutChoisi] = useState("");
+  const [justification, setJustification] = useState("");
 
   // Charger le document avec ses relations
   const fetchDocDetails = async () => {
@@ -67,21 +72,36 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
     return () => clearTimeout(timer);
   }, [cibleSearch, documentId]);
 
-  // Changer le statut
-  const handleStatusChange = async (newStatus) => {
+  // Changer le statut — P1 : justification OBLIGATOIRE (audit côté serveur)
+  const handleStatusChange = async (newStatus, justification) => {
     try {
       setChangingStatus(true);
       const res = await axiosInstance.patch(`/api/documents/${documentId}/status/`, {
         status: newStatus,
+        justification,
       });
-      setDoc((prev) => ({ ...prev, status: res.data.status }));
-      toast.success(`Statut mis à jour : ${newStatus}`);
+      setDoc((prev) => ({
+        ...prev,
+        status: res.data.status,
+        statut_verifie_le: new Date().toISOString(),
+      }));
+      toast.success(`Statut confirmé et journalisé : ${newStatus}`);
+      setJustification("");
+      setStatutChoisi("");
       if (onStatusUpdated) {
         onStatusUpdated(documentId, res.data.status);
       }
+      // Recharger le document (statut_verifie_le mis à jour côté serveur)
+      await fetchDocDetails();
     } catch (err) {
-      console.error("Erreur mise à jour statut :", err);
-      toast.error(err.response?.data?.error || "Erreur lors du changement de statut.");
+      const msg =
+        err.response?.status === 403
+          ? "Seul un rôle habilité peut confirmer le statut juridique."
+          : err.response?.data?.error?.message ||
+            err.response?.data?.error ||
+            err.response?.data?.detail ||
+            "Erreur lors du changement de statut.";
+      toast.error(msg);
     } finally {
       setChangingStatus(false);
     }
@@ -144,6 +164,13 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
           <FontAwesomeIcon icon={faPen} className="text-amber-600" /> Modifié
+        </span>
+      );
+    }
+    if (s === "non_verifie" || s === "non vérifié") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-400">
+          <FontAwesomeIcon icon={faTriangleExclamation} className="text-gray-500" /> Non vérifié
         </span>
       );
     }
@@ -242,35 +269,75 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
                 </div>
               </div>
 
-              {/* Actions Administrateur : Changement de statut */}
+              {/* Administration — VALIDATION JURIDIQUE (P1) : justification obligatoire */}
               {isAdmin && (
-                <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-4 space-y-2">
+                <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                      Administration — Changer le statut
+                      Administration — Confirmer le statut juridique
                     </span>
                     {changingStatus && <span className="text-xs text-amber-700">Mise à jour...</span>}
                   </div>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {[
-                      { key: "en_vigueur", label: "En vigueur", color: "bg-emerald-600 hover:bg-emerald-700 text-white" },
-                      { key: "modifié", label: "Modifié", color: "bg-amber-600 hover:bg-amber-700 text-white" },
-                      { key: "abrogé", label: "Abrogé", color: "bg-red-600 hover:bg-red-700 text-white" },
-                    ].map((st) => (
-                      <button
-                        key={st.key}
-                        onClick={() => handleStatusChange(st.key)}
-                        disabled={changingStatus || doc.status === st.key}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm transition ${
-                          doc.status === st.key
-                            ? "ring-2 ring-offset-1 ring-blue-900 opacity-60 cursor-not-allowed"
-                            : st.color
-                        }`}
-                      >
-                        Passer à « {st.label} »
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-xs text-amber-800">
+                    La confirmation engage juridiquement : elle exige une justification
+                    (référence du texte, source officielle) et est journalisée de façon
+                    permanente (auteur, date, ancienne et nouvelle valeur).
+                  </p>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!statutChoisi || statutChoisi === doc.status) return;
+                      handleStatusChange(statutChoisi, justification);
+                    }}
+                    className="space-y-2"
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      {/* `key` = valeur canonique de l'enum Strapi (comparée à doc.status) */}
+                      {[
+                        { key: "non_verifie", label: "Non vérifié", color: "bg-gray-600 hover:bg-gray-700 text-white" },
+                        { key: "en_vigueur", label: "En vigueur", color: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+                        { key: "modifie", label: "Modifié", color: "bg-amber-600 hover:bg-amber-700 text-white" },
+                        { key: "abroge", label: "Abrogé", color: "bg-red-600 hover:bg-red-700 text-white" },
+                      ].map((st) => (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => setStatutChoisi(st.key)}
+                          disabled={changingStatus || doc.status === st.key}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm transition ${
+                            statutChoisi === st.key
+                              ? "ring-2 ring-offset-1 ring-blue-900 " + st.color
+                              : doc.status === st.key
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : st.color
+                          }`}
+                        >
+                          {st.label}
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={justification}
+                      onChange={(e) => setJustification(e.target.value)}
+                      rows={2}
+                      maxLength={1000}
+                      required
+                      placeholder="Justification obligatoire — ex. : « abrogé par la loi n° 2023-012 du 05/07/2023, J.O. n° 4521 »"
+                      className="w-full p-2 border border-amber-300 rounded-md text-sm focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={
+                        changingStatus ||
+                        !statutChoisi ||
+                        statutChoisi === doc.status ||
+                        !justification.trim()
+                      }
+                      className="px-4 py-1.5 bg-blue-900 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Confirmer et journaliser
+                    </button>
+                  </form>
                 </div>
               )}
 

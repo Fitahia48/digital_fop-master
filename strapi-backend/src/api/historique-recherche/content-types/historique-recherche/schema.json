@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_historique_recherche",
+  "info": {
+    "singularName": "historique-recherche",
+    "pluralName": "historique-recherches",
+    "displayName": "Historique de recherche",
+    "description": "Historique des recherches d'un usager connecté (ancienne table SQL `historique_recherche`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "historique_recherches"
+    },
+    "terme_recherche": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

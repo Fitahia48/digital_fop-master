@@ -4,15 +4,14 @@ import { toast } from 'react-toastify';
 import axiosInstance from './AxiosConfig';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar as faStarSolid, faDownload, faEye } from '@fortawesome/free-solid-svg-icons';
-import { resolveFileUrl } from './Utils';
+import { resolveFileUrl, statusLabel, normalizeStatus } from './Utils';
 
+// Clés canoniques de l'enum Strapi ; lookup via normalizeStatus() pour que les
+// anciennes valeurs accentuées/capitalisées restent correctement colorées.
 const STATUS_STYLES = {
-  en_vigueur: 'bg-emerald-100 text-emerald-800',
-  'En vigueur': 'bg-emerald-100 text-emerald-800',
-  'abrogé': 'bg-red-100 text-red-800',
-  'Abrogé': 'bg-red-100 text-red-800',
-  'modifié': 'bg-amber-100 text-amber-800',
-  'Modifié': 'bg-amber-100 text-amber-800',
+    en_vigueur: 'bg-emerald-100 text-emerald-800',
+    abroge: 'bg-red-100 text-red-800',
+    modifie: 'bg-amber-100 text-amber-800',
 };
 
 /**
@@ -107,8 +106,8 @@ const MesFavoris = () => {
                     <span className="max-w-xs md:max-w-md truncate block" title={doc.objet}>{doc.objet}</span>
                   </td>
                   <td className="py-3 px-2 sm:px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${STATUS_STYLES[doc.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {doc.status}
+                    <span className={`px-2 py-1 rounded-full text-xs ${STATUS_STYLES[normalizeStatus(doc.status)] || 'bg-gray-100 text-gray-800'}`}>
+                      {statusLabel(doc.status)}
                     </span>
                   </td>
                   <td className="py-3 px-2 sm:px-4">

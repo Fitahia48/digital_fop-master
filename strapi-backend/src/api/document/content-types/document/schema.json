@@ -1,0 +1,139 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_documents",
+  "info": {
+    "singularName": "document",
+    "pluralName": "documents",
+    "displayName": "Document",
+    "description": "Textes et documents juridiques (ancienne table SQL `documents`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "type": {
+      "type": "string",
+      "required": true
+    },
+    "objet": {
+      "type": "text",
+      "required": true,
+      "indexed": true
+    },
+    "numero": {
+      "type": "string",
+      "required": true,
+      "indexed": true
+    },
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "conseil": {
+      "type": "string",
+      "default": "Autre"
+    },
+    "domaine": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::domaine.domaine",
+      "inversedBy": "documents"
+    },
+    "fichier": {
+      "type": "media",
+      "multiple": false
+    },
+    "pdf_file": {
+      "type": "media",
+      "multiple": false
+    },
+
+    "statut_verifie_par": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "statut_verifie_le": {
+      "type": "datetime"
+    },
+    "etat_notice": {
+      "type": "enumeration",
+      "enum": ["brouillon", "a_valider", "validee"],
+      "default": "brouillon"
+    },
+    "mots_cles": {
+      "type": "json"
+    },
+    "langue": {
+      "type": "enumeration",
+      "enum": ["fr", "en", "mg"]
+    },
+    "organisme_emetteur": {
+      "type": "string"
+    },
+    "date_entree_vigueur": {
+      "type": "date"
+    },
+    "last_modified_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "documents_modified"
+    },
+    "last_modified_at": {
+      "type": "datetime"
+    },
+    "modification_details": {
+      "type": "text"
+    },
+    "inclus_journal": {
+      "type": "boolean",
+      "default": false
+    },
+    "date_journal": {
+      "type": "date"
+    },
+    "numero_journal": {
+      "type": "string"
+    },
+    "page_journal": {
+      "type": "string"
+    },
+    "visits": {
+      "type": "integer",
+      "default": 0
+    },
+    "telechargements": {
+      "type": "integer",
+      "default": 0
+    },
+    "resume_simplifie": {
+      "type": "text"
+    },
+    "relations_source": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::document-relation.document-relation",
+      "mappedBy": "document_source"
+    },
+    "relations_cible": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::document-relation.document-relation",
+      "mappedBy": "document_cible"
+    },
+    "demarches": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche.demarche",
+      "mappedBy": "document"
+    },
+    "favoris": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::favori.favori",
+      "mappedBy": "document"
+    }
+  }
+}

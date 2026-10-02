@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_demarche_pieces_jointes",
+  "info": {
+    "singularName": "demarche-piece-jointe",
+    "pluralName": "demarche-pieces-jointes",
+    "displayName": "Démarche — pièce jointe",
+    "description": "Pièces jointes (justificatifs) d'une démarche. Fichiers SENSIBLES : stockage privé hors public/ (décision D1) via api::fichier-prive.fichier-prive — jamais servis en statique."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "demarche": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::demarche.demarche",
+      "inversedBy": "pieces_jointes"
+    },
+    "fichier_prive": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::fichier-prive.fichier-prive",
+      "inversedBy": "pieces_jointes"
+    },
+    "libelle": {
+      "type": "string"
+    },
+    "uploaded_at": {
+      "type": "datetime"
+    }
+  }
+}

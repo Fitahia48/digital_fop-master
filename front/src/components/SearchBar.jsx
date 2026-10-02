@@ -9,31 +9,23 @@ import {
     faClockRotateLeft,
     faSliders,
 } from '@fortawesome/free-solid-svg-icons';
+import { DOCUMENT_TYPES, documentTypeLabel } from '../utils/documentTypes';
 
 const HISTORY_KEY = "digitalfop_search_history";
 const HISTORY_MAX = 5;
 const DEBOUNCE_MS = 300;
 
-// Valeurs telles qu'elles sont stockées en base (cf. AddDocs.jsx)
-const DOCUMENT_TYPES = [
-    "Constitution",
-    "Traités internationaux",
-    "Convention",
-    "Lois organiques",
-    "Lois ordinaires",
-    "Ordonnances",
-    "Décrets",
-    "Arrêtés interministeriels",
-    "Arrêtés",
-    "Circilaire",
-    "Notes",
-];
-
+// Valeurs canoniques de la liste contrôlée (source unique : utils/documentTypes)
 const STATUS_FILTERS = [
+    // `value` sert à la fois de filtre serveur et de suffixe de clé i18n
+    // (recherche.statut_*) : garder les clés canoniques de l'enum Strapi.
+    // P1 : « non_verifie » fait partie de l'enum (présomption nulle) et est
+    // filtrable comme les autres statuts confirmés.
     { value: "", label: "Tous les statuts" },
     { value: "en_vigueur", label: "En vigueur" },
-    { value: "abrogé", label: "Abrogé" },
-    { value: "modifié", label: "Modifié" },
+    { value: "abroge", label: "Abrogé" },
+    { value: "modifie", label: "Modifié" },
+    { value: "non_verifie", label: "Non vérifié" },
 ];
 
 // ─── Historique de recherche (localStorage, 5 dernières recherches) ──────────
@@ -106,19 +98,10 @@ const SearchBar = ({ onSearch, loading = false, resultatsCount = null }) => {
         }
     }, [estConnecte, refreshServerHistory]);
 
+    // Critère « type » : liste contrôlée (source unique) + libellés i18n
     const types = [
         { value: "", label: "Choisissez un type" },
-        { value: "constitution", label: "Constitution" },
-        { value: "traités internationaux", label: "Traité Internationaux" },
-        { value: "convention", label: "Convention" },
-        { value: "lois organiques", label: "Lois Organiques" },
-        { value: "lois ordinaires", label: "Lois Ordinaires" },
-        { value: "ordonnances", label: "Ordonnance" },
-        { value: "decrets", label: "Décrets" },
-        { value: "arretes interministeriels", label: "Arrêtés Interministériels" },
-        { value: "arretes", label: "Arrêtés" },
-        { value: "circilaire", label: "Circulaire" },
-        { value: "notes", label: "Notes" },
+        ...DOCUMENT_TYPES.map((d) => ({ value: d.value, label: documentTypeLabel(d.value, t) })),
     ];
 
     // Domaines pour le filtre (une seule requête au montage)
@@ -446,7 +429,9 @@ const SearchBar = ({ onSearch, loading = false, resultatsCount = null }) => {
                 >
                     <option value="">{t('recherche.tous_types')}</option>
                     {DOCUMENT_TYPES.map((type) => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type.value} value={type.value}>
+                            {documentTypeLabel(type.value, t)}
+                        </option>
                     ))}
                 </select>
 

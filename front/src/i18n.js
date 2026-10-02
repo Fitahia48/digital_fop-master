@@ -34,9 +34,13 @@ i18n
     returnEmptyString: false,
   });
 
-// Attribut lang dynamique sur <html> : indispensable pour les lecteurs d'écran et le SEO
+// Attribut lang dynamique sur <html> : indispensable pour les lecteurs d'écran et le SEO.
+// languageChanged n'est PAS émis au moment du init() initial (la détection finit
+// avant l'attache de ce handler) : on applique aussi la langue détectée ici,
+// sinon <html lang="fr"> reste figé au chargement en vue en/mg.
 i18n.on('languageChanged', (lng) => {
   document.documentElement.lang = lng.split('-')[0];
 });
+document.documentElement.lang = (i18n.language || 'fr').split('-')[0];
 
 export default i18n;

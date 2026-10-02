@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_fichiers_prives",
+  "info": {
+    "singularName": "fichier-prive",
+    "pluralName": "fichiers-prives",
+    "displayName": "Fichier privé",
+    "description": "Métadonnées des fichiers sensibles stockés hors du dossier public (décision D1). Aucune route content-API exposée : lecture/écriture uniquement par le code serveur (service private-files)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nom_fichier": {
+      "type": "string",
+      "required": true
+    },
+    "nom_original": {
+      "type": "string",
+      "required": true
+    },
+    "mime": {
+      "type": "string",
+      "required": true
+    },
+    "taille": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "categorie": {
+      "type": "enumeration",
+      "enum": ["demarche", "signalement"],
+      "required": true
+    },
+    "owner": {
+      "type": "integer"
+    },
+    "pieces_jointes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::demarche-piece-jointe.demarche-piece-jointe",
+      "mappedBy": "fichier_prive"
+    }
+  }
+}

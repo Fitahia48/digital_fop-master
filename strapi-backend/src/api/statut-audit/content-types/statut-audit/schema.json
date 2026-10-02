@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_statut_audits",
+  "info": {
+    "singularName": "statut-audit",
+    "pluralName": "statuts-audit",
+    "displayName": "Audit de statut juridique",
+    "description": "Journal append-only des changements de statut juridique des documents : auteur, date, ancienne valeur, nouvelle valeur, justification obligatoire. Aucune route content-API exposée : écriture/lecture par le code serveur uniquement."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "document": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::document.document"
+    },
+    "ancien_statut": {
+      "type": "string"
+    },
+    "nouveau_statut": {
+      "type": "string",
+      "required": true
+    },
+    "justification": {
+      "type": "text",
+      "required": true
+    },
+    "auteur_id": {
+      "type": "integer"
+    },
+    "auteur_nom": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    }
+  }
+}

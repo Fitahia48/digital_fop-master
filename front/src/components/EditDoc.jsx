@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getCsrfToken } from "./Utils";
+import { getCsrfToken, statusLabel } from "./Utils";
+import HelpTooltip from "./HelpTooltip";
+import { DOCUMENT_TYPES, documentTypeLabel } from "../utils/documentTypes";
 import axiosInstance from "./AxiosConfig";
 
 const EditDocument = () => {
@@ -80,7 +82,10 @@ const EditDocument = () => {
     formDataToSend.append("date", formData.date);
     formDataToSend.append("conseil", formData.conseil);
     formDataToSend.append("domaine", formData.domaine);
-    formDataToSend.append("status", formData.status);
+    // P1 : « status » n'est volontairement PAS envoyé — la modification du
+    // statut juridique passe exclusivement par le circuit dédié
+    // (PATCH /documents/:id/status, justification obligatoire + audit),
+    // jamais par ce PATCH générique.
     // Chaîne vide = suppression du résumé côté backend
     formDataToSend.append("resume_simplifie", formData.resume_simplifie ?? "");
 
@@ -95,7 +100,6 @@ const EditDocument = () => {
         formDataToSend,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data", // Obligatoire pour l'upload de fichiers
           },
         }
@@ -135,17 +139,11 @@ const EditDocument = () => {
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Choisissez un type</option>
-            <option value="Constitution">Constitution</option>
-            <option value="Traités internationaux">Traités Internationaux</option>
-            <option value="Convention">Convention</option>
-            <option value="Lois organiques">Lois Organiques</option>
-            <option value="Lois ordinaires">Lois Ordinaires</option>
-            <option value="Ordonnances">Ordonnance</option>
-            <option value="Décrets">Décrets</option>
-            <option value="Arrêtés interministeriels">Arrêtés Interministériels</option>
-            <option value="Arrêtés">Arrêtés</option>
-            <option value="Circilaire">Circulaire</option>
-            <option value="Notes">Notes</option>
+            {DOCUMENT_TYPES.map((d) => (
+              <option key={d.value} value={d.value}>
+                {documentTypeLabel(d.value)}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -240,21 +238,20 @@ const EditDocument = () => {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Accès */}
+        </div>        {/* Statut juridique — lecture seule : seuls le circuit de confirmation
+            (Vie juridique, justification + audit) peut le modifier. */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Status</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            required
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="En vigueur">En vigueur</option>
-            <option value="Abrogé">Abrogé</option>
-          </select>
+          <label className="block text-gray-700 font-medium mb-2">
+            Statut juridique
+            <HelpTooltip text="Modifiable uniquement via « Vie juridique » : la confirmation exige une justification obligatoire et est journalisée de façon permanente (auteur, date, anciennes et nouvelles valeurs)." />
+          </label>
+          <input
+            type="text"
+            value={statusLabel(formData.status)}
+            readOnly
+            disabled
+            className="w-full p-2 border border-gray-200 bg-gray-100 text-gray-600 rounded-md cursor-not-allowed"
+          />
         </div>
 
         {/* Fichier */}

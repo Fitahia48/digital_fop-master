@@ -2,24 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
 import { Line } from 'react-chartjs-2';
 import axiosInstance from './AxiosConfig';
+import { DOCUMENT_TYPES, documentTypeLabel } from '../utils/documentTypes';
 
 // Enregistrer les composants de Chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const DocumentStatsDropdown = () => {
-    const documentTypes = [
-        { value: 'constitution', label: 'Constitution' },
-        { value: 'traités internationaux', label: 'Traités Internationaux' },
-        { value: 'convention', label: 'Convention' },
-        { value: 'lois organiques', label: 'Lois Organiques' },
-        { value: 'lois ordinaires', label: 'Lois Ordinaires' },
-        { value: 'ordonnances', label: 'Ordonnances' },
-        { value: 'decrets', label: 'Décrets' },
-        { value: 'arretes interministeriels', label: 'Arrêtés Interministériels' },
-        { value: 'arretes', label: 'Arrêtés' },
-        { value: 'circilaire', label: 'Circulaire' },
-        { value: 'notes', label: 'Notes' },
-    ];
+    // Liste contrôlée unique (source : utils/documentTypes)
+    const documentTypes = DOCUMENT_TYPES;
 
     const corpsNom = [
         { value: "Administration Publique", label: 'Administration Publique' },
@@ -220,9 +210,9 @@ const DocumentStatsDropdown = () => {
                         className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     >
                         <option value="">-- Choisir un type --</option>
-                        {documentTypes.map((type, index) => (
-                            <option key={index} value={type.value}>
-                                {type.label}
+                        {documentTypes.map((type) => (
+                            <option key={type.value} value={type.value}>
+                                {documentTypeLabel(type.value)}
                             </option>
                         ))}
                     </select>

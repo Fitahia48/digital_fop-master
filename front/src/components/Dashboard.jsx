@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import axiosInstance from './AxiosConfig';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faFileSignature } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faFileSignature, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
 import { FaStar } from "react-icons/fa";
 import { userContext } from './Context';
 import { faSquarePlus } from '@fortawesome/free-solid-svg-icons';
@@ -92,11 +92,12 @@ const Dashboard = () => {
             </motion.div>
           ))}
 
-          {/* Cartes d'ajout */}
+          {/* Cartes d'ajout + gestion FAQ */}
           {[
             { label: "Ajouter un document", to: "/AjoutDoc" },
             { label: "Ajouter un corps", to: "/AjoutCorps" },
-            { label: "Ajouter une actualité", to: "/AjoutActus" }
+            { label: "Ajouter une actualité", to: "/AjoutActus" },
+            { label: "Gérer la FAQ (chat)", to: "/admin/faq" }
           ].map(({ label, to }, index) => (
             <motion.div
               key={`ajout-${index}`}
@@ -106,7 +107,10 @@ const Dashboard = () => {
             >
               <Link to={to} className="flex items-center space-x-3 ml-2">
                 <div className="w-10 flex justify-center">
-                  <FontAwesomeIcon icon={faSquarePlus} className="text-blue-600 text-2xl" />
+                  <FontAwesomeIcon
+                    icon={to === "/admin/faq" ? faCircleQuestion : faSquarePlus}
+                    className="text-blue-600 text-2xl"
+                  />
                 </div>
                 <span className="text-md font-medium text-gray-800">{label}</span>
               </Link>

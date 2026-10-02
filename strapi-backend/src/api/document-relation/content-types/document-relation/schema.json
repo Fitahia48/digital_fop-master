@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_document_relations",
+  "info": {
+    "singularName": "document-relation",
+    "pluralName": "document-relations",
+    "displayName": "Document relation",
+    "description": "Relation inter-textes (vie juridique) : modifie / abroge / complete (ancienne table SQL `document_relations`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "document_source": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::document.document",
+      "inversedBy": "relations_source"
+    },
+    "document_cible": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::document.document",
+      "inversedBy": "relations_cible"
+    },
+    "type_relation": {
+      "type": "enumeration",
+      "enum": ["modifie", "abroge", "complete"],
+      "required": true
+    },
+    "date_creation": {
+      "type": "datetime"
+    }
+  }
+}

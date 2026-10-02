@@ -2,17 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from './AxiosConfig';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faFileSignature, faCircleCheck, faBan, faPaperclip } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faFileSignature, faCircleCheck, faBan, faPaperclip, faFileArrowDown } from '@fortawesome/free-solid-svg-icons';
 
 // Ordre canonique du cycle de vie (rejetée traitée à part via bannière)
 const STEPPER = ['soumise', 'en_cours', 'traitee'];
 
-const TYPE_LABELS = {
-  copie_certifiee: 'demarches.copie_certifiee',
-  attestation: 'demarches.attestation',
-  demande_information: 'demarches.demande_information',
-  autre: 'demarches.autre',
-};
+const LEGACY_TYPES = ['copie_certifiee', 'attestation', 'demande_information', 'autre'];
 
 const statutBadge = (statut, t) => {
   const styles = {
@@ -39,6 +34,32 @@ const DemarcheTimelineModal = ({ demarcheId, onClose }) => {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Libellé du type : i18n pour les 4 codes legacy, sinon libellé du catalogue
+  const typeLabel = (d) => {
+    const code = d?.type_code || d?.type_demarche;
+    if (d?.type_libelle?.fr || d?.type_libelle?.en) {
+      const lang = ['fr', 'en', 'mg'].includes(i18n.language) ? i18n.language : 'fr';
+      return d.type_libelle[lang] || d.type_libelle.fr || code;
+    }
+    return t(`demarches.${code}`, { defaultValue: code });
+  };
+
+  const telechargerAr = async (d) => {
+    try {
+      const res = await axiosInstance.get(`/api/demarches/${d.documentId}/accuse-reception/`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accuse-reception-${d.numero_dossier || d.documentId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      /* silencieux : la modale ne bloque pas la lecture du suivi */
+    }
+  };
 
   useEffect(() => {
     if (!demarcheId) return;
@@ -104,14 +125,40 @@ const DemarcheTimelineModal = ({ demarcheId, onClose }) => {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-blue-800 bg-blue-100 px-2.5 py-1 rounded">
-                    {t(TYPE_LABELS[demarche.type_demarche] || 'demarches.autre')}
+                    {typeLabel(demarche)}
                   </span>
                   {statutBadge(statutActuel, t)}
                 </div>
+                {demarche.numero_dossier && (
+                  <p className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('demarches.numero_dossier')} :
+                    </span>
+                    <span className="font-mono font-semibold text-blue-900">{demarche.numero_dossier}</span>
+                    <button
+                      type="button"
+                      onClick={() => telechargerAr(demarche)}
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-900 hover:underline font-medium"
+                    >
+                      <FontAwesomeIcon icon={faFileArrowDown} />
+                      {t('demarches.accuse_reception')}
+                    </button>
+                  </p>
+                )}
+                {demarche.direction?.nom && (
+                  <p className="text-xs text-gray-600">{demarche.direction.nom}</p>
+                )}
                 <p className="text-sm text-gray-800">{demarche.objet}</p>
                 <p className="text-xs text-gray-600">
                   {t('demarches.deposee_le', { date: formatDateTime(demarche.created_at) })}
                 </p>
+                {demarche.date_limite && (
+                  <p className="text-xs text-gray-600">
+                    {t('demarches.date_limite', {
+                      date: formatDateTime(demarche.date_limite).split(' ').slice(0, 3).join(' '),
+                    })}
+                  </p>
+                )}
                 {data.document && (
                   <p className="text-xs text-gray-600">
                     {t('demarches.texte_lie', { texte: `${data.document.type || ''} ${data.document.numero ? `n° ${data.document.numero}` : ''}`.trim() })}

@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_subscribers",
+  "info": {
+    "singularName": "subscriber",
+    "pluralName": "subscribers",
+    "displayName": "Abonné",
+    "description": "Abonnés aux alertes de publication (ancienne table SQL `subscribers`)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "email": {
+      "type": "email",
+      "required": true,
+      "unique": true
+    },
+    "is_confirmed": {
+      "type": "boolean",
+      "default": false
+    },
+    "unsubscribe_token": {
+      "type": "string",
+      "unique": true
+    },
+    "confirm_token": {
+      "type": "string",
+      "unique": true
+    },
+    "langue_preferee": {
+      "type": "enumeration",
+      "enum": ["fr", "en", "mg"],
+      "default": "fr"
+    }
+  }
+}

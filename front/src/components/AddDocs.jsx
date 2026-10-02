@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+
 import { toast } from "react-toastify";
 import axiosInstance from "./AxiosConfig";
+import { statusLabel } from "./Utils";
+import { DOCUMENT_TYPES, documentTypeLabel } from "../utils/documentTypes";
 import HelpTooltip from "./HelpTooltip";
 import { ThreeDots } from "react-loader-spinner"
 import { useNavigate } from "react-router-dom";
@@ -14,13 +16,19 @@ const AjouterDocument = () => {
     date: "",
     conseil: "",
     domaine: "",
-    status: "",
+    // P1 : le statut juridique n'est PAS choisi ici — le serveur pose
+    // « non_verifie » à la création ; la confirmation passe par le circuit
+    // dédié (justification obligatoire + audit), jamais par ce formulaire.
     resume_simplifie: "",
     fichier: null,
     inclusJournal: false,
     dateJournal: "",
     numeroJournal: "",
     pageJournal: "",
+    // Métadonnées P1 (optionnelles, validées par l'agent — jamais déduites)
+    mots_cles: "",
+    langue: "fr",
+    organisme_emetteur: "",
   });
 
 
@@ -54,10 +62,14 @@ const AjouterDocument = () => {
     e.preventDefault();
     const data = new FormData();
   
-    Object.keys(formData).forEach((key) => {
-      if (formData[key] !== null && formData[key] !== "") {
-        data.append(key, formData[key]);
-      }
+    Object.keys(formData)
+      // P1 : « status » n'est volontairement PAS envoyé — le serveur impose
+      // « non_verifie » à la création (présomption nulle, circuit dédié).
+      .filter((key) => key !== "status")
+      .forEach((key) => {
+        if (formData[key] !== null && formData[key] !== "") {
+          data.append(key, formData[key]);
+        }
     });
   
     setLoading(true);
@@ -71,11 +83,19 @@ const AjouterDocument = () => {
       navigate("/dashboard");
     } catch (error) {
       console.error("Erreur lors de l'ajout :", error.response || error);  // Log pour vérifier l'erreur
-      if (error.response && error.response.data.error) {
-        toast.error(error.response.data.error);  // Afficher l'erreur spécifique du backend
+      if (error.response && error.response.data) {
+        const errData = error.response.data;
+        const msg =
+          errData?.error?.message ||
+          errData?.error?.details?.message ||
+          errData?.error ||
+          errData?.detail ||
+          "Erreur lors de l'ajout du document.";
+        toast.error(typeof msg === "string" ? msg : "Erreur lors de l'ajout du document.");
       } else {
         toast.error("Erreur lors de l'ajout du document.");
       }
+
     } finally {
       setLoading(false);
     }
@@ -87,7 +107,8 @@ const AjouterDocument = () => {
       <div className="flex flex-wrap bg-white rounded-lg shadow-lg overflow-hidden md:w-1/2 w-full lg:w-3/4 animate__animated animate__pulse">
         <div className="hidden md:block w-1/2 bg-cover bg-center"
           style={{
-            backgroundImage: "url('../../public/ajout.jpg')", width: "50%",
+        backgroundImage: "url('/ajout.jpg')", width: "50%",
+
             height: "auto", backgroundSize: "cover",
             backgroundPosition: "center",
           }}>
@@ -115,17 +136,11 @@ const AjouterDocument = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Choisissez un type</option>
-                <option value="Constitution">Constitution</option>
-                <option value="Traités internationaux">Traités Internationaux</option>
-                <option value="Convention">Convention</option>
-                <option value="Lois organiques">Lois Organiques</option>
-                <option value="Lois ordinaires">Lois Ordinaires</option>
-                <option value="Ordonnances">Ordonnance</option>
-                <option value="Décrets">Décrets</option>
-                <option value="Arrêtés interministeriels">Arrêtés Interministériels</option>
-                <option value="Arrêtés">Arrêtés</option>
-                <option value="Circilaire">Circulaire</option>
-                <option value="Notes">Notes</option>
+                {DOCUMENT_TYPES.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {documentTypeLabel(d.value)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -223,7 +238,8 @@ const AjouterDocument = () => {
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
-                <option value="aucun">Aucun</option>
+                <option value="">Aucun</option>
+
                 {domaines.map((domaine) => (
                   <option key={domaine.id} value={domaine.id}>
                     {domaine.nom}
@@ -232,23 +248,71 @@ const AjouterDocument = () => {
               </select>
             </div>
 
-            {/* Statut juridique */}
+            {/* Statut juridique — lecture seule : le circuit de confirmation
+                (justification + audit) est le seul à pouvoir le modifier. */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
                 Statut juridique
-                <HelpTooltip text="« En vigueur » : le texte est applicable en l'état. « Abrogé » : il a été officiellement supprimé. « Modifié » : il reste applicable mais a été changé par un texte postérieur (à définir ensuite dans la vie juridique du document)." />
+                <HelpTooltip text="À la création, le statut est toujours « Non vérifié » (présomption nulle). Seul le circuit de confirmation — dans « Vie juridique » — peut le changer, avec une justification obligatoire et une journalisation permanente." />
+              </label>
+              <input
+                type="text"
+                value={statusLabel("non_verifie")}
+                readOnly
+                disabled
+                className="w-full p-2 border border-gray-200 bg-gray-100 text-gray-600 rounded-md cursor-not-allowed"
+              />
+            </div>
+
+            {/* Mots-clés (P1) */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Mots-clés (optionnel)
+                <HelpTooltip text="Séparés par des virgules : notions couvertes par le texte (ex. fonction publique, recrutement, sanction). Sert aux recherches futures ; ne renseigner que ce qui figure réellement dans le texte." />
+              </label>
+              <input
+                type="text"
+                name="mots_cles"
+                value={formData.mots_cles}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="ex. : fonction publique, concurrence, commission"
+              />
+            </div>
+
+            {/* Langue du document (P1) */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Langue du document
+                <HelpTooltip text="Langue du fichier original (pas la langue de l'interface)." />
               </label>
               <select
-                name="status"
-                value={formData.status}
+                name="langue"
+                value={formData.langue}
                 onChange={handleChange}
-                required
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
-                <option value="En vigueur">En vigueur</option>
-                <option value="Abrogé">Abrogé</option>
-                <option value="Modifié">Modifié</option>
+                <option value="fr">Français</option>
+                <option value="mg">Malgache</option>
+                <option value="en">Anglais</option>
               </select>
+            </div>
+
+            {/* Organisme émetteur (P1) */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Organisme émetteur (optionnel)
+                <HelpTooltip text="Institution ou service qui a pris le texte (Gouvernement, Ministère, direction…). Ne renseigner que si l'émetteur est certain d'après l'intitulé officiel." />
+              </label>
+              <input
+                type="text"
+                name="organisme_emetteur"
+                value={formData.organisme_emetteur}
+                onChange={handleChange}
+                maxLength={200}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="ex. : Gouvernement, Ministère du Travail…"
+              />
             </div>
 
             {/* Fichier */}
@@ -261,8 +325,11 @@ const AjouterDocument = () => {
                 name="fichier"
                 onChange={handleFileChange}
                 required
+                accept=".pdf,.PDF"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500 mt-1">Formats acceptés : PDF uniquement</p>
+
             </div>
             {/* Inclus dans le Journal Officiel */}
             <div>
