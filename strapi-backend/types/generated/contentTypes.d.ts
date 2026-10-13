@@ -581,47 +581,6 @@ export interface ApiAppRatingAppRating extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiCompteurDossierCompteurDossier
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_compteur_dossiers';
-  info: {
-    description: "Compteur annuel des num\u00E9ros de dossier (MTEFOP-AAAA-NNNNNN, repart \u00E0 1 chaque ann\u00E9e). Manipul\u00E9 uniquement par generation atomique SQL (utils/numero-dossier.ts) \u2014 jamais via l'API.";
-    displayName: 'Compteur dossier';
-    pluralName: 'compteurs-dossier';
-    singularName: 'compteur-dossier';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    annee: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    dernier: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      > &
-      Schema.Attribute.DefaultTo<0>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::compteur-dossier.compteur-dossier'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
 export interface ApiCorpsCorps extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_corps';
   info: {
@@ -660,186 +619,6 @@ export interface ApiCorpsCorps extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiDemarchePieceJointeDemarchePieceJointe
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_demarche_pieces_jointes';
-  info: {
-    description: "Pi\u00E8ces jointes (justificatifs) d'une d\u00E9marche. Fichiers SENSIBLES : stockage priv\u00E9 hors public/ (d\u00E9cision D1) via api::fichier-prive.fichier-prive \u2014 jamais servis en statique.";
-    displayName: 'D\u00E9marche \u2014 pi\u00E8ce jointe';
-    pluralName: 'demarche-pieces-jointes';
-    singularName: 'demarche-piece-jointe';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    demarche: Schema.Attribute.Relation<'manyToOne', 'api::demarche.demarche'>;
-    fichier_prive: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::fichier-prive.fichier-prive'
-    >;
-    libelle: Schema.Attribute.String;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-piece-jointe.demarche-piece-jointe'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    uploaded_at: Schema.Attribute.DateTime;
-  };
-}
-
-export interface ApiDemarcheTimelineDemarcheTimeline
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_demarche_timeline';
-  info: {
-    description: "Journal des changements de statut d'une d\u00E9marche. Append-only : cr\u00E9ation seule, jamais de modification/suppression (ancienne table SQL `demarche_timeline`).";
-    displayName: 'D\u00E9marche \u2014 timeline';
-    pluralName: 'demarche-timelines';
-    singularName: 'demarche-timeline';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    commentaire: Schema.Attribute.Text;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    demarche: Schema.Attribute.Relation<'manyToOne', 'api::demarche.demarche'>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-timeline.demarche-timeline'
-    > &
-      Schema.Attribute.Private;
-    modifie_par: Schema.Attribute.Relation<
-      'manyToOne',
-      'plugin::users-permissions.user'
-    >;
-    publishedAt: Schema.Attribute.DateTime;
-    statut: Schema.Attribute.Enumeration<
-      ['soumise', 'en_cours', 'traitee', 'rejetee']
-    > &
-      Schema.Attribute.Required;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiDemarcheDemarche extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_demarches';
-  info: {
-    description: 'D\u00E9marches en ligne des usagers (ancienne table SQL `demarches`).';
-    displayName: 'D\u00E9marche';
-    pluralName: 'demarches';
-    singularName: 'demarche';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    agent_affecte: Schema.Attribute.Relation<
-      'manyToOne',
-      'plugin::users-permissions.user'
-    >;
-    commentaire_admin: Schema.Attribute.Text;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    date_limite: Schema.Attribute.Date;
-    direction: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::direction.direction'
-    >;
-    document: Schema.Attribute.Relation<'manyToOne', 'api::document.document'>;
-    donnees_specifiques: Schema.Attribute.JSON;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche.demarche'
-    > &
-      Schema.Attribute.Private;
-    numero_dossier: Schema.Attribute.String & Schema.Attribute.Unique;
-    objet: Schema.Attribute.Text & Schema.Attribute.Required;
-    pieces_jointes: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-piece-jointe.demarche-piece-jointe'
-    >;
-    publishedAt: Schema.Attribute.DateTime;
-    statut: Schema.Attribute.Enumeration<
-      ['soumise', 'en_cours', 'traitee', 'rejetee']
-    > &
-      Schema.Attribute.DefaultTo<'soumise'>;
-    timeline: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-timeline.demarche-timeline'
-    >;
-    type: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::type-demarche.type-demarche'
-    >;
-    type_demarche: Schema.Attribute.Enumeration<
-      ['copie_certifiee', 'attestation', 'demande_information', 'autre']
-    > &
-      Schema.Attribute.Required;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    user: Schema.Attribute.Relation<
-      'manyToOne',
-      'plugin::users-permissions.user'
-    >;
-  };
-}
-
-export interface ApiDirectionDirection extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_directions';
-  info: {
-    description: 'Directions du minist\u00E8re (d\u00E9cret n\u00B02024-055 du 20 janvier 2024). Routage des d\u00E9marches sp\u00E9cialis\u00E9es. Aucune route content-API expos\u00E9e (usage back-office + relations).';
-    displayName: 'Direction';
-    pluralName: 'directions';
-    singularName: 'direction';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    code: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    demarches: Schema.Attribute.Relation<'oneToMany', 'api::demarche.demarche'>;
-    enfants: Schema.Attribute.Relation<'oneToMany', 'api::direction.direction'>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::direction.direction'
-    > &
-      Schema.Attribute.Private;
-    nom: Schema.Attribute.String & Schema.Attribute.Required;
-    parent: Schema.Attribute.Relation<'manyToOne', 'api::direction.direction'>;
-    publishedAt: Schema.Attribute.DateTime;
-    types_demarche: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::type-demarche.type-demarche'
-    >;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
 export interface ApiDocumentRelationDocumentRelation
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_document_relations';
@@ -873,7 +652,7 @@ export interface ApiDocumentRelationDocumentRelation
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     type_relation: Schema.Attribute.Enumeration<
-      ['modifie', 'abroge', 'complete']
+      ['modifie', 'abroge', 'complete', 'vise']
     > &
       Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -898,16 +677,14 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    date: Schema.Attribute.Date;
     date_entree_vigueur: Schema.Attribute.Date;
     date_journal: Schema.Attribute.Date;
-    demarches: Schema.Attribute.Relation<'oneToMany', 'api::demarche.demarche'>;
     domaine: Schema.Attribute.Relation<'manyToOne', 'api::domaine.domaine'>;
     etat_notice: Schema.Attribute.Enumeration<
       ['brouillon', 'a_valider', 'validee']
     > &
       Schema.Attribute.DefaultTo<'brouillon'>;
-    favoris: Schema.Attribute.Relation<'oneToMany', 'api::favori.favori'>;
     fichier: Schema.Attribute.Media;
     inclus_journal: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
@@ -917,6 +694,7 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
+    lieu_signature: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -925,7 +703,7 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     modification_details: Schema.Attribute.Text;
     mots_cles: Schema.Attribute.JSON;
-    numero: Schema.Attribute.String & Schema.Attribute.Required;
+    numero: Schema.Attribute.String;
     numero_journal: Schema.Attribute.String;
     objet: Schema.Attribute.Text & Schema.Attribute.Required;
     organisme_emetteur: Schema.Attribute.String;
@@ -941,6 +719,11 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       'api::document-relation.document-relation'
     >;
     resume_simplifie: Schema.Attribute.Text;
+    signataires: Schema.Attribute.Text;
+    status: Schema.Attribute.Enumeration<
+      ['en_vigueur', 'abroge', 'modifie', 'non_verifie']
+    > &
+      Schema.Attribute.DefaultTo<'non_verifie'>;
     statut_verifie_le: Schema.Attribute.DateTime;
     statut_verifie_par: Schema.Attribute.Relation<
       'manyToOne',
@@ -1043,39 +826,6 @@ export interface ApiFaqFaq extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiFavoriFavori extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_favoris';
-  info: {
-    description: 'Documents sauvegard\u00E9s par un usager (ancienne table SQL `favoris`). Un seul favori par couple usager/document.';
-    displayName: 'Favori';
-    pluralName: 'favoris';
-    singularName: 'favori';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    document: Schema.Attribute.Relation<'manyToOne', 'api::document.document'>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::favori.favori'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    user: Schema.Attribute.Relation<
-      'manyToOne',
-      'plugin::users-permissions.user'
-    >;
-  };
-}
-
 export interface ApiFichierPriveFichierPrive
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_fichiers_prives';
@@ -1104,10 +854,6 @@ export interface ApiFichierPriveFichierPrive
     nom_fichier: Schema.Attribute.String & Schema.Attribute.Required;
     nom_original: Schema.Attribute.String & Schema.Attribute.Required;
     owner: Schema.Attribute.Integer;
-    pieces_jointes: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-piece-jointe.demarche-piece-jointe'
-    >;
     publishedAt: Schema.Attribute.DateTime;
     taille: Schema.Attribute.Integer &
       Schema.Attribute.Required &
@@ -1325,55 +1071,6 @@ export interface ApiTypeCorpsTypeCorps extends Struct.CollectionTypeSchema {
     nom: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiTypeDemarcheTypeDemarche
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_type_demarches';
-  info: {
-    description: 'Catalogue des d\u00E9marches sp\u00E9cialis\u00E9es (d\u00E9cret n\u00B02024-055) : pi\u00E8ces requises, champs sp\u00E9cifiques, direction comp\u00E9tente, d\u00E9lai cible. Libell\u00E9s en JSON trilingue {fr,en,mg} (d\u00E9cision D3).';
-    displayName: 'Type de d\u00E9marche';
-    pluralName: 'types-demarche';
-    singularName: 'type-demarche';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    actif: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
-    champs_specifiques: Schema.Attribute.JSON;
-    code: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    delai_cible_jours: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 1;
-        },
-        number
-      >;
-    demarches: Schema.Attribute.Relation<'oneToMany', 'api::demarche.demarche'>;
-    direction: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::direction.direction'
-    >;
-    libelles: Schema.Attribute.JSON & Schema.Attribute.Required;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::type-demarche.type-demarche'
-    > &
-      Schema.Attribute.Private;
-    pieces_requises: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1846,11 +1543,6 @@ export interface PluginUsersPermissionsUser
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    demarches: Schema.Attribute.Relation<'oneToMany', 'api::demarche.demarche'>;
-    demarches_affectees: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche.demarche'
-    >;
     documents_modified: Schema.Attribute.Relation<
       'oneToMany',
       'api::document.document'
@@ -1860,7 +1552,6 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    favoris: Schema.Attribute.Relation<'oneToMany', 'api::favori.favori'>;
     historique_recherches: Schema.Attribute.Relation<
       'oneToMany',
       'api::historique-recherche.historique-recherche'
@@ -1886,10 +1577,6 @@ export interface PluginUsersPermissionsUser
     role: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.role'
-    >;
-    timeline_edits: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::demarche-timeline.demarche-timeline'
     >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1917,17 +1604,11 @@ declare module '@strapi/strapi' {
       'api::a-propos.a-propos': ApiAProposAPropos;
       'api::actualite.actualite': ApiActualiteActualite;
       'api::app-rating.app-rating': ApiAppRatingAppRating;
-      'api::compteur-dossier.compteur-dossier': ApiCompteurDossierCompteurDossier;
       'api::corps.corps': ApiCorpsCorps;
-      'api::demarche-piece-jointe.demarche-piece-jointe': ApiDemarchePieceJointeDemarchePieceJointe;
-      'api::demarche-timeline.demarche-timeline': ApiDemarcheTimelineDemarcheTimeline;
-      'api::demarche.demarche': ApiDemarcheDemarche;
-      'api::direction.direction': ApiDirectionDirection;
       'api::document-relation.document-relation': ApiDocumentRelationDocumentRelation;
       'api::document.document': ApiDocumentDocument;
       'api::domaine.domaine': ApiDomaineDomaine;
       'api::faq.faq': ApiFaqFaq;
-      'api::favori.favori': ApiFavoriFavori;
       'api::fichier-prive.fichier-prive': ApiFichierPriveFichierPrive;
       'api::historique-recherche.historique-recherche': ApiHistoriqueRechercheHistoriqueRecherche;
       'api::organigramme.organigramme': ApiOrganigrammeOrganigramme;
@@ -1935,7 +1616,6 @@ declare module '@strapi/strapi' {
       'api::statut-audit.statut-audit': ApiStatutAuditStatutAudit;
       'api::subscriber.subscriber': ApiSubscriberSubscriber;
       'api::type-corps.type-corps': ApiTypeCorpsTypeCorps;
-      'api::type-demarche.type-demarche': ApiTypeDemarcheTypeDemarche;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

@@ -36,12 +36,6 @@
     },
     "owner": {
       "type": "integer"
-    },
-    "pieces_jointes": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::demarche-piece-jointe.demarche-piece-jointe",
-      "mappedBy": "fichier_prive"
     }
   }
 }

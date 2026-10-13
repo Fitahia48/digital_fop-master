@@ -196,6 +196,13 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
         </span>
       );
     }
+    if (type === "vise") {
+      return (
+        <span className="px-2 py-0.5 text-xs font-bold rounded bg-purple-50 text-purple-700 border border-purple-200">
+          {isSource ? "Vise" : "Est visé par"}
+        </span>
+      );
+    }
     return (
       <span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-50 text-blue-700 border border-blue-200">
         {isSource ? "Complète" : "Est complété par"}
@@ -462,6 +469,7 @@ const DocumentLifecycleModal = ({ documentId, onClose, isAdmin, onStatusUpdated 
                           <option value="modifie">Modifie</option>
                           <option value="abroge">Abroge</option>
                           <option value="complete">Complète</option>
+                          <option value="vise">Vise</option>
                         </select>
                       </div>
 

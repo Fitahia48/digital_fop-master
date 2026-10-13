@@ -15,6 +15,9 @@ const enableAction = (
 };
 
 // ─── Public (aucune authentification) ────────────────────────────────────────
+// NB : `plugin::users-permissions.auth.register` a été retiré — l'inscription
+// publique est coupée (voir IMPLEMENTATION.md) : les comptes sont créés
+// uniquement par un administrateur.
 const PUBLIC_ACTIONS = [
   'api::document.document.find',
   'api::document.document.findOne',
@@ -49,7 +52,7 @@ const AUTH_PUBLIC_ACTIONS = [
   'plugin::users-permissions.auth.connect',
   'plugin::users-permissions.auth.forgotPassword',
   'plugin::users-permissions.auth.resetPassword',
-  'plugin::users-permissions.auth.register',
+  // 'plugin::users-permissions.auth.register' retiré : plus d'inscription usager
   'plugin::users-permissions.auth.emailConfirmation',
   'plugin::users-permissions.auth.sendEmailConfirmation',
   'plugin::users-permissions.auth.refresh',
@@ -63,34 +66,20 @@ const AUTH_AUTHENTICATED_ACTIONS = [
   'plugin::users-permissions.user.me',
 ];
 
-// ─── Authenticated — endpoints métier de l'usager connecté ───────────────────
+// ─── Authenticated — historique de recherche (seule fonctionnalité usager restante)
+// Les actions démarches / favoris / upload ont été retirées avec la suppression
+// des démarches et des favoris (aucun upload côté front ne les utilisait plus).
 const AUTH_THROUGHPUT_ACTIONS = [
-  'api::demarche.demarche.create',
-  'api::demarche.demarche.find',
-  'api::demarche.demarche.findOne',
-  'api::demarche-timeline.demarche-timeline.create',
-  'api::demarche-piece-jointe.demarche-piece-jointe.create',
-  'api::demarche-piece-jointe.demarche-piece-jointe.find',
-  'api::demarche-piece-jointe.demarche-piece-jointe.findOne',
   'api::historique-recherche.historique-recherche.create',
   'api::historique-recherche.historique-recherche.find',
   'api::historique-recherche.historique-recherche.findOne',
-  'plugin::upload.content-api.upload',
 ];
 
 // Action handlers des routes custom (une action par handler, cf. getActions U&P).
 // ⚠️ Les routes `auth: false` n'ont pas besoin de scope ; ici uniquement celles
 // qui exigent un usager connecté (jamais les actions réservées à l'admin).
-const AUTH_CUSTOM_ACTIONS = [
-  'api::demarche.demarche.mine',
-  'api::demarche.demarche.timeline',
-  'api::demarche.demarche.accuseReception',
-  'api::demarche.demarche.pieceJointe',
-  'api::favori.favori.addFavori',
-  'api::favori.favori.myFavoris',
-  'api::favori.favori.removeFavori',
-  'api::search.search.getSearchHistory',
-];
+// Les actions demarche.* et favori.* ont disparu avec les content-types supprimés.
+const AUTH_CUSTOM_ACTIONS = ['api::search.search.getSearchHistory'];
 
 /*
  * P1 — Validation juridique : L'ATTRIBUTION DE PERMISSION NE SUFFIT PAS.

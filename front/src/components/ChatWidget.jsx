@@ -10,7 +10,7 @@ import {
   faFileLines,
   faRotateRight,
 } from '@fortawesome/free-solid-svg-icons';
-import { Oval } from 'react-loader-spinner';
+import { ThreeDots } from 'react-loader-spinner';
 import axiosInstance from './AxiosConfig';
 
 /**
@@ -124,6 +124,12 @@ ${m.reponse || ''}`.trim(),
               documents: data.sources?.documents || [],
             },
           ]);
+        } else if (data.type === 'polite' && data.text) {
+          // Réponse de politesse (salutation, remerciement, congé) — jamais un doc
+          setMessages((prev) => [
+            ...prev,
+            { id: nextMessageId++, role: 'bot', kind: 'llm', text: data.text, documents: [] },
+          ]);
         } else if (data.type === 'faq' && data.faq) {
           setMessages((prev) => [
             ...prev,
@@ -170,6 +176,13 @@ ${m.reponse || ''}`.trim(),
     navigate('/aide');
   };
 
+  // Repli « aucune correspondance » : on oriente vers la recherche de textes
+  // plutôt que de laisser l'usager dans une impasse.
+  const allerRecherche = () => {
+    setOpen(false);
+    navigate('/AfficherDoc');
+  };
+
   const dejaEchange = messages.some((m) => m.role === 'user');
 
   // ─── Bulle fermée ──────────────────────────────────────────────────────────
@@ -193,7 +206,7 @@ ${m.reponse || ''}`.trim(),
       ref={panelRef}
       role="dialog"
       aria-label={t('chat.titre')}
-      className="fixed bottom-5 right-5 z-[55] w-[calc(100vw-2.5rem)] sm:w-96 h-[28rem] max-h-[80vh] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+      className="fixed bottom-5 right-5 z-[55] w-[calc(100vw-2.5rem)] sm:w-96 h-[80vh] sm:h-[32rem] sm:max-h-[80vh] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
     >
       {/* En-tête */}
       <div className="bg-blue-900 text-white px-4 py-3 flex items-center justify-between">
@@ -222,13 +235,19 @@ ${m.reponse || ''}`.trim(),
         className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-gray-50"
       >
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} onOpenDocument={ouvrirDocument} t={t} />
+          <MessageBubble
+            key={m.id}
+            message={m}
+            onOpenDocument={ouvrirDocument}
+            onGoSearch={allerRecherche}
+            t={t}
+          />
         ))}
 
         {loading && (
           <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <Oval height={16} width={16} color="#1e3a8a" secondaryColor="#93c5fd" strokeWidth={4} />
-            {t('common.chargement')}
+            <ThreeDots height={16} width={30} color="#1e3a8a" visible ariaLabel={t('common.chargement')} />
+            <span>{t('common.chargement')}</span>
           </div>
         )}
 
@@ -302,7 +321,7 @@ ${m.reponse || ''}`.trim(),
 
 // ─── Rendu d'un message ───────────────────────────────────────────────────────
 
-const MessageBubble = ({ message, onOpenDocument, t }) => {
+const MessageBubble = ({ message, onOpenDocument, onGoSearch, t }) => {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -392,7 +411,16 @@ const MessageBubble = ({ message, onOpenDocument, t }) => {
                 </ul>
               </>
             ) : (
-              <p>{t('chat.aucun_resultat')}</p>
+              <div>
+                <p>{t('chat.aucun_resultat')}</p>
+                <button
+                  type="button"
+                  onClick={onGoSearch}
+                  className="mt-2 border border-blue-200 bg-blue-50 text-blue-900 text-xs font-medium rounded-md px-2.5 py-1.5 hover:bg-blue-100 hover:border-blue-400 transition"
+                >
+                  {t('chat.aller_recherche')}
+                </button>
+              </div>
             )}
           </>
         )}

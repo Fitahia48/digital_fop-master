@@ -6,6 +6,19 @@
  *
  * GET /api/statistics/visit-statistics — admin
  */
+/**
+ * `knex.raw()` renvoie un tableau de lignes sous sqlite/better-sqlite3 mais
+ * `{ rows }` sous postgres : on normalise pour rester multi-dialectes
+ * (la base locale est en sqlite, le legacy en postgres).
+ */
+const rowsOf = (raw: any): any[] => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.rows)) return raw.rows;
+  return [];
+};
+
+const countOf = (raw: any): number => parseInt(rowsOf(raw)[0]?.count ?? 0, 10) || 0;
+
 export const getVisitStatistics = async (ctx: any) => {
   try {
     const { start_date, end_date } = ctx.query || {};
@@ -18,13 +31,13 @@ export const getVisitStatistics = async (ctx: any) => {
     }
 
     const totalResult = await strapi.db.connection.raw(`SELECT COUNT(*) AS count FROM visits${where}`, params);
-    const total_visits = parseInt(totalResult.rows[0].count, 10);
+    const total_visits = countOf(totalResult);
 
     const uniqueResult = await strapi.db.connection.raw(
       `SELECT COUNT(*) AS count FROM (SELECT DISTINCT ip_address, visit_date FROM visits${where}) AS sub`,
       params
     );
-    const unique_visitors = parseInt(uniqueResult.rows[0].count, 10);
+    const unique_visitors = countOf(uniqueResult);
 
     const perDayResult = await strapi.db.connection.raw(
       `SELECT visit_date, COUNT(*) AS count FROM visits${where} GROUP BY visit_date ORDER BY visit_date`,
@@ -39,13 +52,13 @@ export const getVisitStatistics = async (ctx: any) => {
     const todayResult = await strapi.db.connection.raw('SELECT COUNT(*) AS count FROM visits WHERE visit_date = ?', [
       today,
     ]);
-    const visits_today = parseInt(todayResult.rows[0].count, 10);
+    const visits_today = countOf(todayResult);
 
     ctx.body = {
       total_visits,
       unique_visitors,
-      total_visits_per_day: perDayResult.rows,
-      unique_visitors_per_day: uniquePerDayResult.rows,
+      total_visits_per_day: rowsOf(perDayResult),
+      unique_visitors_per_day: rowsOf(uniquePerDayResult),
       visits_today,
     };
   } catch (err) {

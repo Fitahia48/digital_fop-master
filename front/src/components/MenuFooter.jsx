@@ -25,11 +25,11 @@ export const  SUPPORT=[
     {name:"postes 431 / 455"},
     {name:"Palais du Premier Ministre Mahazoarivo BP:248" },
 ];
-{/* <li><NavLink to={"/login"} className="text-black  hover:text-blue-900 font-medium transition duration-200">Se connecter</NavLink></li> */}
 
 export const  Icons=[
     {name:"logo-facebook" ,link:"https://www.facebook.com/p/Ministère-du-Travail-de-lEmploi-et-de-la-Fonction-Publique-100081858410290/"},
     {name:"logo-twitter" ,link:"#"},
     {name:"logo-instagram" ,link:"#"},
-    {name:"person-circle-outline" ,link :"/login"},
+    // Plus d'icône « connexion » dans le pied de page : la page de connexion
+    // n'est accessible qu'à /portail-gestion/connexion (aucun lien public).
 ];

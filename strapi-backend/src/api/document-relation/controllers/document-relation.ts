@@ -16,7 +16,7 @@ import { findOneByRef } from '../../../utils/by-ref';
 
 const UID = 'api::document-relation.document-relation';
 const DOCS_UID = 'api::document.document';
-const ALLOWED_TYPES = ['modifie', 'abroge', 'complete'];
+const ALLOWED_TYPES = ['modifie', 'abroge', 'complete', 'vise'];
 
 export default factories.createCoreController(UID, () => ({
   // POST /api/documents/:documentId/relations/ (admin)
@@ -32,7 +32,7 @@ export default factories.createCoreController(UID, () => ({
       }
       if (!ALLOWED_TYPES.includes(type_relation)) {
         throw new ValidationError(
-          'type_relation invalide. Valeurs autorisées : modifie, abroge, complete.'
+          'type_relation invalide. Valeurs autorisées : modifie, abroge, complete, vise.'
         );
       }
 

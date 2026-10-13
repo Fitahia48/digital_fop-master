@@ -6,9 +6,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBookOpen,
   faBullseye,
-  faCircleInfo,
   faEnvelope,
   faFileLines,
+  faLandmark,
   faLocationDot,
   faPhone,
   faScaleBalanced,
@@ -67,9 +67,6 @@ const AProposPage = () => {
     document.title = t('apropos.page_titre', {
       defaultValue: 'À propos — Bibliothèque numérique',
     });
-    return () => {
-      document.title = t('apropos.page_titre_base', { defaultValue: 'Bibliothèque numérique' });
-    };
   }, [t]);
 
   useEffect(() => {
@@ -113,7 +110,7 @@ const AProposPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 mt-40 pb-16 flex flex-col items-center gap-3 text-gray-600">
         <Oval height={36} width={36} color="#1e3a8a" secondaryColor="#93c5fd" strokeWidth={4} />
-        {t('apropos.chargement')}
+        <p className="text-sm">{t('apropos.chargement')}</p>
       </div>
     );
   }
@@ -122,7 +119,7 @@ const AProposPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 mt-40 pb-16">
         <div className="max-w-3xl mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-6 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-6 text-center text-sm">
             {t('apropos.erreur')}
           </div>
         </div>
@@ -134,7 +131,7 @@ const AProposPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 mt-40 pb-16">
         <div className="max-w-3xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
             {t('apropos.aucune_donnee')}
           </div>
         </div>
@@ -160,37 +157,43 @@ const AProposPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 mt-40 pb-16">
       <div className="max-w-5xl mx-auto px-4">
-        {/* En-tête */}
-        <header className="text-center pb-8">
-          <FontAwesomeIcon icon={faCircleInfo} className="text-4xl text-blue-800 mb-3" aria-hidden="true" />
-          <h1 className="text-3xl font-bold text-gray-800">{data.titre || t('apropos.titre_page')}</h1>
-          <div className="h-1 w-20 bg-yellow-400 mx-auto mt-4 rounded" aria-hidden="true" />
+        {/* En-tête institutionnel */}
+        <header className="text-center pb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-900 text-white mb-4 shadow-sm" aria-hidden="true">
+            <FontAwesomeIcon icon={faLandmark} className="text-xl" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">{data.titre || t('apropos.titre_page')}</h1>
+          <p className="text-gray-500 mt-2 max-w-xl mx-auto text-sm">
+            {t('apropos.page_titre').replace('À propos — ', '')}
+          </p>
+          <div className="mt-5 max-w-xs mx-auto overflow-hidden rounded-full">
+            <div className="h-1 bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500" aria-hidden="true" />
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Colonne principale : mission + présentation */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             {data.mission && (
               <section
                 aria-labelledby="apropos-mission"
-                className="bg-white rounded-xl shadow-md p-6 sm:p-8"
+                className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-7"
               >
                 <h2
                   id="apropos-mission"
-                  className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-3"
+                  className="text-xl font-semibold text-gray-900 mb-5 flex items-center gap-3"
                 >
-                  <span className="bg-blue-100 text-blue-900 p-2 rounded-lg" aria-hidden="true">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-900 text-white text-sm" aria-hidden="true">
                     <FontAwesomeIcon icon={faBullseye} />
                   </span>
                   {t('apropos.mission')}
                 </h2>
-                {/* Encart citant l'article 2 du décret n°2024-055 */}
-                <blockquote className="border-l-4 border-blue-800 bg-blue-50 rounded-r-md p-4">
+                <blockquote className="border-l-4 border-blue-900 bg-blue-50/70 rounded-r-lg p-4">
                   <div
-                    className="text-gray-800 leading-relaxed"
+                    className="text-gray-700 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: data.mission }}
                   />
-                  <footer className="mt-3 text-sm text-blue-900">
+                  <footer className="mt-3 text-xs text-blue-800 font-medium">
                     {t('apropos.article2_source')}
                   </footer>
                 </blockquote>
@@ -200,13 +203,13 @@ const AProposPage = () => {
             {data.presentation_application && (
               <section
                 aria-labelledby="apropos-presentation"
-                className="bg-white rounded-xl shadow-md p-6 sm:p-8"
+                className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-7"
               >
                 <h2
                   id="apropos-presentation"
-                  className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-3"
+                  className="text-xl font-semibold text-gray-900 mb-5 flex items-center gap-3"
                 >
-                  <span className="bg-teal-100 text-teal-900 p-2 rounded-lg" aria-hidden="true">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-900 text-white text-sm" aria-hidden="true">
                     <FontAwesomeIcon icon={faBookOpen} />
                   </span>
                   {t('apropos.presentation')}
@@ -220,36 +223,35 @@ const AProposPage = () => {
           </div>
 
           {/* Colonne latérale : cadre légal, contacts, liens utiles */}
-          <aside className="space-y-8">
+          <aside className="space-y-6">
             {docLegal && (
               <section
                 aria-labelledby="apropos-cadre-legal"
-                className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl shadow-md p-6 text-white"
+                className="rounded-lg border border-blue-200 bg-blue-50 p-6"
               >
-                <h2
-                  id="apropos-cadre-legal"
-                  className="text-xl font-semibold mb-4 flex items-center gap-3"
-                >
-                  <FontAwesomeIcon icon={faScaleBalanced} aria-hidden="true" />
-                  {t('apropos.document_legal')}
-                </h2>
-                <div className="bg-white/10 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faScaleBalanced} className="text-blue-900 text-lg" aria-hidden="true" />
+                  <h2 id="apropos-cadre-legal" className="text-base font-semibold text-blue-900">
+                    {t('apropos.document_legal')}
+                  </h2>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-100">
                   {docLegalReference && (
-                    <p className="font-medium text-blue-100 mb-1">{docLegalReference}</p>
+                    <p className="font-medium text-gray-900 text-sm mb-1">{docLegalReference}</p>
                   )}
                   {docLegal.objet && (
-                    <p className="text-sm text-blue-100 mb-3">{docLegal.objet}</p>
+                    <p className="text-sm text-gray-600 mb-4">{docLegal.objet}</p>
                   )}
                   {docLegalVisible && docLegalId ? (
                     <Link
                       to={`/documents/${docLegalId}`}
-                      className="inline-flex items-center gap-2 text-sm font-semibold bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-gray-100 transition"
+                      className="inline-flex items-center gap-2 text-sm font-medium bg-blue-900 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
                     >
                       <FontAwesomeIcon icon={faFileLines} aria-hidden="true" />
                       {t('apropos.consulter_texte')}
                     </Link>
                   ) : (
-                    <p className="text-xs text-blue-200">{t('apropos.document_en_attente')}</p>
+                    <p className="text-xs text-blue-700/70 mt-2">{t('apropos.document_en_attente')}</p>
                   )}
                 </div>
               </section>
@@ -258,29 +260,28 @@ const AProposPage = () => {
             {aContact && (
               <section
                 aria-labelledby="apropos-contacts"
-                className="bg-white rounded-xl shadow-md p-6 border-t-4 border-teal-600"
+                className="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
               >
-                <h2
-                  id="apropos-contacts"
-                  className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-3"
-                >
-                  <FontAwesomeIcon icon={faPhone} className="text-teal-600" aria-hidden="true" />
-                  {t('apropos.contacts')}
-                </h2>
-                <ul className="space-y-4 text-gray-600">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faPhone} className="text-blue-900 text-lg" aria-hidden="true" />
+                  <h2 id="apropos-contacts" className="text-base font-semibold text-gray-900">
+                    {t('apropos.contacts')}
+                  </h2>
+                </div>
+                <ul className="space-y-3 text-gray-600 text-sm">
                   {data.contact_adresse && (
                     <li className="flex items-start gap-3">
                       <FontAwesomeIcon
                         icon={faLocationDot}
-                        className="mt-1 text-gray-400"
+                        className="mt-0.5 text-gray-400 shrink-0"
                         aria-hidden="true"
                       />
-                      <span>{data.contact_adresse}</span>
+                      <span className="leading-relaxed">{data.contact_adresse}</span>
                     </li>
                   )}
                   {data.contact_telephone && (
                     <li className="flex items-center gap-3">
-                      <FontAwesomeIcon icon={faPhone} className="text-gray-400" aria-hidden="true" />
+                      <FontAwesomeIcon icon={faPhone} className="text-gray-400 shrink-0" aria-hidden="true" />
                       <a
                         href={`tel:${String(data.contact_telephone).replace(/\s/g, '')}`}
                         className="hover:text-blue-700 hover:underline"
@@ -291,7 +292,7 @@ const AProposPage = () => {
                   )}
                   {data.contact_email && (
                     <li className="flex items-center gap-3">
-                      <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" aria-hidden="true" />
+                      <FontAwesomeIcon icon={faEnvelope} className="text-gray-400 shrink-0" aria-hidden="true" />
                       <a
                         href={`mailto:${data.contact_email}`}
                         className="text-blue-700 hover:underline"
@@ -307,30 +308,30 @@ const AProposPage = () => {
             {liensUtiles.length > 0 && (
               <section
                 aria-labelledby="apropos-liens-utiles"
-                className="bg-white rounded-xl shadow-md p-6"
+                className="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
               >
-                <h2
-                  id="apropos-liens-utiles"
-                  className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-3"
-                >
-                  <FontAwesomeIcon icon={faUpRightFromSquare} className="text-blue-700" aria-hidden="true" />
-                  {t('apropos.liens_utiles')}
-                </h2>
-                <ul className="space-y-3">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faUpRightFromSquare} className="text-blue-900 text-lg" aria-hidden="true" />
+                  <h2 id="apropos-liens-utiles" className="text-base font-semibold text-gray-900">
+                    {t('apropos.liens_utiles')}
+                  </h2>
+                </div>
+                <ul className="space-y-2">
                   {liensUtiles.map((lien, index) => (
                     <li key={`${lien.url}-${index}`}>
                       <a
                         href={lien.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 hover:underline"
+                        className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 hover:underline text-sm"
                       >
                         <FontAwesomeIcon
                           icon={faUpRightFromSquare}
-                          className="text-xs opacity-60"
+                          className="text-xs opacity-50"
                           aria-hidden="true"
                         />
                         {lien.libelle}
+                        <span className="text-xs text-gray-400 ml-1" aria-hidden="true">↗</span>
                       </a>
                     </li>
                   ))}

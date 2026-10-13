@@ -13,8 +13,6 @@ import { Oval } from "react-loader-spinner";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faEye, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import { faReadme } from '@fortawesome/free-brands-svg-icons';
-import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
-import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 import Modal from "./Modal";
 import DocumentLifecycleModal from "./DocumentLifecycleModal";
 import SearchResultsSkeleton from "./SearchResultsSkeleton";
@@ -44,9 +42,6 @@ const Documents = ({ isAdmin }) => {
   const [internalDocsHasMore, setInternalDocsHasMore] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
   const [lastCriteria, setLastCriteria] = useState(null);
-  // Favoris de l'usager connecté (Set des document_id, alimenté par /api/favoris/)
-  const [favoris, setFavoris] = useState(() => new Set());
-  const [favoriEnCours, setFavoriEnCours] = useState(null); // id en cours de toggle
   // Lecture audio du résumé (synthèse vocale native du navigateur)
   const [lectureEnCours, setLectureEnCours] = useState(false);
   const { selectedDomaine } = useContext(userContext);
@@ -54,56 +49,10 @@ const Documents = ({ isAdmin }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const estConnecte = Boolean(user?.access);
-
   const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
   const [pdfViewerDoc, setPdfViewerDoc] = useState(null);
 
-  // Chargement des favoris de l'usager au montage (silencieux en cas d'échec)
-  useEffect(() => {
-    if (!estConnecte) return;
-    axiosInstance
-      .get('/api/favoris/')
-      .then((res) => {
-        setFavoris(new Set((res.data.results || []).map((f) => f.id)));
-      })
-      .catch((err) => console.error('Erreur lors du chargement des favoris :', err));
-  }, [estConnecte]);
 
-  // Toggle favori : optimiste, annule en cas d'échec réseau
-  const toggleFavori = async (documentId) => {
-    if (favoriEnCours) return; // un toggle à la fois
-    setFavoriEnCours(documentId);
-    const dejaFavori = favoris.has(documentId);
-
-    // Mise à jour optimiste de l'UI
-    setFavoris((prev) => {
-      const next = new Set(prev);
-      if (dejaFavori) next.delete(documentId);
-      else next.add(documentId);
-      return next;
-    });
-
-    try {
-      const res = dejaFavori
-        ? await axiosInstance.delete(`/api/favoris/${documentId}/`)
-        : await axiosInstance.post('/api/favoris/', { document_id: documentId });
-      toast.success(res.data?.detail || t('documents.favoris_maj'));
-    } catch (err) {
-      // Rollback de l'état optimiste
-      setFavoris((prev) => {
-        const next = new Set(prev);
-        if (dejaFavori) next.add(documentId);
-        else next.delete(documentId);
-        return next;
-      });
-      const detail = err.response?.data?.detail;
-      toast.error(detail || t('documents.favori_erreur'));
-    } finally {
-      setFavoriEnCours(null);
-    }
-  };
 
   const handleShowInfo = (modification) => {
     setSelectedModification(modification);
@@ -639,18 +588,6 @@ const Documents = ({ isAdmin }) => {
                       </span>
                     </td>
                     <td className="py-3 px-2 sm:px-4">
-                      {estConnecte && (
-                        <button
-                          onClick={() => toggleFavori(doc.id)}
-                          disabled={favoriEnCours === doc.id}
-                          title={favoris.has(doc.id) ? t('documents.favori_retirer') : t('documents.favori_ajouter')}
-                          aria-label={favoris.has(doc.id) ? t('documents.favori_retirer') : t('documents.favori_ajouter')}
-                          aria-pressed={favoris.has(doc.id)}
-                          className="text-yellow-500 hover:text-yellow-600 disabled:opacity-50"
-                        >
-                          <FontAwesomeIcon icon={favoris.has(doc.id) ? faStarSolid : faStarRegular} />
-                        </button>
-                      )}
                       {isAdmin ? (
                         <div className="flex space-x-2 sm:space-x-4">
                           <button
@@ -729,18 +666,6 @@ const Documents = ({ isAdmin }) => {
                         </div>
                       ) : (
                         <div className="flex space-x-2 sm:space-x-4">
-                          {estConnecte && (
-                            <button
-                              onClick={() => toggleFavori(doc.id)}
-                              disabled={favoriEnCours === doc.id}
-                              title={favoris.has(doc.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                              aria-label={favoris.has(doc.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                              aria-pressed={favoris.has(doc.id)}
-                              className="text-yellow-500 hover:text-yellow-600 disabled:opacity-50"
-                            >
-                              <FontAwesomeIcon icon={favoris.has(doc.id) ? faStarSolid : faStarRegular} />
-                            </button>
-                          )}
                           <button
                             onClick={() => openDetailModal(doc.id)}
                             className={`hover:underline ${doc.resume_simplifie ? "text-blue-600" : "text-gray-500"}`}

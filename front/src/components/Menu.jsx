@@ -7,7 +7,7 @@ import { userContext } from './Context'
 import biblio from "../assets/logo.png"
 import axiosInstance from './AxiosConfig'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRightFromBracket, faHouse, faCircleQuestion, faFileSignature, faFolderOpen, faUserPlus, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faRightFromBracket, faHouse, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
 import { requestOnboardingRestart } from './OnboardingTour';
 const Menu = ({ onSelectDomaine }) => {
   const [domaines, setDomaines] = useState([])
@@ -54,7 +54,7 @@ const Menu = ({ onSelectDomaine }) => {
               <img src={biblio} alt='' className='size-6 ' />
             </div>
             <div>
-              <h3 className='text-yellow-950 sm:text-sm md:text-lg'>Digital Library</h3>
+              <h3 className='text-yellow-950 sm:text-sm md:text-lg'>{t('menu.bibliotheque')}</h3>
             </div>
 
           </div>
@@ -142,30 +142,9 @@ const Menu = ({ onSelectDomaine }) => {
                     {t('menu.dashboard')}
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to={"/demarches/nouvelle"}
-                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
-                  >
-                    <FontAwesomeIcon icon={faFileSignature} className='px-2 mb-0.5' />{t('menu.demarches_en_ligne')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={"/mes-demarches"}
-                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
-                  >
-                    <FontAwesomeIcon icon={faFolderOpen} className='px-2 mb-0.5' />{t('menu.mes_demarches')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={"/mes-favoris"}
-                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
-                  >
-                    <FontAwesomeIcon icon={faStar} className='px-2 mb-0.5' />{t('menu.mes_favoris')}
-                  </Link>
-                </li>
+                
+                
+                
                 <li>
                   <button
                     type="button"
@@ -261,22 +240,8 @@ const Menu = ({ onSelectDomaine }) => {
                     {t('menu.a_propos')}
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to={"/login"}
-                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
-                  >
-                    {t('menu.se_connecter')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={"/register"}
-                    className="inline-flex items-center gap-1.5 bg-blue-900 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 transition duration-200"
-                  >
-                    <FontAwesomeIcon icon={faUserPlus} />{t('menu.creer_compte')}
-                  </Link>
-                </li>
+                
+                
               </>
             )}
           </ul>
@@ -315,21 +280,9 @@ const Menu = ({ onSelectDomaine }) => {
                     {t('menu.status_particuliers')}
                   </Link>
                 </li>
-                <li>
-                  <Link to={"/demarches/nouvelle"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
-                    {t('menu.demarches_en_ligne')}
-                  </Link>
-                </li>
-                <li>
-                  <Link to={"/mes-demarches"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
-                    {t('menu.mes_demarches')}
-                  </Link>
-                </li>
-                <li>
-                  <Link to={"/mes-favoris"} className="text-gray-700 hover:text-blue-500 font-medium transition duration-200">
-                    {t('menu.mes_favoris')}
-                  </Link>
-                </li>
+                
+                
+                
                 <li>
                   <Link
                     to={"/dashboard"}
@@ -431,22 +384,8 @@ const Menu = ({ onSelectDomaine }) => {
                     {t('menu.a_propos')}
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to={"/login"}
-                    className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
-                  >
-                    {t('menu.se_connecter')}
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to={"/register"}
-                    className="inline-flex items-center gap-1.5 bg-blue-900 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-600 transition duration-200"
-                  >
-                    <FontAwesomeIcon icon={faUserPlus} />{t('menu.creer_compte')}
-                  </Link>
-                </li>
+                
+                
               </>
             )}
           </ul>

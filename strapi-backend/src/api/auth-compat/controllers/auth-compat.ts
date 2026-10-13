@@ -176,82 +176,15 @@ export default {
     }
   },
 
-  // ─── POST /api/v1/auth/users — inscription (compte inactif + email) ─────────
+  // ─── POST /api/v1/auth/users — inscription DÉSACTIVÉE ─────────────────────
+  // L'inscription publique est coupée : les comptes sont créés uniquement par
+  // un administrateur (voir IMPLEMENTATION.md). Endpoint conservé pour renvoyer
+  // une réponse explicite aux anciens formulaires.
   async register(ctx: any) {
-    try {
-      const { nom, prenom, email, password, re_password } = ctx.request.body || {};
-      if (!nom || !prenom || !email || !password) {
-        throw new ValidationError('Tous les champs sont obligatoires.');
-      }
-      if (password !== re_password) {
-        ctx.status = 400;
-        ctx.body = { password: ['Les mots de passe ne correspondent pas.'] };
-        return;
-      }
-      if (String(password).length < 8) {
-        ctx.status = 400;
-        ctx.body = { password: ['Le mot de passe doit contenir au moins 8 caractères.'] };
-        return;
-      }
-
-      const normalizedEmail = String(email).toLowerCase();
-      const existing = await strapi.db.query(UP_USER_UID).count({ where: { email: normalizedEmail } });
-      if (existing > 0) {
-        ctx.status = 400;
-        ctx.body = { email: ['Un utilisateur avec cet email existe déjà.'] };
-        return;
-      }
-
-      const role = await strapi.db.query('plugin::users-permissions.role').findOne({
-        where: { type: 'authenticated' },
-      });
-      if (!role) throw new ApplicationError('Rôle Authenticated introuvable.');
-
-      // Création via db.query (comme migrate-users) puis set password via le
-      // service user.add (le Document Service hash le password lui-même).
-      const userService = strapi.plugin('users-permissions').service('user');
-      const created = await userService.add({
-        username: normalizedEmail,
-        email: normalizedEmail,
-        provider: 'local',
-        password,
-        confirmed: false, // le compte s'active via le lien email
-        blocked: false,
-        role: role.id,
-        nom,
-        prenom,
-      });
-
-      // Email d'activation (gabarits legacy fr/en/mg, fire-and-forget)
-      const { sendActivationEmail } = await import('../../../utils/mailer');
-      const token = strapi.plugin('users-permissions').service('jwt').issue({
-        id: created.id,
-        email: normalizedEmail,
-      });
-      await sendActivationEmail(normalizedEmail, String(created.id), token, 'fr').catch(
-        (err: any) => console.warn("Email d'activation non envoyé:", err.message)
-      );
-
-      ctx.status = 201;
-      ctx.body = {
-        id: created.id,
-        nom,
-        prenom,
-        email: normalizedEmail,
-        is_active: false,
-        langue_preferee: 'fr',
-      };
-    } catch (err: any) {
-      if (err instanceof ValidationError || err instanceof ApplicationError) {
-        ctx.status = 400;
-        ctx.body = { detail: err.message };
-        return;
-      }
-      console.error('[auth-compat] register error:', err.message);
-      ctx.status = 500;
-      ctx.body = { detail: 'Erreur serveur.' };
-    }
+    ctx.status = 403;
+    ctx.body = { detail: 'Inscription désactivée. Contactez un administrateur.' };
   },
+
 
   // ─── POST /api/v1/auth/users/activation — activer le compte ─────────────────
   async activate(ctx: any) {

@@ -293,6 +293,8 @@ export default factories.createCoreController(UID, () => ({
             : [],
         langue: ['fr', 'en', 'mg'].includes(b.langue) ? b.langue : null,
         organisme_emetteur: b.organisme_emetteur || null,
+        lieu_signature: b.lieu_signature || null,
+        signataires: b.signataires || null,
         date_entree_vigueur: b.date_entree_vigueur || null,
         modification_details: b.modification_details || null,
         resume_simplifie: b.resume_simplifie || null,
@@ -371,6 +373,12 @@ export default factories.createCoreController(UID, () => ({
       }
       if (b.organisme_emetteur !== undefined) {
         data.organisme_emetteur = b.organisme_emetteur || null;
+      }
+      if (b.lieu_signature !== undefined) {
+        data.lieu_signature = b.lieu_signature || null;
+      }
+      if (b.signataires !== undefined) {
+        data.signataires = b.signataires || null;
       }
 
       const requester = getRequestUser(ctx);

@@ -65,6 +65,11 @@ const relationBadge = (type) => ({
     label_inverse: 'fiche.rel_complete_par',
     style: 'bg-blue-50 text-blue-700 border-blue-200',
   },
+  vise: {
+    label: 'fiche.rel_vise',
+    label_inverse: 'fiche.rel_vise_par',
+    style: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
 }[type] || {
   label: 'fiche.rel_complete',
   label_inverse: 'fiche.rel_complete_par',
@@ -242,6 +247,18 @@ const DocumentFiche = () => {
             <div>
               <dt className="inline font-medium">{t('fiche.organisme')} : </dt>
               <dd className="inline">{doc.organisme_emetteur}</dd>
+            </div>
+          )}
+          {doc.lieu_signature && (
+            <div>
+              <dt className="inline font-medium">{t('fiche.lieu_signature', { defaultValue: 'Lieu de signature :' })} </dt>
+              <dd className="inline">{doc.lieu_signature}</dd>
+            </div>
+          )}
+          {doc.signataires && (
+            <div className="sm:col-span-2">
+              <dt className="inline font-medium">{t('fiche.signataires', { defaultValue: 'Signataire(s) :' })} </dt>
+              <dd className="inline">{doc.signataires}</dd>
             </div>
           )}
           {doc.inclus_journal && (

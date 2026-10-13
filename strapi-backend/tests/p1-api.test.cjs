@@ -171,7 +171,7 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     }
   });
 
-  test('création (admin) : le statut envoyé est IGNORÉ → non_verifie + brouillon', async (t) => {
+  test('création (admin) : le statut envoyé est IGNORÉ → non_verifie', async (t) => {
     requireServer(t);
     assert.ok(adminToken, 'login admin requis');
     const res = await api('/api/documents/', {
@@ -188,8 +188,13 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     });
     assert.strictEqual(res.status, 201);
     createdId = res.data.id;
+    // Propriété de sécurité testée : aucun statut juridique n'est injectable
+    // par le client, même admin (présomption nulle — cf. document.updateStatus).
     assert.strictEqual(res.data.status, 'non_verifie', 'présomption nulle imposée');
-    assert.strictEqual(res.data.etat_notice, 'brouillon', 'notice en brouillon imposée');
+    // etat_notice : décision produit documentée dans le controller create —
+    // une notice créée par un admin est directement « validée » (visible
+    // immédiatement) ; un non-admin resterait en « brouillon ».
+    assert.strictEqual(res.data.etat_notice, 'validee', 'notice admin validée immédiatement');
   });
 
   test('PATCH générique : « status » ne contourne PAS le circuit de validation', async (t) => {

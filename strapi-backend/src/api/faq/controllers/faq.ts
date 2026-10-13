@@ -10,7 +10,7 @@
  * - POST /api/faq/ask — question en langage naturel (public, chatbot F9).
  */
 import { factories } from '@strapi/strapi';
-import { matchFaqOrDocuments } from '../../search/controllers/search';
+import { matchFaqOrDocuments, getPoliteReply } from '../../search/controllers/search';
 import { MAX_QUESTION_LEN } from '../../search/controllers/faq-matcher';
 import { ValidationError } from '../../../utils/errors';
 import { findOneByRef } from '../../../utils/by-ref';
@@ -212,6 +212,24 @@ export default factories.createCoreController(UID, () => ({
         throw new ValidationError(
           `La question ne peut pas dépasser ${Math.max(MAX_QUESTION_LEN, CHATBOT_MAX_MESSAGE_LEN)} caractères.`
         );
+      }
+
+      // ── Messages de politesse (salutation, remerciement, congé) ─
+      // Réponse localisée immédiate : ni appel LLM, ni recherche, ni coût —
+      // et ce même sous rate-limit. Réponses internes au chatbot : elles ne
+      // sont jamais écrites dans la FAQ publique (page Aide/FAQ intacte).
+      const polite = getPoliteReply(question, lang);
+      if (polite) {
+        ctx.body = {
+          type: 'polite',
+          lang: polite.lang,
+          text: polite.text,
+          faq: null,
+          documents: [],
+          documentsCount: 0,
+          has_pertinence: true,
+        };
+        return;
       }
 
       // Rate limit par IP : au-delà de la limite, on court-circuite le LLM

@@ -13,7 +13,11 @@
  *     (le matching est flou, pas un $containsi mot-pour-mot) ;
  *  4. FAQ trouvée → type 'faq' avec question/reponse/categorie ;
  *  5. question hors FAQ → type 'documents' ou 'llm' (repli, structure valide) ;
- *  6. historique conversationnel accepté (tableau user/assistant).
+ *  6. historique conversationnel accepté (tableau user/assistant) ;
+ *  7. messages de politesse (salutation / remerciement / congé) en fr, en et
+ *     mg → type 'polite' avec texte localisé non vide, sans recherche doc ;
+ *  8. une question métier commençant par « bonjour » n'est PAS captée comme
+ *     politesse (pas de court-circuit du moteur de recherche).
  */
 const { test, describe, before } = require('node:test');
 const assert = require('node:assert');
@@ -45,6 +49,16 @@ const probe = () =>
 
 let serverUp = false;
 
+// Mini-tokenizer aligné sur faq-matcher.ts (minuscules, sans accents, mots ≥ 3).
+const tokenizeLike = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 3);
+
 const ask = async (body) => {
   const res = await fetch(`${BASE}/api/faq/ask/`, {
     method: 'POST',
@@ -68,18 +82,29 @@ before(async () => {
   }
 });
 
-describe('POST /api/faq/ask (chatbot F9)', { skip: !serverUp }, () => {
-  test('question vide → 400', async () => {
+// Skip au RUNTIME (dans le corps du test) : un `skip: !serverUp` posé sur le
+// describe serait évalué au chargement du module, AVANT le hook `before` qui
+// fait le probe — la suite serait alors toujours sautée, même serveur lancé.
+const testIfUp = (name, fn) =>
+  test(name, async (t) => {
+    if (!serverUp) return t.skip('serveur Strapi absent');
+    return fn(t);
+  });
+
+describe('POST /api/faq/ask (chatbot F9)', () => {
+  testIfUp('question vide → 400', async () => {
     const { status } = await ask({ question: '   ', lang: 'fr' });
     assert.strictEqual(status, 400);
   });
 
-  test('question trop longue → 400', async () => {
-    const { status } = await ask({ question: 'a'.repeat(501), lang: 'fr' });
+  testIfUp('question trop longue → 400', async () => {
+    // La limite serveur est max(MAX_QUESTION_LEN=500, CHATBOT_MAX_MESSAGE_LEN=1000).
+    const over = 'a'.repeat(1001);
+    const { status } = await ask({ question: over, lang: 'fr' });
     assert.strictEqual(status, 400);
   });
 
-  test('réponse structurelle pour une question hors FAQ', async () => {
+  testIfUp('réponse structurelle pour une question hors FAQ', async () => {
     const { status, data } = await ask({
       question: 'zxqv chaine de caractères improbables 9182',
       lang: 'fr',
@@ -101,7 +126,7 @@ describe('POST /api/faq/ask (chatbot F9)', { skip: !serverUp }, () => {
     }
   });
 
-  test('historique conversationnel accepté sans erreur', async () => {
+  testIfUp('historique conversationnel accepté sans erreur', async () => {
     const { status, data } = await ask({
       question: 'et sinon, tu peux m\'aider sur les démarches ?',
       lang: 'fr',
@@ -115,7 +140,7 @@ describe('POST /api/faq/ask (chatbot F9)', { skip: !serverUp }, () => {
     assert.ok(['faq', 'documents', 'llm'].includes(data.type));
   });
 
-  test('matching flou : formulation différente de la FAQ → réponse FAQ', async () => {
+  testIfUp('matching flou : formulation différente de la FAQ → réponse FAQ', async () => {
     // On récupère une vraie question FAQ seedée puis on la reformule avec
     // variations d'accents et mots supplémentaires.
     const faqRes = await fetch(`${BASE}/api/faq/`);
@@ -142,7 +167,76 @@ describe('POST /api/faq/ask (chatbot F9)', { skip: !serverUp }, () => {
 
     const { status, data } = await ask({ question: reformulee, lang: 'fr' });
     assert.strictEqual(status, 200);
-    assert.strictEqual(data.type, 'faq', `attendu type faq, reçu : ${JSON.stringify(data).slice(0, 200)}`);
-    assert.ok(data.faq && data.faq.reponse, 'réponse FAQ attendue');
+
+    // Deux mécanismes possibles selon la présence de GEMINI_API_KEY :
+    //  - clé absente : moteur à règles → type 'faq' ;
+    //  - clé active  : le LLM répond mais reçoit la FAQ en contexte → type
+    //    'llm' avec la question source dans sources.faq.
+    // Dans les deux cas, la propriété testée est la même : la reformulation
+    // retrouve la BONNE question FAQ malgré accents/casse/mots parasites.
+    if (data.type === 'faq') {
+      assert.ok(data.faq && data.faq.reponse, 'réponse FAQ attendue');
+    } else if (data.type === 'llm') {
+      assert.ok(typeof data.text === 'string' && data.text.length > 0, 'réponse LLM non vide');
+      const matched = (data.sources?.faq || []).some(
+        (f) => f.question && tokenizeLike(f.question).some((tok) => tokenizeLike(reformulee).includes(tok))
+      );
+      assert.ok(matched, 'la question reformulée doit retrouver la FAQ source dans le contexte');
+    } else {
+      assert.fail(`type inattendu : ${data.type} — ${JSON.stringify(data).slice(0, 200)}`);
+    }
+  });
+
+  // ── Étape 2 : messages de politesse (jamais de réponse vide ni d'erreur) ──
+  const POLITENESS_CASES = [
+    // [message, langue attendue]
+    ['bonjour', 'fr'],
+    ['salut', 'fr'],
+    ['bonsoir', 'fr'],
+    ['merci', 'fr'],
+    ['au revoir', 'fr'],
+    ['bonne journée', 'fr'],
+    ['hello', 'en'],
+    ['thank you', 'en'],
+    ['goodbye', 'en'],
+    ['salama', 'mg'],
+    ['misaotra', 'mg'],
+    ['veloma', 'mg'],
+  ];
+
+  for (const [message, lang] of POLITENESS_CASES) {
+    testIfUp(`politesse « ${message} » (${lang}) → type polite localisé`, async () => {
+      const { status, data } = await ask({ question: message, lang });
+      assert.strictEqual(status, 200);
+      assert.strictEqual(
+        data.type,
+        'polite',
+        `type polite attendu pour « ${message} », reçu : ${JSON.stringify(data).slice(0, 200)}`
+      );
+      assert.ok(typeof data.text === 'string' && data.text.trim().length > 0, 'texte de politesse non vide attendu');
+      assert.strictEqual(data.lang, lang);
+      assert.deepStrictEqual(data.documents, [], 'aucune suggestion de document pour une politesse');
+    });
+  }
+
+  testIfUp('politesse : aucune entrée FAQ publique créée pour les salutations', async () => {
+    // Les réponses de politesse sont INTERNES au chatbot : la FAQ publique
+    // (page Aide) ne doit contenir aucune question de type « bonjour ».
+    await ask({ question: 'bonjour', lang: 'fr' });
+    const res = await fetch(`${BASE}/api/faq/`);
+    const data = await res.json();
+    const polluted = (data?.results || []).filter((r) =>
+      /^(bonjour|salut|bonsoir|hello|merci|au revoir|salama|veloma)\b/i.test(String(r.question_fr || '').trim())
+    );
+    assert.strictEqual(polluted.length, 0, `FAQ publique polluée : ${JSON.stringify(polluted).slice(0, 200)}`);
+  });
+
+  testIfUp('question métier commençant par une salutation → PAS de réponse politesse', async () => {
+    const { status, data } = await ask({
+      question: 'bonjour, comment accéder au texte intégral dun document ?',
+      lang: 'fr',
+    });
+    assert.strictEqual(status, 200);
+    assert.notStrictEqual(data.type, 'polite', 'une vraie question ne doit pas être captée par le court-circuit politesse');
   });
 });

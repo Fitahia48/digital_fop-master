@@ -233,31 +233,6 @@ export const sendNewPublicationEmail = async (
   }
 };
 
-// ─── Notification du changement de statut d'une démarche ────────────────────
-
-export const sendDemarcheStatusEmail = async (
-  email: string,
-  typeDemarche: string,
-  statut: string,
-  commentaire: string | null,
-  lang = 'fr'
-) => {
-  const code = resolveLang(lang);
-  // Repli sur le code brut si le statut est inconnu (ne devrait pas arriver)
-  const statutLabel = label(code, `statut_${statut}`) || statut;
-  const commentaireHtml = commentaire
-    ? `<p><strong>${escapeHtml(label(code, 'commentaire_admin'))}</strong><br>${escapeHtml(commentaire)}</p>`
-    : '';
-
-  await sendTemplatedMail(email, code, 'demarche-status', {
-    typeDemarche: escapeHtml(typeDemarche),
-    statutLabel,
-    commentaireHtml,
-    suiviUrl: `${SITE_URL}/mes-demarches`,
-    siteUrl: SITE_URL,
-  });
-};
-
 // ─── Confirmation de désabonnement ──────────────────────────────────────────
 
 export const sendUnsubscribeConfirmationEmail = async (email: string, lang = 'fr') => {

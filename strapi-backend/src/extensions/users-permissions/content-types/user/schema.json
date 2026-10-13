@@ -70,30 +70,6 @@
       "target": "api::document.document",
       "mappedBy": "last_modified_by"
     },
-    "demarches": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::demarche.demarche",
-      "mappedBy": "user"
-    },
-    "demarches_affectees": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::demarche.demarche",
-      "mappedBy": "agent_affecte"
-    },
-    "timeline_edits": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::demarche-timeline.demarche-timeline",
-      "mappedBy": "modifie_par"
-    },
-    "favoris": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::favori.favori",
-      "mappedBy": "user"
-    },
     "historique_recherches": {
       "type": "relation",
       "relation": "oneToMany",

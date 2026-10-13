@@ -23,12 +23,12 @@
     },
     "numero": {
       "type": "string",
-      "required": true,
+      "required": false,
       "indexed": true
     },
     "date": {
       "type": "date",
-      "required": true
+      "required": false
     },
     "conseil": {
       "type": "string",
@@ -49,6 +49,12 @@
       "multiple": false
     },
 
+    "status": {
+      "type": "enumeration",
+      "enum": ["en_vigueur", "abroge", "modifie", "non_verifie"],
+      "default": "non_verifie",
+      "required": false
+    },
     "statut_verifie_par": {
       "type": "relation",
       "relation": "manyToOne",
@@ -71,6 +77,12 @@
     },
     "organisme_emetteur": {
       "type": "string"
+    },
+    "lieu_signature": {
+      "type": "string"
+    },
+    "signataires": {
+      "type": "text"
     },
     "date_entree_vigueur": {
       "type": "date"
@@ -122,18 +134,6 @@
       "relation": "oneToMany",
       "target": "api::document-relation.document-relation",
       "mappedBy": "document_cible"
-    },
-    "demarches": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::demarche.demarche",
-      "mappedBy": "document"
-    },
-    "favoris": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::favori.favori",
-      "mappedBy": "document"
     }
   }
 }

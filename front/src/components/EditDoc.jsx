@@ -18,6 +18,8 @@ const EditDocument = () => {
     domaine: "",
     status: "",
     resume_simplifie: "",
+    lieu_signature: "",
+    signataires: "",
     fichier: null,
   });
 
@@ -182,28 +184,53 @@ const EditDocument = () => {
 
         {/* Référence */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Numéro</label>
+          <label className="block text-gray-700 font-medium mb-2">Numéro (optionnel)</label>
           <input
             type="text"
             name="numero"
-            value={formData.numero}
+            value={formData.numero || ""}
             onChange={handleChange}
-            required
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-            placeholder="Entrez la référence"
+            placeholder="Entrez la référence (ex: 2024-055, laisser vide si aucun)"
           />
         </div>
 
         {/* Date */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">Date</label>
+          <label className="block text-gray-700 font-medium mb-2">Date (optionnelle)</label>
           <input
             type="date"
             name="date"
-            value={formData.date}
+            value={formData.date || ""}
             onChange={handleChange}
-            required
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Lieu de signature */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Lieu de signature (optionnel)</label>
+          <input
+            type="text"
+            name="lieu_signature"
+            value={formData.lieu_signature || ""}
+            onChange={handleChange}
+            maxLength={150}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            placeholder="ex. : Antananarivo"
+          />
+        </div>
+
+        {/* Signataires */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Signataire(s) (optionnel)</label>
+          <textarea
+            name="signataires"
+            value={formData.signataires || ""}
+            onChange={handleChange}
+            rows={2}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            placeholder="ex. : Le Président de la République, Le Premier Ministre..."
           />
         </div>
 

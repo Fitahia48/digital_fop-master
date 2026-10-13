@@ -124,12 +124,8 @@ function Login() {
                         >
                             {t('auth.se_connecter')}
                         </button>
-                        <p className="text-sm text-gray-600 text-center mt-4">
-                            {t('auth.pas_encore_compte')}{' '}
-                            <Link to="/register" className="text-indigo-500 hover:underline">
-                                {t('auth.creer_compte')}
-                            </Link>
-                        </p>
+                        {/* Plus d'inscription : le lien « Créer un compte » a été
+                            retiré (comptes créés par un administrateur). */}
                     </form>
                 </div>
             </div>

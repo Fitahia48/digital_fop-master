@@ -29,11 +29,7 @@ import ConfirmSubscriptionPage from './pages/ConfirmSubscriptionPage';
 import UnsubscribePage from './pages/UnsubscribePage';
 import SearchShortcut from './components/SearchShortcut';
 import HelpPage from './pages/HelpPage';
-import Register from './components/Register';
 import ActivateAccountPage from './pages/ActivateAccountPage';
-import DemarcheForm from './components/DemarcheForm';
-import MesDemarches from './components/MesDemarches';
-import MesFavoris from './components/MesFavoris';
 import AdminFaq from './components/AdminFaq';
 import ChatWidget from './components/ChatWidget';
 import OfflineBanner from './components/OfflineBanner';
@@ -108,7 +104,9 @@ const App = () => {
                     <main id="contenu-principal">
                     <Routes>
                         <Route path="/" element={<Accueil />} />
-                        <Route path='/login' element={<Login />} />
+                        {/* Connexion administrateur : URL non listée dans la
+                            navigation publique (aucun lien vers elle). */}
+                        <Route path='/portail-gestion/connexion' element={<Login />} />
                         <Route path='/resetpassword' element={<ResetPassword />} />
                         <Route path='/password/reset/confirm/:uid/:token' element={<ResetPasswordConfirmPage />} />
                         <Route path='/subscribe/confirm/:token' element={<ConfirmSubscriptionPage />} />
@@ -133,11 +131,7 @@ const App = () => {
                         <Route path="/transparence" element={<TransparencePage />} />
                         {/* Page institutionnelle publique « À propos » (Single Type éditable en admin) */}
                         <Route path="/a-propos" element={<AProposPage />} />
-                        <Route path="/register" element={<Register />} />
                         <Route path="/activate/:uid/:token" element={<ActivateAccountPage />} />
-                        <Route path="/demarches/nouvelle" element={<DemarcheForm />} />
-                        <Route path="/mes-demarches" element={<MesDemarches />} />
-                        <Route path="/mes-favoris" element={<MesFavoris />} />
                         <Route path="/admin/faq" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminFaq /></ProtectedRoute>} />
                         <Route path='*' element={<Accueil />} />
                     </Routes>

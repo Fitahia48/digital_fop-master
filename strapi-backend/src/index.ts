@@ -1,242 +1,11 @@
 import type { Core } from '@strapi/strapi';
-import { registerDemarcheLifecycle } from './middlewares/demarche-lifecycle';
 
 /**
  * Seeds idempotents (exécutés à chaque boot, n'écrivent que si absent).
  *
- * ⚠️ Références légales : décret n°2024-055 du 20 janvier 2024 (articles
- * cités en commentaire par entrée). Les listes de pièces requises sont des
- * propositions GÉNÉRIQUES marquées « À VALIDER avec la direction concernée » :
- * elles ne constituent pas une procédure officielle tant qu'elles ne sont pas
- * confirmées par le ministère.
+ * Les seeds liés aux démarches (directions, types de démarche) ont été retirés
+ * avec la suppression des démarches en ligne — voir IMPLEMENTATION.md.
  */
-
-interface DirectionSeed {
-  code: string;
-  nom: string;
-  parent?: string; // code du parent
-}
-
-// Décret n°2024-055 : articles 26-28, 35, 37-38, 42-43, 48, 20
-const DIRECTIONS: DirectionSeed[] = [
-  { code: 'DG_TRAVAIL', nom: 'Direction Générale du Travail' }, // art. 26-28
-  { code: 'DG_PROMOTION_EMPLOI', nom: "Direction Générale de la Promotion de l'Emploi" }, // art. 37-38
-  { code: 'DG_FONCTION_PUBLIQUE', nom: 'Direction Générale de la Fonction Publique' }, // art. 42-43
-  { code: 'DIR_MIGRATION_PRO', nom: 'Direction de la Migration Professionnelle', parent: 'DG_TRAVAIL' }, // art. 35, rattachée à la DG du Travail
-  { code: 'DIR_FORMATION_AGENTS', nom: "Direction de la Formation et du Perfectionnement des Agents de l'Etat", parent: 'DG_FONCTION_PUBLIQUE' }, // art. 48, rattachée à la DG de la Fonction Publique
-  { code: 'DIR_SYSTEME_INFO', nom: "Direction du Système d'Information" }, // art. 20 (demandes d'ordre technique)
-];
-
-interface PieceSeed {
-  code: string;
-  libelles: { fr: string; en: string; mg: string };
-  obligatoire: boolean;
-}
-
-interface TypeDemarcheSeed {
-  code: string;
-  libelles: { fr: string; en: string; mg: string };
-  direction: string;
-  delai_cible_jours: number;
-  pieces_requises: PieceSeed[];
-  champs_specifiques?: any[];
-}
-
-// Pièces génériques plausibles — À VALIDER avec la direction concernée
-const PV = (fr: string, en: string, mg: string, obligatoire = true): PieceSeed => ({
-  code: fr.toLowerCase().replace(/[^a-z]+/g, '_').slice(0, 40),
-  libelles: { fr, en, mg },
-  obligatoire,
-});
-
-const TYPES_DEMARCHE: TypeDemarcheSeed[] = [
-  // ─── 4 codes existants (compatibilité : ne cassent aucune donnée) ────────
-  {
-    code: 'copie_certifiee',
-    libelles: {
-      fr: "Copie certifiée d'un texte",
-      en: 'Certified copy of a text',
-      mg: 'Dika mitovy ekena',
-    },
-    direction: 'DG_FONCTION_PUBLIQUE', // À VALIDER
-    delai_cible_jours: 15, // À VALIDER
-    pieces_requises: [
-      PV('Copie du document concerné', 'Copy of the document', 'Dika ny antontan-taratasy'),
-    ],
-  },
-  {
-    code: 'attestation',
-    libelles: { fr: 'Attestation', en: 'Certificate', mg: 'Marina' },
-    direction: 'DG_FONCTION_PUBLIQUE', // À VALIDER
-    delai_cible_jours: 15, // À VALIDER
-    pieces_requises: [PV("Copie de la pièce d'identité", 'ID copy', 'Dika ny maha-olona')],
-  },
-  {
-    code: 'demande_information',
-    libelles: {
-      fr: "Demande d'information",
-      en: 'Information request',
-      mg: 'Fangatahana vaovao',
-    },
-    direction: 'DIR_SYSTEME_INFO',
-    delai_cible_jours: 10, // À VALIDER
-    pieces_requises: [],
-  },
-  {
-    code: 'autre',
-    libelles: { fr: 'Autre demande', en: 'Other request', mg: 'Fangatahana hafa' },
-    direction: 'DG_TRAVAIL', // À VALIDER
-    delai_cible_jours: 30, // À VALIDER
-    pieces_requises: [],
-  },
-
-  // ─── Démarches spécialisées (décret n°2024-055, art. 35, 48-49) ──────────
-  {
-    code: 'permis_travail_expatrie',
-    libelles: {
-      fr: "Permis de travail d'un expatrié",
-      en: 'Expatriate work permit',
-      mg: "Fahazoan-dalana hiasa ho an'ny vahiny", // TODO: à valider par un locuteur natif
-    },
-    direction: 'DIR_MIGRATION_PRO', // art. 35
-    delai_cible_jours: 30, // À VALIDER
-    pieces_requises: [
-      PV("Copie du passeport", 'Passport copy', 'Dika ny pasipepori'),
-      PV('Contrat de travail signé', 'Signed employment contract', 'Fifanarahana asa sonia'),
-      PV('CV du candidat', 'Candidate CV', 'CV ny kandida', false),
-      PV('Diplômes et attestations', 'Diplomas and certificates', 'Mari-pahaizana', false),
-    ],
-    champs_specifiques: [
-      { code: 'nationalite', libelles: { fr: 'Nationalité', en: 'Nationality', mg: 'Firenena' }, type: 'string', obligatoire: true },
-      { code: 'profession', libelles: { fr: 'Profession exercée', en: 'Occupation', mg: 'Asa tanterahina' }, type: 'string', obligatoire: true },
-      { code: 'employeur', libelles: { fr: 'Employeur à Madagascar', en: 'Employer in Madagascar', mg: 'Mpiasa eto Madagasikara' }, type: 'string', obligatoire: true },
-    ],
-  },
-  {
-    code: 'agrement_agence_emploi',
-    libelles: {
-      fr: "Agrément d'une agence d'emploi privée",
-      en: 'Private employment agency licence',
-      mg: "Fahazoan-dalana ny sampan'asa tsy miankina", // TODO: à valider par un locuteur natif
-    },
-    direction: 'DIR_MIGRATION_PRO', // art. 35
-    delai_cible_jours: 60, // À VALIDER
-    pieces_requises: [
-      PV('Statuts de la société', 'Company statutes', 'Lalàna fototra ny orinasa'),
-      PV("Registre de commerce", 'Trade register', 'Fisoratana anarana raharaham-barotra'),
-      PV("Description des services d'emploi", 'Employment services description', 'Famaritana ny tolotra asa', false),
-    ],
-    champs_specifiques: [
-      { code: 'raison_sociale', libelles: { fr: 'Raison sociale', en: 'Company name', mg: 'Anaran\u2019ny orinasa' }, type: 'string', obligatoire: true },
-      { code: 'region', libelles: { fr: "Région d'implantation", en: 'Region', mg: 'Faritra' }, type: 'string', obligatoire: true },
-    ],
-  },
-  {
-    code: 'visa_contrat_travail',
-    libelles: {
-      fr: 'Visa des contrats de travail',
-      en: 'Employment contract approval',
-      mg: 'Fankatoavana fifanarahana asa', // TODO: à valider par un locuteur natif
-    },
-    direction: 'DIR_MIGRATION_PRO', // art. 35
-    delai_cible_jours: 15, // À VALIDER
-    pieces_requises: [
-      PV('Contrat de travail en 2 exemplaires', 'Employment contract (2 copies)', 'Fifanarahana asa 2'),
-      PV("Fiche de paie (si renouvellement)", 'Payslip (if renewal)', 'Antontan-karama', false),
-    ],
-    champs_specifiques: [
-      { code: 'employeur', libelles: { fr: 'Employeur', en: 'Employer', mg: 'Mpiasa' }, type: 'string', obligatoire: true },
-      { code: 'salarie_nom', libelles: { fr: 'Nom du salarié', en: 'Employee name', mg: 'Anaran\u2019ny mpiasa' }, type: 'string', obligatoire: true },
-    ],
-  },
-  {
-    code: 'sortie_territoire',
-    libelles: {
-      fr: 'Autorisation de sortie du territoire',
-      en: 'Exit permit',
-      mg: 'Fahazoan-dalana mivoaka ny tanim-pirenena', // TODO: à valider par un locuteur natif
-    },
-    direction: 'DIR_MIGRATION_PRO', // art. 35
-    delai_cible_jours: 15, // À VALIDER
-    pieces_requises: [
-      PV("Copie du passeport", 'Passport copy', 'Dika ny pasipepori'),
-      PV("Copie du contrat de travail à l'étranger", 'Foreign employment contract copy', 'Dika fifanarahana asa any ivelany'),
-      PV('Attestation de prise en charge', 'Sponsorship certificate', 'Marina fampanampiana', false),
-    ],
-    champs_specifiques: [
-      { code: 'pays_destination', libelles: { fr: 'Pays de destination', en: 'Destination country', mg: 'Firenena lalovana' }, type: 'string', obligatoire: true },
-      { code: 'duree_sejour', libelles: { fr: 'Durée du séjour (mois)', en: 'Stay duration (months)', mg: 'Faharetana (volana)' }, type: 'number', obligatoire: false },
-    ],
-  },
-  {
-    code: 'equivalence_titre',
-    libelles: {
-      fr: "Équivalence administrative de titre",
-      en: 'Administrative qualification equivalence',
-      mg: 'Fitoviana mari-pahaizana', // TODO: à valider par un locuteur natif
-    },
-    direction: 'DIR_FORMATION_AGENTS', // art. 48-49
-    delai_cible_jours: 45, // À VALIDER
-    pieces_requises: [
-      PV('Copie du diplôme', 'Diploma copy', 'Dika ny mari-pahaizana'),
-      PV('Relevés de notes', 'Transcripts', 'Naoty', false),
-      PV("Traduction officielle du diplôme", 'Official diploma translation', 'Dikanteny ofisiali', false),
-    ],
-    champs_specifiques: [
-      { code: 'titre_obtenu', libelles: { fr: 'Titre obtenu', en: 'Qualification obtained', mg: 'Mari-pahaizana azonina' }, type: 'string', obligatoire: true },
-      { code: 'pays_obtention', libelles: { fr: "Pays d'obtention", en: 'Country of issuance', mg: 'Firenena nahazoana' }, type: 'string', obligatoire: true },
-    ],
-  },
-];
-
-const seedDirections = async (strapi: Core.Strapi) => {
-  const uid = 'api::direction.direction';
-  const byCode = new Map<string, any>();
-
-  for (const dir of DIRECTIONS) {
-    const existing = (await strapi.documents(uid).findMany({
-      filters: { code: dir.code },
-      limit: 1,
-    })) as any[];
-    if (existing.length > 0) {
-      byCode.set(dir.code, existing[0]);
-      continue;
-    }
-    const parent = dir.parent ? byCode.get(dir.parent) : undefined;
-    const created = (await strapi.documents(uid).create({
-      data: { code: dir.code, nom: dir.nom, ...(parent ? { parent: parent.documentId } : {}) },
-    })) as any;
-    byCode.set(dir.code, created);
-    strapi.log.info(`[seed] direction créée : ${dir.code}`);
-  }
-  return byCode;
-};
-
-const seedTypesDemarche = async (strapi: Core.Strapi, directions: Map<string, any>) => {
-  const uid = 'api::type-demarche.type-demarche';
-
-  for (const t of TYPES_DEMARCHE) {
-    const existing = (await strapi.documents(uid).findMany({
-      filters: { code: t.code },
-      limit: 1,
-    })) as any[];
-    if (existing.length > 0) continue;
-
-    const direction = directions.get(t.direction);
-    await strapi.documents(uid).create({
-      data: {
-        code: t.code,
-        libelles: t.libelles,
-        direction: direction?.documentId,
-        delai_cible_jours: t.delai_cible_jours,
-        pieces_requises: t.pieces_requises as any,
-        champs_specifiques: t.champs_specifiques ?? [],
-        actif: true,
-      },
-    });
-    strapi.log.info(`[seed] type de démarche créé : ${t.code}`);
-  }
-};
 
 /**
  * Page institutionnelle « À propos » (Single Type api::a-propos.a-propos).
@@ -249,6 +18,174 @@ const seedTypesDemarche = async (strapi: Core.Strapi, directions: Map<string, an
  */
 const A_PROPOS_UID = 'api::a-propos.a-propos';
 
+/**
+ * FAQ du chatbot (content-type api::faq.faq).
+ *
+ * Source de vérité : le contenu OFFICIEL déjà affiché sur la page Aide
+ * (front/src/locales/{fr,en,mg}/translation.json, clés `aide.faqN_*`), copié
+ * à l'identique — aucune information inventée. La page Aide reste servie par
+ * i18n ; ce seed alimente la base que le chatbot interroge (GET /api/faq/ et
+ * moteur à règles de POST /api/faq/ask).
+ *
+ * Les valeurs mg reprennent la mention « TODO: à valider par un locuteur
+ * natif » conformément à la convention du projet (IMPLEMENTATION.md §5).
+ *
+ * Idempotent : n'écrit que si la collection est VIDE. Dès qu'un administrateur
+ * a édité la FAQ via /admin/faq, le seed ne s'exécute plus jamais.
+ */
+const FAQ_SEED: Array<{
+  ordre: number;
+  question: Record<string, string>;
+  reponse: Record<string, string>;
+}> = [
+  {
+    ordre: 1,
+    question: {
+      fr: 'Comment trouver un document ?',
+      en: 'How do I find a document?',
+      mg: 'Ahoana ny fahitana antontan-taratasy?',
+    },
+    reponse: {
+      fr: "Ouvrez « Recherche » dans le menu (ou utilisez le raccourci « / » ou Ctrl+K). Tapez un mot-clé, un numéro ou choisissez un critère : objet, type, date, numéro ou Journal Officiel. Vous pouvez aussi affiner avec les filtres (type, domaine, statut juridique) ou naviguer par thème via « Accès par thème » dans le menu.",
+      en: "Open “Search” in the menu (or use the “/” or Ctrl+K shortcut). Type a keyword, a number or pick a criterion: subject, type, date, number or Official Gazette. You can also refine with the filters (type, domain, legal status) or browse by theme via “Browse by theme” in the menu.",
+      mg: "Sokafy ny « Fikarohana » ao amin'ny menio (na ampiasao ny fanalana « / » na Ctrl+K). Soraty teny fanalahidy, laharana na safidiocriteria : lohahevitra, karazana, daty, laharana na Gazetim-Pirenena. Azonao atao koa ny manitsy amin'ny sivana (karazana, sehatra, sata ara-dalàna) na mitety araka lohahevitra amin'ny « Fidirana araka lohahevitra » ao amin'ny menio. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 2,
+    question: {
+      fr: 'Que signifient les statuts « En vigueur », « Abrogé », « Modifié » ?',
+      en: 'What do the statuses “In force”, “Repealed”, “Amended” mean?',
+      mg: "Inona no dikan'ny sata « Mihatra », « Nofoanana », « Novaina » ?",
+    },
+    reponse: {
+      fr: "« En vigueur » : le texte est applicable en l'état. « Abrogé » : le texte a été officiellement supprimé et n'est plus applicable. « Modifié » : le texte reste en vigueur mais a été changé par un texte postérieur — consultez ses relations juridiques pour voir les textes qui le modifient.",
+      en: "“In force”: the text is applicable as it stands. “Repealed”: the text has been officially removed and no longer applies. “Amended”: the text remains in force but has been changed by a later text — check its legal relations to see the amending texts.",
+      mg: "« Mihatra » : mihatra araka izay ao ny lahatsoratra. « Nofoanana » : voafoana ofisialy ny lahatsoratra ary tsy mihatra intsony. « Novaina » : mbola mihatra ny lahatsoratra nefa novain'ny lahatsoratra taty aoriana — jereo ny fifandraisana ara-dalàna mba hahitana ireo lahatsoratra manova. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 3,
+    question: {
+      fr: "Comment accéder au texte intégral d'un document ?",
+      en: 'How do I access the full text of a document?',
+      mg: "Ahoana ny fidirana amin'ny lahatsoratra feno?",
+    },
+    reponse: {
+      fr: "Depuis la liste des résultats, cliquez sur un document pour ouvrir sa fiche détaillée. Vous y trouverez le résumé en langage clair, ses références (numéro, date, Journal Officiel) et le fichier PDF original consultable et téléchargeable.",
+      en: 'From the results list, click a document to open its detailed record. You will find the plain-language summary, its references (number, date, Official Gazette) and the original PDF file, viewable and downloadable.',
+      mg: "Avy amin'ny lisitr'ireo valiny, tsindrio antontan-taratasy hanokafana ny antsipiriany. Hita ao ny famintinana amin'ny fiteny tsotra, ny mari-pamantarana (laharana, daty, Gazetim-Pirenena) ary ny rakitra PDF tany am-boalohany azo jerena sy azo ampidinina. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 4,
+    question: {
+      fr: 'Comment recevoir les alertes de publication ?',
+      en: 'How do I receive publication alerts?',
+      mg: 'Ahoana ny fandefasana fampandrenesana?',
+    },
+    reponse: {
+      fr: "Rendez-vous dans la section « S'abonner aux alertes de publication » (page d'accueil ou pied de page), saisissez votre adresse email puis validez. Un email de confirmation vous sera envoyé pour activer l'abonnement. Vous pourrez vous désabonner à tout moment depuis le lien présent dans chaque email.",
+      en: 'Go to the “Subscribe to publication alerts” section (home page or footer), enter your email address and confirm. A confirmation email will be sent to activate the subscription. You can unsubscribe at any time using the link in every email.',
+      mg: "Mandehana any amin'ny « Misoratra anarana amin'ny fampandrenesana » (pejy fototra na tongotra), ampidiro ny mailakao avy eo hamafiso. Handefasana mailaka fanamarinana hanetsika ny famandrihana. Azo atao ny miala amin'ny famandrihana isaky ny fotoana amin'ny rohy ao amin'ny mailaka tsirairay. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 5,
+    question: {
+      fr: "Comment noter l'application ou faire une remarque ?",
+      en: 'How do I rate the application or leave a comment?',
+      mg: 'Ahoana ny fanombana ny rindranasa na ny fanehoana hevitra?',
+    },
+    reponse: {
+      fr: "Pour noter l'application, utilisez les étoiles dans la section « Notez notre application » en bas de la page d'accueil (une seule note par navigateur). Pour une suggestion ou un signalement, cliquez sur « Remarques » dans le pied de page : votre message est transmis aux administrateurs.",
+      en: 'To rate the application, use the stars in the “Rate our application” section at the bottom of the home page (one rating per browser). For a suggestion or a report, click “Comments” in the footer: your message is sent to the administrators.',
+      mg: "Raha hanombana ny rindranasa, ampiasao ny kintana ao amin'ny « Manombana ny rindranasa » eo ambany amin'ny pejy fototra (isa iray isaky ny navigateur). Raha soso-kevitra na tatitra, tsindrio « Hevitra » ao amin'ny tongotra: alefa amin'ny mpitantana ny hafatrao. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 6,
+    question: {
+      fr: 'Comment contacter le ministère ?',
+      en: 'How do I contact the ministry?',
+      mg: "Ahoana ny fifandraisana amin'ny ministera?",
+    },
+    reponse: {
+      fr: "Les coordonnées officielles (adresse, téléphone, email) du Ministère du Travail, de l'Emploi et de la Fonction Publique et des Lois Sociales sont regroupées dans la rubrique « Contacts » du pied de page, ainsi que sur la page Organigramme qui présente les directions et leurs rôles.",
+      en: 'The official contact details (address, phone, email) of the Ministry of Labour, Employment and Public Service and Social Laws are grouped in the “Contacts” section of the footer, as well as on the Organisation page presenting the directorates and their roles.',
+      mg: "Ireo antontomaso aterineto (adiresy, finday, mailaka) ao amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta ary ny Lalàna Sosialy dia voaangona ao amin'ny « Fifandraisana » ao amin'ny tongotra, sy ao amin'ny pejin'ny Fandaminana miseo ny sampana sy ny andraikiny. TODO: à valider par un locuteur natif",
+    },
+  },
+  {
+    ordre: 7,
+    // Question ajoutée pour répondre aux demandes du type « c'est quoi cette
+    // application » — contenu repris de la page « À propos » (seedAPropos) :
+    // citation exacte du décret n°2024-055 art. 2 + présentation officielle.
+    question: {
+      fr: "C'est quoi cette application ou cette app ? (À propos de l'application)",
+      en: 'What is this application or this app? (About)',
+      mg: "Inona ity rindranasa ity na ity app ity? (Mombamomba) TODO: à valider par un locuteur natif",
+    },
+    reponse: {
+      fr: "Cette application est la bibliothèque numérique du Ministère du Travail, de l'Emploi et de la Fonction Publique : elle donne accès aux textes réglementaires, à l'organigramme, aux actualités et aux statistiques de consultation du ministère. Le décret n°2024-055 du 20 janvier 2024 (article 2) charge le Ministre de la conception, de la mise en œuvre et du suivi de l'application de la Politique du Gouvernement en matière de Travail, Emploi et Fonction Publique. Pour plus de détails, consultez la page « À propos ».",
+      en: "This application is the digital library of the Ministry of Labour, Employment and Public Service: it provides access to regulatory texts, the organisation chart, news and consultation statistics. Decree No. 2024-055 of 20 January 2024 (article 2) assigns the Minister responsibility for designing, implementing and monitoring the Government's policy on Labour, Employment and Public Service. For more details, see the “About” page.",
+      mg: "Ity rindranasa ity no tranomboky nomerika amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta: manome fahafahana hiditra amin'ny lahatsoratra ara-dalàna, ny fandaminana, ny vaovao ary ny antontan'isa fijerena. Ny dekreti n°2024-055 (20 janaro 2024, lahara 2) dia mampitra ny Minisitra amin'ny famolavolana, ny fampihatra ary ny fanaraha-maso ny politikan'ny Fivavahana momba ny Asa, ny Fampiasana ary ny Fitondrana Etre-Pahavinta. Hampidiro any amin'ny pejy « Mombamomba » raha te-hahalala bebe kokoa ianao. TODO: à valider par un locuteur natif",
+    },
+  },
+];
+
+const FAQ_UID = 'api::faq.faq';
+
+/**
+ * Seed de la FAQ du chatbot — exécuté au boot si (et seulement si) la
+ * collection est vide (cf. commentaire sur FAQ_SEED).
+ */
+const seedFaq = async (strapi: Core.Strapi) => {
+  const documents = strapi.documents as any;
+
+  let existing: any[] = [];
+  try {
+    existing = (await documents(FAQ_UID).findMany({ locale: 'fr', limit: 1 })) as any[];
+  } catch (err) {
+    strapi.log.warn(`[seed] FAQ : lecture impossible (${(err as Error).message})`);
+    return;
+  }
+  if (existing.length > 0) return; // déjà peuplée (admin ou seed précédent)
+
+  const LOCALES = ['fr', 'en', 'mg'] as const;
+  let created = 0;
+  for (const entry of FAQ_SEED) {
+    try {
+      const fr = (await documents(FAQ_UID).create({
+        locale: 'fr',
+        data: {
+          question: entry.question.fr,
+          reponse: entry.reponse.fr,
+          ordre: entry.ordre,
+        } as any,
+      })) as any;
+      for (const locale of LOCALES.slice(1)) {
+        await documents(FAQ_UID).update({
+          documentId: fr.documentId,
+          locale,
+          data: {
+            question: entry.question[locale],
+            reponse: entry.reponse[locale],
+          } as any,
+        });
+      }
+      created += 1;
+    } catch (err) {
+      strapi.log.warn(
+        `[seed] FAQ : entrée « ${entry.question.fr} » ignorée (${(err as Error).message})`
+      );
+    }
+  }
+  if (created > 0) {
+    strapi.log.info(`[seed] FAQ chatbot : ${created}/${FAQ_SEED.length} entrées créées (fr + en + mg)`);
+  }
+};
+
 const A_PROPOS_FR = {
   titre: 'À propos',
   // Citation exacte — décret n°2024-055 du 20 janvier 2024, article 2.
@@ -256,7 +193,7 @@ const A_PROPOS_FR = {
     "<p>Le Ministre du Travail, de l'Emploi et de la Fonction Publique est chargé de la conception, de la mise en œuvre et du suivi de l'application de la Politique du Gouvernement en matière de Travail, d'Emploi et de la Fonction Publique.</p>",
   // TODO: à valider par la Direction de la Communication
   presentation_application:
-    "<p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux démarches en ligne du ministère.</p>",
+    "<p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux statistiques de consultation du ministère.</p>",
 };
 
 const seedAPropos = async (strapi: Core.Strapi) => {
@@ -341,18 +278,19 @@ export default {
   /**
    * register() : extensions de code (avant init).
    */
-  register({ strapi }: { strapi: Core.Strapi }) {
-    // P1 : règle métier transverse (timeline + email) sur les démarches,
-    // effective aussi pour les écritures du panneau d'administration.
-    registerDemarcheLifecycle(strapi);
+  /**
+   * register() : extensions de code (avant init).
+   */
+  register(_args: { strapi: Core.Strapi }) {
+    // Plus d'extension enregistrée : la règle métier des démarches
+    // (registerDemarcheLifecycle) a été supprimée avec les démarches.
   },
 
   /**
-   * bootstrap() : seeds idempotents + permissions.
+   * bootstrap() : seeds idempotents.
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
-    const directions = await seedDirections(strapi);
-    await seedTypesDemarche(strapi, directions);
     await seedAPropos(strapi);
+    await seedFaq(strapi);
   },
 };

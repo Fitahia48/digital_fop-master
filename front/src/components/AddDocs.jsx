@@ -29,6 +29,8 @@ const AjouterDocument = () => {
     mots_cles: "",
     langue: "fr",
     organisme_emetteur: "",
+    lieu_signature: "",
+    signataires: "",
   });
 
 
@@ -182,30 +184,30 @@ const AjouterDocument = () => {
             {/* Référence */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
-                Numéro
+                Numéro (optionnel)
+                <HelpTooltip text="Numéro officiel du texte (ex. 2024-055). Laisser vide pour les textes sans numéro comme la Constitution." />
               </label>
               <input
                 type="text"
                 name="numero"
                 value={formData.numero}
                 onChange={handleChange}
-                required
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                placeholder="Entrez la référence (ex: xxxx-xxx)"
+                placeholder="Entrez la référence (ex: 2024-055, laisser vide si aucun)"
               />
             </div>
 
             {/* Date */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
-                Date (sortie du document)
+                Date (sortie du document, optionnelle)
+                <HelpTooltip text="Date officielle de signature ou d'adoption. Laisser vide si non précisée dans le texte." />
               </label>
               <input
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                required
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -312,6 +314,39 @@ const AjouterDocument = () => {
                 maxLength={200}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="ex. : Gouvernement, Ministère du Travail…"
+              />
+            </div>
+
+            {/* Lieu de signature (optionnel) */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Lieu de signature (optionnel)
+                <HelpTooltip text="Lieu officiel de signature ou promulgation du texte." />
+              </label>
+              <input
+                type="text"
+                name="lieu_signature"
+                value={formData.lieu_signature}
+                onChange={handleChange}
+                maxLength={150}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="ex. : Antananarivo"
+              />
+            </div>
+
+            {/* Signataire(s) (optionnel) */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Signataire(s) (optionnel)
+                <HelpTooltip text="Noms ou titres des signataires officiels (ex. : Le Président de la République, Le Premier Ministre...)." />
+              </label>
+              <textarea
+                name="signataires"
+                value={formData.signataires}
+                onChange={handleChange}
+                rows={2}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                placeholder="ex. : Le Président de la République, Le Premier Ministre, Le Ministre du Travail..."
               />
             </div>
 

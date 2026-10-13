@@ -40,7 +40,7 @@ const ActivateAccountPage = () => {
             <h1 className="text-xl font-semibold text-emerald-700 mb-3">{t('auth.activation_succes')}</h1>
             <p className="text-gray-600 mb-6">{state.message}</p>
             <Link
-              to="/login"
+              to="/portail-gestion/connexion"
               className="inline-block bg-blue-900 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition"
             >
               {t('auth.se_connecter')}
@@ -51,8 +51,8 @@ const ActivateAccountPage = () => {
           <>
             <h1 className="text-xl font-semibold text-red-700 mb-3">{t('auth.activation_echec')}</h1>
             <p className="text-gray-600 mb-6">{state.message}</p>
-            <Link to="/register" className="text-blue-700 hover:underline">
-              {t('auth.activation_recreer')}
+            <Link to="/" className="text-blue-700 hover:underline">
+              {t('menu.accueil')}
             </Link>
           </>
         )}

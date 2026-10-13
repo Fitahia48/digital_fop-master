@@ -26,7 +26,7 @@
     },
     "type_relation": {
       "type": "enumeration",
-      "enum": ["modifie", "abroge", "complete"],
+      "enum": ["modifie", "abroge", "complete", "vise"],
       "required": true
     },
     "date_creation": {

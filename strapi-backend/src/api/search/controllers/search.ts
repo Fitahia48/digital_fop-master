@@ -10,7 +10,7 @@
  * `matchFaqOrDocuments` (réutilisée par faq.ask).
  */
 import { ApplicationError, getRequestUser } from '../../../utils/errors';
-import { bestFaqMatch, pickSearchTerms } from './faq-matcher';
+import { bestFaqMatch, normalizeText, pickSearchTerms, tokenize } from './faq-matcher';
 
 // Statuts acceptés par le filtre (valeurs normalisées — D8 : sans accents)
 const STATUS_MAP: Record<string, string> = {
@@ -27,6 +27,120 @@ const STATUS_MAP: Record<string, string> = {
 };
 
 const LANGUES = ['fr', 'en', 'mg'];
+
+// ─── Reconnaissance des messages de politesse (chatbot F9) ───────────────────
+// Ces réponses sont INTERNES au chatbot : elles ne sont jamais stockées dans
+// la FAQ Strapi et n'apparaissent pas sur la page Aide/FAQ publique.
+
+type PoliteCategory = 'greeting' | 'thanks' | 'farewell';
+
+/** Tokens usuels de salutations / politesse pour distinguer politesse pure vs question métier. */
+const POLITE_TOKENS = new Set([
+  // salutations
+  'bonjour', 'salut', 'bonsoir', 'coucou', 'hello', 'hey', 'salama',
+  // formules malgaches
+  'tompoko', 'ianao', 'ahoana', 'manao', 'mba', 'akory',
+  // politesse & conversationnel léger
+  'comment', 'allez', 'vas', 'bien', 'merci', 'beaucoup', 'thanks', 'thank',
+  'misaotra', 'betsaka', 'plaisir',
+  // remplissages courants des formules de politesse (« merci d'avance »,
+  // « thanks a lot », « thank you so much »…)
+  'avance', 'votre', 'aide', 'attention', 'encore', 'please',
+  'lot', 'much', 'very', 'again', 'help', 'reply', 'response',
+  'welcome', 'good',
+  // congé
+  'revoir', 'bye', 'goodbye', 'adieu', 'bonne', 'journee', 'soiree', 'nuit',
+  'bientot', 'veloma', 'night',
+]);
+
+/** Patterns normalisés → catégorie de politesse. */
+const POLITE_PATTERNS: Array<{ patterns: RegExp[]; category: PoliteCategory }> = [
+  {
+    category: 'greeting',
+    patterns: [
+      /^(bonjour|salut|bonsoir|coucou|hello|hi|hey|good\s*(morning|afternoon|evening)|salama|manao\s*ahoana|mba\s*manao\s*ahoana)\b/,
+    ],
+  },
+  {
+    category: 'thanks',
+    patterns: [
+      /\b(merci|thank\s*you|thanks|misaotra)\b/,
+    ],
+  },
+  {
+    category: 'farewell',
+    patterns: [
+      /^(au\s*revoir|bye|goodbye|good\s*night|bonne\s*(journee|soiree|nuit)|a\s*bientot|farewell|veloma)\b/,
+    ],
+  },
+];
+
+/** Réponses de politesse localisées (fr/en/mg). */
+const POLITE_REPLIES: Record<PoliteCategory, Record<string, string>> = {
+  greeting: {
+    fr: 'Bonjour ! Je suis l\'assistant de la bibliothèque numérique du MTeFOP. Comment puis-je vous aider à trouver un texte réglementaire ou une information ?',
+    en: 'Hello! I am the assistant of the MTeFOP digital library. How can I help you find a regulatory text or information?',
+    mg: 'Salama! Izaho no mpanampy ny tranomboky nomerika MTeFOP. Inona no azonao anontaniana ahy momba ny antontan-taratasy na ny fampahalalana?',
+  },
+  thanks: {
+    fr: 'Avec plaisir ! N\'hésitez pas si vous avez d\'autres questions sur les documents ou la bibliothèque.',
+    en: 'You\'re welcome! Feel free to ask if you have any other questions about the documents or the library.',
+    mg: 'Tsy misy fisaorana! Aza misetra hametraka fanontaniana hafa momba ny antontan-taratasy na ny tranomboky.',
+  },
+  farewell: {
+    fr: 'Au revoir ! Bonne consultation de la bibliothèque numérique du MTeFOP.',
+    en: 'Goodbye! Enjoy browsing the MTeFOP digital library.',
+    mg: 'Veloma! Mifalia amin\'ny fampiasana ny tranomboky nomerika MTeFOP.',
+  },
+};
+
+/**
+ * Détermine si le message est une formule de politesse pure.
+ * Retourne la catégorie correspondante ou null si le message contient
+ * des termes métier significatifs devant faire l'objet d'une recherche.
+ */
+const detectPoliteMessage = (raw: string): PoliteCategory | null => {
+  const normalized = normalizeText(raw);
+  if (!normalized) return null;
+
+  // Si le message contient des tokens métier significatifs (non-politesse, non-stopword),
+  // c'est une vraie question qui débute par une salutation : on ne la court-circuite pas.
+  const tokens = tokenize(raw);
+  const substantiveTokens = tokens.filter((t) => !POLITE_TOKENS.has(t));
+  if (substantiveTokens.length > 0) return null;
+
+  const wordCount = normalized.split(' ').filter(Boolean).length;
+  if (wordCount > 8) return null;
+  for (const { patterns, category } of POLITE_PATTERNS) {
+    if (patterns.some((p) => p.test(normalized))) return category;
+  }
+  return null;
+};
+
+/**
+ * Réponse de politesse prête à l'emploi pour un message non métier.
+ * Utilisé par `matchFaqOrDocuments` ET directement par POST /api/faq/ask
+ * (court-circuit avant tout appel LLM : ni latence, ni coût, ni invention).
+ *
+ * @returns { lang, category, text } ou null si le message n'est pas qu'une
+ *          formule de politesse (→ recherche normale).
+ */
+export const getPoliteReply = (
+  query: string,
+  lang: string
+): { lang: string; category: PoliteCategory; text: string } | null => {
+  const raw = String(query || '').trim();
+  if (!raw) return null;
+  const category = detectPoliteMessage(raw);
+  if (!category) return null;
+  let code = String(lang || '').slice(0, 2).toLowerCase();
+  if (!LANGUES.includes(code)) code = 'fr';
+  return {
+    lang: code,
+    category,
+    text: POLITE_REPLIES[category][code] ?? POLITE_REPLIES[category]['fr'],
+  };
+};
 
 interface InternalSearchOpts {
   page?: number | string;
@@ -136,8 +250,25 @@ export const matchFaqOrDocuments = async (query: string, lang: string) => {
   };
   if (!raw) return empty;
 
+  // ── Détection des messages de politesse (salutations, remerciements, congé) ─
+  // Priorité absolue : on court-circuite le matching FAQ et la recherche
+  // documentaire. Ces réponses ne sont jamais stockées dans la FAQ Strapi.
+  const polite = getPoliteReply(raw, code);
+  if (polite) {
+    return {
+      type: 'polite',
+      lang: polite.lang,
+      text: polite.text,
+      faq: null,
+      documents: [],
+      documentsCount: 0,
+      has_pertinence: true,
+    };
+  }
+
   try {
     // FAQ de la locale demandée, puis repli multi-langue (i18n natif — D1)
+
     const locales = [code, ...LANGUES.filter((l) => l !== code)];
     for (const locale of locales) {
       let faqRows: any[] = [];
@@ -357,6 +488,7 @@ export const getSearchHistory = async (ctx: any) => {
 // échouent au boot (« Cannot read properties of undefined »).
 export default {
   buildInternalDocs,
+  getPoliteReply,
   matchFaqOrDocuments,
   webSearch,
   getSearchHistory,

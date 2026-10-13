@@ -1,10 +1,17 @@
-# RELATIONS À AJOUTER
+# RELATIONS À AJOUTER & ADAPTATIONS DU SCHÉMA
 
-*Ce fichier liste les relations et observations en attente de validation ou d'adaptation du schéma Strapi.*
+*Ce fichier documente les relations inter-textes et les adaptations de schéma pour les particularités juridiques.*
 
-## Relations "vise" manquantes (type_relation : "vise" non disponible)
+## 1. Type de relation juridique « vise » (✅ Implémenté dans Strapi et Front)
 
-### Depuis le Décret n°2024-055
+Le type de relation `vise` (visas juridiques : « Vu la Constitution », « Vu la loi... ») a été ajouté :
+- Au schéma Strapi `api::document-relation.document-relation` (enum : `modifie`, `abroge`, `complete`, `vise`).
+- Au contrôleur `strapi-backend/src/api/document-relation/controllers/document-relation.ts` (`ALLOWED_TYPES`).
+- À l'interface `DocumentLifecycleModal.jsx` (sélection + badge violet « Vise » / « Est visé par »).
+- À la fiche publique `DocumentFiche.jsx` et aux dictionnaires i18n (`fr`, `en`, `mg`).
+
+### Relations prêtes à être saisies :
+#### Depuis le Décret n°2024-055
 - VISE → Loi n°94-025 (Document 2)
 - VISE → Loi n°2003-011 du 3 septembre 2003
 - VISE → Loi n°2003-044 du 28 juillet 2004 (Code du Travail)
@@ -14,24 +21,20 @@
 - VISE → Décret n°2024-020 du 14 janvier 2024
 - VISE → Constitution
 
-### Depuis l'Arrêté n°3091
+#### Depuis l'Arrêté n°3091
 - VISE → Décret n°64-213 du 27 mai 1964
 - VISE → Décret n°64-214 du 27 mai 1964
 
-## Observations sur les données non représentables ou incertaines
+---
 
-### Décret n°2024-055
-- **Particularité juridique** : L'article 56 précise une entrée en vigueur dès diffusion radio/télévisée, avant même la publication au Journal Officiel.
-- **Champ manquant** : `lieu_signature` (Antananarivo) n'existe pas dans le modèle actuel.
-- **Champ manquant** : `signataires` n'existe pas.
+## 2. Adaptation des champs du schéma `document` (✅ Implémenté)
 
-### Loi n°94-025
-- **Écart de date** : Date d'adoption = 11 octobre 1994, mais citée comme "17 novembre 1994" dans le décret de 2024.
-- **Champ manquant** : `signataires` n'existe pas.
+1. **`lieu_signature` & `signataires`** :
+   - Ajoutés au schéma `api::document.document` (type string et text).
+   - Mappés dans le contrôleur de documents (création, mise à jour, rendu).
+   - Intégrés dans `AddDocs.jsx`, `EditDoc.jsx` et consultables sur `DocumentFiche.jsx`.
+2. **Numéro optionnel (`numero`)** :
+   - Rendue optionnelle dans le schéma pour permettre l'enregistrement de textes sans numéro officiel (notamment la **Constitution**).
+3. **Date optionnelle (`date`)** :
+   - Rendue optionnelle dans le schéma pour débloquer l'insertion d'actes dont la date d'adoption/signature est inconnue ou absente du document d'archive (ex. **Arrêté n°3091**).
 
-### Arrêté n°3091
-- **Date inconnue** : La date du document n'est pas présente dans le PDF. Le champ `date` de Strapi étant requis, cela pose un problème bloquant pour l'insertion.
-- **Statut à vérifier** : Statut défini à "non_verifie" par défaut.
-
-### Constitution (Enregistrement minimal)
-- **Numéro manquant** : Le champ `numero` est requis dans le schéma, mais la Constitution n'en possède généralement pas.

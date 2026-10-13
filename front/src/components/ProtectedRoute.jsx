@@ -3,8 +3,8 @@ import { Navigate } from "react-router-dom";
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (!isAuthenticated) {
-    // Si l'utilisateur n'est pas connecté, redirigez vers la page de connexion
-    return <Navigate to="/login" />;
+    // Utilisateur non connecté → page de connexion (hors navigation publique)
+    return <Navigate to="/portail-gestion/connexion" />;
   }
   // Si tout est bon, affichez le composant enfant
   return children;
