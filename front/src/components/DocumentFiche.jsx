@@ -204,141 +204,144 @@ const DocumentFiche = () => {
       </button>
 
       <article className="bg-white rounded-lg shadow-lg p-6 sm:p-8" aria-labelledby="fiche-titre">
-        {/* En-tête : type, numéro, statuts */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-800 bg-blue-100 px-2.5 py-1 rounded">
-            {documentTypeLabel(doc.type, t)}
-          </span>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statutStyles[statut] || statutStyles.non_verifie}`}>
-            {statut === 'non_verifie' && <FontAwesomeIcon icon={faTriangleExclamation} className="mr-1.5" />}
-            {statut === 'abroge' && <FontAwesomeIcon icon={faBan} className="mr-1.5" />}
-            {statut === 'modifie' && <FontAwesomeIcon icon={faPen} className="mr-1.5" />}
-            {statut === 'en_vigueur' && <FontAwesomeIcon icon={faCircleCheck} className="mr-1.5" />}
-            {t(`fiche.statut_${statut}`, { defaultValue: statusLabel(doc.status) })}
-          </span>
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${etat.style}`}>
-            <FontAwesomeIcon icon={etat.icon} />
-            {t(etat.key)}
+        {/* Status badge */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold 
+            ${doc.status === "en_vigueur" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}
+          `}>
+            {statusLabel(doc.status)}
           </span>
         </div>
-
-        <h1 id="fiche-titre" className="text-2xl font-bold text-gray-900 leading-snug">
-          {doc.numero ? `${t('fiche.numero_prefixe')} ${doc.numero} : ` : ''}
-          {doc.objet}
+        
+        {/* Title */}
+        <h1 id="fiche-titre" className="text-3xl font-bold text-gray-900 mb-2 leading-snug">
+          {doc.type} {doc.numero ? `n°${doc.numero}` : ''} {doc.objet}
         </h1>
-
-        {/* Références officielles */}
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700 mt-5 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-            <dt className="font-medium">{t('fiche.date_signature')}</dt>
-            <dd>{formatDate(doc.date)}</dd>
-          </div>
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faCalendarAlt} className="text-emerald-600" />
-            <dt className="font-medium">{t('fiche.entree_vigueur')}</dt>
-            <dd>{doc.date_entree_vigueur ? formatDate(doc.date_entree_vigueur) : t('documents.non_renseignee')}</dd>
-          </div>
-          <div>
-            <dt className="inline font-medium">{t('fiche.domaine')} : </dt>
-            <dd className="inline">{doc.domaine_nom || '—'}</dd>
-          </div>
-          {doc.organisme_emetteur && (
-            <div>
-              <dt className="inline font-medium">{t('fiche.organisme')} : </dt>
-              <dd className="inline">{doc.organisme_emetteur}</dd>
-            </div>
-          )}
-          {doc.lieu_signature && (
-            <div>
-              <dt className="inline font-medium">{t('fiche.lieu_signature', { defaultValue: 'Lieu de signature :' })} </dt>
-              <dd className="inline">{doc.lieu_signature}</dd>
-            </div>
-          )}
-          {doc.signataires && (
-            <div className="sm:col-span-2">
-              <dt className="inline font-medium">{t('fiche.signataires', { defaultValue: 'Signataire(s) :' })} </dt>
-              <dd className="inline">{doc.signataires}</dd>
-            </div>
-          )}
-          {doc.inclus_journal && (
-            <div className="sm:col-span-2 text-gray-600">
-              <dt className="inline font-medium">{t('fiche.journal')} : </dt>
-              <dd className="inline">
-                {t('fiche.journal_ref', {
-                  numero: doc.numero_journal || '-',
-                  date: doc.date_journal ? formatDate(doc.date_journal) : '-',
-                  page: doc.page_journal || '-',
-                })}
-              </dd>
-            </div>
-          )}
-          {doc.langue && (
-            <div>
-              <dt className="inline font-medium">{t('fiche.langue')} : </dt>
-              <dd className="inline">{t(`fiche.langue_${doc.langue}`)}</dd>
-            </div>
-          )}
-        </dl>
-
-        {/* Mots-clés */}
-        {motsCles.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {motsCles.map((m) => (
-              <span key={m} className="px-2 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700">
-                {m}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Résumé en langage clair */}
-        {doc.resume_simplifie && (
-          <div className="mt-6 bg-blue-50 border-l-4 border-blue-400 rounded-r-md p-4">
-            <p className="flex items-center gap-2 font-semibold text-blue-900 mb-2">
-              <FontAwesomeIcon icon={faBookOpen} /> {t('documents.en_resume')}
-            </p>
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{doc.resume_simplifie}</p>
-            <p className="text-xs text-blue-700 mt-3">{t('documents.le_resume_est_aide')}</p>
-          </div>
-        )}
-
-        {/* Texte intégral — jamais de lien si le fichier manque */}
-        <div className="mt-6">
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
-              {t('fiche.texte_integral')}
-            </h2>
-            {file.available && (
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition text-sm"
-              >
-                <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                {t('common.telecharger')}
-              </button>
-            )}
-          </div>
-          
-          {file.available ? (
-            <div className="w-full h-[600px] sm:h-[800px] border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-              <iframe 
-                src={resolveFileUrl(file.url)} 
-                width="100%" 
-                height="100%" 
-                title="Visionneuse PDF"
-                className="w-full h-full"
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 italic border border-dashed border-gray-300 rounded-md p-4">
-              {t('fiche.fichier_indisponible')}
-            </p>
-          )}
+        
+        {/* Metadata line */}
+        <div className="text-sm text-gray-600 mb-4">
+          {/* Build metadata dynamically */}
+          {[ 
+            doc.inclus_journal && doc.date_journal ? (
+              <>
+                <span>Journal officiel </span>
+                <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(doc.date_journal))}</span>
+                <span> • </span>
+              </>
+            ) : null,
+            doc.domaine_nom ? (
+              <>
+                <span>Domaine : </span>
+                <span>{doc.domaine_nom}</span>
+                <span> • </span>
+              </>
+            ) : null,
+            doc.conseil ? (
+              <>
+                <span>Conseil : </span>
+                <span>{doc.conseil}</span>
+                <span> • </span>
+              </>
+            ) : null,
+            doc.organisme_emetteur ? (
+              <>
+                <span>Organisme : </span>
+                <span>{doc.organisme_emetteur}</span>
+                <span> • </span>
+              </>
+            ) : null,
+            doc.langue ? (
+              <>
+                <span>Langue : </span>
+                <span>{t(`fiche.langue_${doc.langue}`)}</span>
+                <span> • </span>
+              </>
+            ) : null,
+            doc.date ? (
+              <>
+                <span>Date du texte : </span>
+                <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(doc.date))}</span>
+                <span> • </span>
+              </>
+            ) : null
+          ].filter(Boolean).map((item, index) => (
+            <React.Fragment key={index}>{item}</React.Fragment>
+          ))}
         </div>
-
-        {/* Vie juridique : relations (lecture seule ici, détail dans la modale) */}
+        
+        {/* Detail bloc */}
+        <div className="mb-4">
+          {[ 
+            doc.numero_journal && doc.page_journal ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">Journal officiel :</span>
+                  <span>n° {doc.numero_journal}, p. {doc.page_journal}</span>
+                </div>
+              </>
+            ) : null,
+            doc.lieu_signature ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">Lieu de signature :</span>
+                  <span>{doc.lieu_signature}</span>
+                </div>
+              </>
+            ) : null,
+            doc.signataires ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">Signataire(s) :</span>
+                  <span>{doc.signataires}</span>
+                </div>
+              </>
+            ) : null
+          ].filter(Boolean).map((item, index) => (
+            <React.Fragment key={index}>{item}</React.Fragment>
+          ))}
+        </div>
+        
+        {/* Resume card */}
+        {doc.resume_simplifie ? (
+          <section className="bg-emerald-50 rounded-lg p-6 border-l-4 border-emerald-400">
+            <div className="flex items-center gap-2 mb-4">
+              <FontAwesomeIcon icon={faLightbulb} className="text-emerald-900" />
+              <h2 className="text-xl font-semibold text-emerald-900">{t('documents.en_resume')}</h2>
+            </div>
+            <p className="text-gray-800 leading-relaxed whitespace-pre-line mb-4">
+              {doc.resume_simplifie}
+            </p>
+            <p className="text-xs text-emerald-700">
+              {t('documents.le_resume_est_aide')}
+            </p>
+          </section>
+        ) : (
+          <p className="text-sm text-gray-500 italic text-center py-6">
+            {t('documents.aucun_resume_disponible', { defaultValue: 'Aucun résumé disponible pour ce texte' })}
+          </p>
+        )}
+        
+        {/* Action buttons */}
+        <div className="flex justify-end pt-6 space-x-3">
+          {file.available ? (
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+              aria-label={t('common.telecharger')}
+            >
+              <FontAwesomeIcon icon={faDownload} />
+              <span>{t('common.telecharger')}</span>
+            </button>
+          ) : null}
+          <button
+            onClick={() => (backTarget === -1 ? navigate(-1) : navigate(backTarget))}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+          >
+            <span>{t('common.retour')}</span>
+          </button>
+        </div>
+        
+        {/* Vie juridique : relations (keep existing if already visible) */}
         {(doc.relations_actives?.length > 0 || doc.relations_passives?.length > 0) && (
           <div className="mt-8">
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -383,15 +386,6 @@ const DocumentFiche = () => {
             </ul>
           </div>
         )}
-
-        {/* Traçabilité et limites de vérification */}
-        <footer className="mt-8 pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1">
-          {doc.last_modified_at && (
-            <p>{t('fiche.derniere_maj', { date: formatDate(doc.last_modified_at) })}</p>
-          )}
-          {statut === 'non_verifie' && <p>{t('fiche.avertissement_non_verifie')}</p>}
-          {doc.etat_notice !== 'validee' && <p>{t('fiche.avertissement_notice')}</p>}
-        </footer>
       </article>
     </div>
   );

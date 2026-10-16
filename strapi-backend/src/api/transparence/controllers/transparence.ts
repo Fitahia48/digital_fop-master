@@ -1,7 +1,7 @@
 /**
  * Transparence — statistiques de CONSULTATION des textes réglementaires.
  *
- * GET /api/transparence/stats — PUBLIC, aucune authentification.
+ * GET /api/transparence/stats — désormais réservée aux admins authentifiés.
  *
  * Avant la suppression des démarches en ligne, ce controller agrégeait les
  * délais de traitement des démarches (content-types supprimés). Il expose
@@ -21,6 +21,8 @@
  *    identifiant de session (la table analytique `visits` — qui contient des
  *    IP — n'est jamais lue ici).
  */
+import { isAdminCtx } from '../../../utils/roles';
+
 const UID = 'api::document.document';
 
 interface LigneDocument {
@@ -72,9 +74,13 @@ const payloadVide = () => ({
   maj_le: new Date().toISOString(),
 });
 
-// ─── GET /api/transparence/stats ────────────────────────────────────────────
-
+// ─── GET /api/transparence/stats ────────────────────────────────────────
 export const getStatsPubliques = async (ctx: any) => {
+  // Vérification du rôle admin (helper partagé : src/utils/roles.ts)
+  if (!(await isAdminCtx(ctx))) {
+    return ctx.forbidden();
+  }
+
   try {
     // Seules les notices « validées » sont publiques (même filtre que la
     // liste de documents côté visiteur anonyme).
@@ -149,7 +155,7 @@ export const getStatsPubliques = async (ctx: any) => {
     };
   } catch (err) {
     console.error('getStatsPubliques error:', err);
-    // Dégradation gracieuse : la page publique reste consultable
+    // Dégradation gracieuse : la page admin reste consultable
     ctx.body = payloadVide();
   }
 };

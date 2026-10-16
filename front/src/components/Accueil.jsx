@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import img1 from "/1.jpg";
 import img2 from "/3.jpg";
@@ -11,9 +11,11 @@ import AppRating from './AppRating';
 import SubscribeForm from './SubscribeForm';
 import OnboardingTour from './OnboardingTour';
 import { motion } from "framer-motion";
+import { userContext } from './Context';
 
 const Accueil = () => {
   const { t } = useTranslation();
+  const { isAdmin } = useContext(userContext);
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState(0);
   const [data, setData] = useState({ totalVisits: 0, uniqueVisitors: 0, totalVisitsPerDay: [], uniqueVisitorsPerDay: [], visitsToday: 0 });
@@ -98,7 +100,14 @@ const Accueil = () => {
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, [active, sliderContent]);
-  useEffect(() => { fetchStatistics(); }, []);
+
+  // Fetch statistics only for admins
+  useEffect(() => {
+    if (isAdmin) {
+      fetchStatistics();
+    }
+  }, [isAdmin]);
+
   const fetchStatistics = async () => {
     try {
       const { data: stats } = await axiosInstance.get("/api/visit-statistics/");
@@ -106,7 +115,7 @@ const Accueil = () => {
         totalVisits: stats.total_visits || 0,
         uniqueVisitors: stats.unique_visitors || 0,
         totalVisitsPerDay: stats.total_visits_per_day || [],
-        uniqueVisitorsPerDay: stats.unique_visitors_per_day || [],
+        uniqueVisitorsPerDay: stats.unique_visitors_perDay || [],
         visitsToday: stats.visits_today || 0,
       });
     } catch (error) {
@@ -133,24 +142,27 @@ const Accueil = () => {
             </>
           ))}
         </div>
-        <motion.div
-          className="fixed-visits text-white"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, repeat: Infinity, repeatType: "mirror" }}
-          layout
-        >
-          <p>
-            Total de visites :{" "}
-            <motion.span
-              className="font-bold text-3xl"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity, repeatType: "mirror" }}
-            >
-              {formatNumber(data.totalVisits)}
-            </motion.span>
-          </p>
-        </motion.div>
+        {/* Visitor counter - only visible to admins */}
+        {isAdmin && (
+          <motion.div
+            className="fixed-visits text-white"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, repeat: Infinity, repeatType: "mirror" }}
+            layout
+          >
+            <p>
+              {t('accueil.visitors_today')} :{" "}
+              <motion.span
+                className="font-bold text-3xl"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity, repeatType: "mirror" }}
+              >
+                {formatNumber(data.visitsToday)}
+              </motion.span>
+            </p>
+          </motion.div>
+        )}
         {/* Navigation Buttons */}
         <div>
           <button id="back" ref={prevRef} onClick={() => Slide("prev")} className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 text-white text-3xl sm:text-4xl hover:scale-125 transition-transform">

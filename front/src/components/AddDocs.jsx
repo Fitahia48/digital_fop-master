@@ -16,9 +16,9 @@ const AjouterDocument = () => {
     date: "",
     conseil: "",
     domaine: "",
-    // P1 : le statut juridique n'est PAS choisi ici — le serveur pose
-    // « non_verifie » à la création ; la confirmation passe par le circuit
-    // dédié (justification obligatoire + audit), jamais par ce formulaire.
+    // Statut juridique choisi directement à la création (deux choix proposés
+    // au formulaire), pré-sélectionné sur « En vigueur ».
+    status: "en_vigueur",
     resume_simplifie: "",
     fichier: null,
     inclusJournal: false,
@@ -65,9 +65,6 @@ const AjouterDocument = () => {
     const data = new FormData();
   
     Object.keys(formData)
-      // P1 : « status » n'est volontairement PAS envoyé — le serveur impose
-      // « non_verifie » à la création (présomption nulle, circuit dédié).
-      .filter((key) => key !== "status")
       .forEach((key) => {
         if (formData[key] !== null && formData[key] !== "") {
           data.append(key, formData[key]);
@@ -250,20 +247,21 @@ const AjouterDocument = () => {
               </select>
             </div>
 
-            {/* Statut juridique — lecture seule : le circuit de confirmation
-                (justification + audit) est le seul à pouvoir le modifier. */}
+            {/* Statut juridique — modifiable directement à la création */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
                 Statut juridique
-                <HelpTooltip text="À la création, le statut est toujours « Non vérifié » (présomption nulle). Seul le circuit de confirmation — dans « Vie juridique » — peut le changer, avec une justification obligatoire et une journalisation permanente." />
+                <HelpTooltip text="Statut juridique actuel du texte au moment de son ajout." />
               </label>
-              <input
-                type="text"
-                value={statusLabel("non_verifie")}
-                readOnly
-                disabled
-                className="w-full p-2 border border-gray-200 bg-gray-100 text-gray-600 rounded-md cursor-not-allowed"
-              />
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="en_vigueur">{statusLabel("en_vigueur")}</option>
+                <option value="abroge">{statusLabel("abroge")}</option>
+              </select>
             </div>
 
             {/* Mots-clés (P1) */}

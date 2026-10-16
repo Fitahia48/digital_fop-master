@@ -19,11 +19,12 @@
  * Couverture P1 :
  *  1. fiche par URL directe (/api/documents/:id — forme legacy) ;
  *  2. document inexistant → 404 ;
- *  3. création : statut imposé « non_verifie » (même admin) + etat brouillon ;
- *  4. PATCH générique : « status » ignoré (pas de contournement du circuit) ;
+ *  3. création : statut accepté (en_vigueur / abroge) ; repli sur
+ *     « en_vigueur » si valeur absente ou invalide (jamais d'erreur) ;
+ *  4. PATCH générique : « status » accepté (édition directe du statut) ;
  *  5. validation juridique REFUSÉE à un rôle non habilité (403) ;
- *  6. validation juridique refusée SANS justification (400) ;
- *  7. validation juridique ACCEPTÉE AVEC justification + audit persisté ;
+ *  6. changement de statut ACCEPTÉ SANS justification (plus de 400) ;
+ *  7. changement de statut AVEC justification + audit persisté ;
  *  8. historique de statut conservé (append-only) ;
  *  9. document créé sans PDF : aucune URL de fichier morte exposée.
  */
@@ -154,7 +155,7 @@ describe('P1 — Fiche documentaire à URL stable (endpoint legacy)', () => {
   });
 });
 
-describe('P1 — Présomption nulle et circuit de validation juridique', () => {
+describe('P1 — Statut juridique simplifié (choix direct du formulaire)', () => {
   let createdId = null;
 
   before(async () => {
@@ -171,7 +172,7 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     }
   });
 
-  test('création (admin) : le statut envoyé est IGNORÉ → non_verifie', async (t) => {
+  test('création (admin) : le statut envoyé est ACCEPTÉ (en_vigueur)', async (t) => {
     requireServer(t);
     assert.ok(adminToken, 'login admin requis');
     const res = await api('/api/documents/', {
@@ -179,25 +180,57 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
       token: adminToken,
       body: {
         type: 'note',
-        objet: `TEST P1 auto — présomption nulle (${Date.now()})`,
+        objet: `TEST P1 auto — statut choisi à la création (${Date.now()})`,
         numero: `P1TEST-${Date.now()}`,
         date: '2026-01-01',
-        // Tentative de forcer un statut juridique à la création :
-        status: 'en_vigueur', // ← doit être ignoré côté serveur
+        // Choix du formulaire d'ajout : « En vigueur »
+        status: 'en_vigueur',
       },
     });
     assert.strictEqual(res.status, 201);
     createdId = res.data.id;
-    // Propriété de sécurité testée : aucun statut juridique n'est injectable
-    // par le client, même admin (présomption nulle — cf. document.updateStatus).
-    assert.strictEqual(res.data.status, 'non_verifie', 'présomption nulle imposée');
+    assert.strictEqual(res.data.status, 'en_vigueur', 'statut choisi enregistré');
     // etat_notice : décision produit documentée dans le controller create —
     // une notice créée par un admin est directement « validée » (visible
     // immédiatement) ; un non-admin resterait en « brouillon ».
     assert.strictEqual(res.data.etat_notice, 'validee', 'notice admin validée immédiatement');
   });
 
-  test('PATCH générique : « status » ne contourne PAS le circuit de validation', async (t) => {
+  test('création : statut « abroge » accepté, puis repli sur « en_vigueur » si valeur invalide', async (t) => {
+    requireServer(t);
+    assert.ok(adminToken, 'login admin requis');
+    const mk = (status) =>
+      api('/api/documents/', {
+        method: 'POST',
+        token: adminToken,
+        body: {
+          type: 'note',
+          objet: `TEST P1 auto — repli statut ${String(status)} (${Date.now()})`,
+          numero: `P1TEST-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+          date: '2026-01-01',
+          ...(status === undefined ? {} : { status }),
+        },
+      });
+
+    const abroge = await mk('abroge');
+    assert.strictEqual(abroge.status, 201);
+    assert.strictEqual(abroge.data.status, 'abroge', '« abroge » accepté');
+
+    const invalide = await mk('statut_inconnu');
+    assert.strictEqual(invalide.status, 201, 'jamais d erreur pour un statut invalide');
+    assert.strictEqual(invalide.data.status, 'en_vigueur', 'repli explicite en_vigueur');
+
+    const absent = await mk(undefined);
+    assert.strictEqual(absent.status, 201);
+    assert.strictEqual(absent.data.status, 'en_vigueur', 'repli par défaut en_vigueur');
+
+    // Nettoyage des documents de test créés ici
+    for (const r of [abroge, invalide, absent]) {
+      if (r.data?.id) await api(`/api/documents/${r.data.id}/`, { method: 'DELETE', token: adminToken });
+    }
+  });
+
+  test('PATCH générique : « status » est accepté (édition directe du statut)', async (t) => {
     requireServer(t);
     assert.ok(createdId);
     const res = await api(`/api/documents/${createdId}/`, {
@@ -208,9 +241,17 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     assert.strictEqual(res.status, 200);
     assert.strictEqual(
       res.data.status,
-      'non_verifie',
-      'le statut juridique est inchangé via le PATCH générique'
+      'abroge',
+      'le statut juridique est modifiable via le formulaire d édition'
     );
+    // Valeur absente → statut actuel conservé (pas de réécriture silencieuse)
+    const keep = await api(`/api/documents/${createdId}/`, {
+      method: 'PATCH',
+      token: adminToken,
+      body: { objet: 'TEST P1 — objet mis à jour (bis)' },
+    });
+    assert.strictEqual(keep.status, 200);
+    assert.strictEqual(keep.data.status, 'abroge', 'statut inchangé si status absent');
   });
 
   test('validation juridique REFUSÉE au rôle non habilité (403)', async (t) => {
@@ -224,17 +265,18 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     assert.strictEqual(res.status, 403);
   });
 
-  test('validation juridique REFUSÉE sans justification (400)', async (t) => {
+  test('changement de statut ACCEPTÉ SANS justification (plus de 400)', async (t) => {
     requireServer(t);
     const res = await api(`/api/documents/${createdId}/status/`, {
       method: 'PATCH',
       token: adminToken,
-      body: { status: 'en_vigueur' }, // pas de justification
+      body: { status: 'en_vigueur' }, // pas de justification : désormais optionnelle
     });
-    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.data.status, 'en_vigueur');
   });
 
-  test('validation juridique ACCEPTÉE avec justification (rôle habilité)', async (t) => {
+  test('changement de statut AVEC justification (rôle habilité) + audit', async (t) => {
     requireServer(t);
     const res = await api(`/api/documents/${createdId}/status/`, {
       method: 'PATCH',
@@ -257,9 +299,16 @@ describe('P1 — Présomption nulle et circuit de validation juridique', () => {
     assert.ok(res.data.count >= 1, 'au moins une entrée d audit');
     const last = res.data.results[0];
     assert.strictEqual(last.nouveau_statut, 'en_vigueur');
-    assert.ok(last.justification && String(last.justification).includes('TEST AUTOMATISÉ P1'));
-    assert.ok(last.auteur, 'auteur tracé');
-    assert.ok(last.created_at, 'date tracée');
+    // La dernière écriture (justification fournie) doit être présente — on
+    // cherche dans les entrées récentes pour rester insensible à l'ordre des
+    // timestamps de milliseconde.
+    const tracee = res.data.results.find(
+      (r) => r.justification && String(r.justification).includes('TEST AUTOMATISÉ P1')
+    );
+    assert.ok(tracee, 'la justification fournie est journalisée');
+    assert.strictEqual(tracee.nouveau_statut, 'en_vigueur');
+    assert.ok(tracee.auteur, 'auteur tracé');
+    assert.ok(tracee.created_at, 'date tracée');
   });
 
   test("document sans PDF : aucune URL de fichier morte n'est exposée", async (t) => {

@@ -11,10 +11,9 @@ import { resolveFileUrl, statusLabel } from "./Utils";
 import { Link } from "react-router-dom";
 import { Oval } from "react-loader-spinner";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faEye, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
-import { faReadme } from '@fortawesome/free-brands-svg-icons';
+import { faDownload, faPenToSquare, faTrash, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import Modal from "./Modal";
-import DocumentLifecycleModal from "./DocumentLifecycleModal";
+import PdfViewer from "./PdfViewer";
 import SearchResultsSkeleton from "./SearchResultsSkeleton";
 import './AfficherDocs.css';
 
@@ -24,8 +23,6 @@ const Documents = ({ isAdmin }) => {
   const [nextPage, setNextPage] = useState(true);
   const [previousPage, setPreviousPage] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [showLifecycleModal, setShowLifecycleModal] = useState(false);
-  const [selectedDocId, setSelectedDocId] = useState(null);
   const [selectedModification, setSelectedModification] = useState(null);
   const [journaux, setJournaux] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,7 +30,6 @@ const Documents = ({ isAdmin }) => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailDoc, setDetailDoc] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detailTab, setDetailTab] = useState("resume");
   // Résultats groupés (corps professionnels / actualités) et état de recherche
   const [corpsResults, setCorpsResults] = useState([]);
   const [actualitesResults, setActualitesResults] = useState([]);
@@ -42,8 +38,7 @@ const Documents = ({ isAdmin }) => {
   const [internalDocsHasMore, setInternalDocsHasMore] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
   const [lastCriteria, setLastCriteria] = useState(null);
-  // Lecture audio du résumé (synthèse vocale native du navigateur)
-  const [lectureEnCours, setLectureEnCours] = useState(false);
+
   const { selectedDomaine } = useContext(userContext);
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -58,15 +53,6 @@ const Documents = ({ isAdmin }) => {
     setSelectedModification(modification);
     setShowModal(true);
   };
-  const openLifecycleModal = (docId) => {
-    setSelectedDocId(docId);
-    setShowLifecycleModal(true);
-  };
-  const closeLifecycleModal = () => {
-    setShowLifecycleModal(false);
-    setSelectedDocId(null);
-  };
-
   const closeModal = () => {
     setShowModal(false);
     setSelectedModification(null);
@@ -80,7 +66,6 @@ const Documents = ({ isAdmin }) => {
     try {
       const response = await axiosInstance.get(`/api/documents/${docId}/`);
       setDetailDoc(response.data);
-      setDetailTab(response.data.resume_simplifie ? "resume" : "officiel");
     } catch (error) {
       console.error("Erreur lors du chargement du détail du document :", error);
       toast.error("Impossible de charger le détail de ce document.");
@@ -93,10 +78,8 @@ const Documents = ({ isAdmin }) => {
   const closeDetailModal = () => {
     // Interrompt toute lecture vocale en cours à la fermeture de la modale
     if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setLectureEnCours(false);
     setShowDetailModal(false);
     setDetailDoc(null);
-    setDetailTab("resume");
   };
 
   // Ouverture ciblée depuis une autre page (ex. document suggéré par le chat F9)
@@ -109,23 +92,7 @@ const Documents = ({ isAdmin }) => {
     }
   }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Lecture à voix haute du résumé en langage clair (API navigateur native, sans backend)
-  const toggleLectureVocale = () => {
-    if (!window.speechSynthesis || !detailDoc?.resume_simplifie) return;
-    if (lectureEnCours) {
-      window.speechSynthesis.cancel();
-      setLectureEnCours(false);
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(detailDoc.resume_simplifie);
-    utterance.lang = "fr-FR";
-    utterance.rate = 1;
-    utterance.onend = () => setLectureEnCours(false);
-    utterance.onerror = () => setLectureEnCours(false);
-    window.speechSynthesis.cancel(); // annule une lecture précédente
-    window.speechSynthesis.speak(utterance);
-    setLectureEnCours(true);
-  };
+
 
   const fetchDocuments = async (url) => {
     setLoading(true);
@@ -175,8 +142,8 @@ const Documents = ({ isAdmin }) => {
     }
   };
 
-  // P1 : le changement de statut juridique n'existe plus ici — il passe par la
-  // modale Vie juridique (DocumentLifecycleModal) qui exige une justification.
+  // Le changement de statut juridique se fait directement depuis le formulaire
+  // d'édition (EditDoc), sans justification obligatoire.
 
   const handleEdit = (id) => {
     navigate(`/edit/${id}`);
@@ -352,10 +319,19 @@ const Documents = ({ isAdmin }) => {
 
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-      await axiosInstance.post(`/api/documents/${documentId}/telechargement/`);
     } catch (error) {
       console.error("Erreur lors du téléchargement :", error);
       toast.error("Erreur lors du téléchargement du fichier.");
+      return;
+    }
+
+    // Comptage du téléchargement : le fichier est déjà enregistré, un échec du
+    // compteur ne doit donc ni faire échouer ni afficher une fausse erreur.
+    if (!documentId) return;
+    try {
+      await axiosInstance.post(`/api/documents/${documentId}/telechargement/`);
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement du téléchargement :", error);
     }
   };
 
@@ -400,7 +376,7 @@ const Documents = ({ isAdmin }) => {
           )}
           {/* Modale de détail : résumé en langage clair / texte officiel */}
           {showDetailModal && (
-            <Modal onClose={closeDetailModal} panelClassName="md:w-2/3 max-w-3xl">
+            <Modal onClose={closeDetailModal} panelClassName="md:w-11/12 max-w-4xl">
               {detailLoading ? (
                 <div className="flex justify-center py-10">
                   <Oval
@@ -415,127 +391,151 @@ const Documents = ({ isAdmin }) => {
                 </div>
               ) : detailDoc ? (
                 <>
-                  <h2 className="text-lg font-bold mb-1 pr-8">
-                    {detailDoc.type} {detailDoc.numero ? `n° ${detailDoc.numero}` : ""}
-                  </h2>
-                  <p className="text-sm text-gray-600 mb-4">{detailDoc.objet}</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700 mb-4">
-                    <p><strong>Date :</strong> {detailDoc.date || "—"}</p>
-                    <p><strong>Statut :</strong> {statusLabel(detailDoc.status)}</p>
-                    <p><strong>Domaine :</strong> {detailDoc.domaine_nom || "—"}</p>
-                    <p><strong>Conseil :</strong> {detailDoc.conseil || "—"}</p>
+                  {/* Status badge */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold 
+                      ${detailDoc.status === "en_vigueur" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}
+                    `}>
+                      {statusLabel(detailDoc.status)}
+                    </span>
                   </div>
-
+                  
+                  {/* Title */}
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2 leading-snug">
+                    {detailDoc.type} {detailDoc.numero ? `n°${detailDoc.numero}` : ""} {detailDoc.objet}
+                  </h1>
+                  
+                  {/* Metadata line */}
+                  <div className="text-sm text-gray-600 mb-4">
+                    {/* Build metadata dynamically */}
+                    {[ 
+                      detailDoc.inclus_journal && detailDoc.date_journal ? (
+                        <>
+                          <span>Journal officiel </span>
+                          <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(detailDoc.date_journal))}</span>
+                          <span> • </span>
+                        </>
+                      ) : null,
+                      detailDoc.domaine_nom ? (
+                        <>
+                          <span>Domaine : </span>
+                          <span>{detailDoc.domaine_nom}</span>
+                          <span> • </span>
+                        </>
+                      ) : null,
+                      detailDoc.conseil ? (
+                        <>
+                          <span>Conseil : </span>
+                          <span>{detailDoc.conseil}</span>
+                          <span> • </span>
+                        </>
+                      ) : null,
+                      detailDoc.organisme_emetteur ? (
+                        <>
+                          <span>Organisme : </span>
+                          <span>{detailDoc.organisme_emetteur}</span>
+                          <span> • </span>
+                        </>
+                      ) : null,
+                      detailDoc.langue ? (
+                        <>
+                          <span>Langue : </span>
+                          <span>{t(`fiche.langue_${detailDoc.langue}`)}</span>
+                          <span> • </span>
+                        </>
+                      ) : null,
+                      detailDoc.date ? (
+                        <>
+                          <span>Date du texte : </span>
+                          <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(detailDoc.date))}</span>
+                          <span> • </span>
+                        </>
+                      ) : null
+                    ].filter(Boolean).map((item, index) => (
+                      <React.Fragment key={index}>{item}</React.Fragment>
+                    ))}
+                  </div>
+                  
+                  {/* Detail bloc */}
+                  <div className="mb-4">
+                    {[ 
+                      detailDoc.numero_journal && detailDoc.page_journal ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">Journal officiel :</span>
+                            <span>n° {detailDoc.numero_journal}, p. {detailDoc.page_journal}</span>
+                          </div>
+                        </>
+                      ) : null,
+                      detailDoc.lieu_signature ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">Lieu de signature :</span>
+                            <span>{detailDoc.lieu_signature}</span>
+                          </div>
+                        </>
+                      ) : null,
+                      detailDoc.signataires ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">Signataire(s) :</span>
+                            <span>{detailDoc.signataires}</span>
+                          </div>
+                        </>
+                      ) : null
+                    ].filter(Boolean).map((item, index) => (
+                      <React.Fragment key={index}>{item}</React.Fragment>
+                    ))}
+                  </div>
+                  
+                  {/* Resume card */}
                   {detailDoc.resume_simplifie ? (
-                    <>
-                      <div className="flex gap-2 mb-3" role="tablist">
-                        <button
-                          role="tab"
-                          aria-selected={detailTab === "resume"}
-                          onClick={() => setDetailTab("resume")}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium ${detailTab === "resume"
-                            ? "bg-blue-900 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                        >
-                          En résumé
-                        </button>
-                        <button
-                          role="tab"
-                          aria-selected={detailTab === "officiel"}
-                          onClick={() => setDetailTab("officiel")}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium ${detailTab === "officiel"
-                            ? "bg-blue-900 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                        >
-                          {t('documents.texte_officiel')}
-                        </button>
+                    <section className="bg-emerald-50 rounded-lg p-6 border-l-4 border-emerald-400">
+                      <div className="flex items-center gap-2 mb-4">
+                        <FontAwesomeIcon icon={faLightbulb} className="text-emerald-900" />
+                        <h2 className="text-xl font-semibold text-emerald-900">{t('documents.en_resume')}</h2>
                       </div>
-                      {detailTab === "resume" ? (
-                        <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-md p-4">
-                          <p className="flex items-center gap-2 font-semibold text-blue-900 mb-2">
-                            <FontAwesomeIcon icon={faLightbulb} /> {t('documents.en_resume')}
-                          </p>
-                          <p className="text-gray-800 leading-relaxed whitespace-pre-line">
-                            {detailDoc.resume_simplifie}
-                          </p>
-                          <p className="text-xs text-blue-700 mt-3">
-                            {t('documents.le_resume_est_aide')}
-                          </p>
-                          {window.speechSynthesis && (
-                            <button
-                              type="button"
-                              onClick={toggleLectureVocale}
-                              aria-pressed={lectureEnCours}
-                              title={lectureEnCours ? t('documents.arreter_lecture') : t('documents.ecouter_resume')}
-                              className="mt-3 inline-flex items-center gap-2 bg-blue-900 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-600 transition"
-                            >
-                              <FontAwesomeIcon icon={lectureEnCours ? faXmark : faVolumeHigh} />
-                              {lectureEnCours ? t('documents.arreter_lecture') : t('documents.ecouter')}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-700">
-                          <p className="mb-3">{t('documents.texte_pdf_intro')}</p>
-                          {detailDoc.pdf_file || detailDoc.fichier ? (
-                            <div className="flex flex-wrap gap-3">
-                              <button
-                                onClick={() =>
-                                  handleView(
-                                    detailDoc.pdf_file || detailDoc.fichier,
-                                    "pdf",
-                                    detailDoc.id
-                                  )
-                                }
-                                className="bg-blue-900 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
-                              >
-                                <FontAwesomeIcon icon={faReadme} className="mr-2" />
-                                {t('documents.lire_texte')}
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDownload(
-                                    detailDoc.pdf_file || detailDoc.fichier,
-                                    `document-${detailDoc.id}.pdf`,
-                                    detailDoc.id
-                                  )
-                                }
-                                className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition"
-                              >
-                                <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                                Télécharger
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">Fichier non disponible.</span>
-                          )}
-                        </div>
-                      )}
-                    </>
+                      <p className="text-gray-800 leading-relaxed whitespace-pre-line mb-4">
+                        {detailDoc.resume_simplifie}
+                      </p>
+                      <p className="text-xs text-emerald-700">
+                        {t('documents.le_resume_est_aide')}
+                      </p>
+                    </section>
                   ) : (
-                    <p className="text-sm text-gray-500 italic mb-2">
-                      {t('documents.aucun_resume')}
+                    <p className="text-sm text-gray-500 italic text-center py-6">
+                      {t('documents.aucun_resume_disponible', { defaultValue: 'Aucun résumé disponible pour ce texte' })}
                     </p>
                   )}
+                  
+                  {/* Action buttons */}
+                  <div className="flex justify-end pt-6 space-x-3">
+                    {detailDoc.pdf_file || detailDoc.fichier ? (
+                      <button
+                        onClick={() => 
+                          handleDownload(
+                            detailDoc.pdf_file || detailDoc.fichier,
+                            `document-${detailDoc.id}.pdf`,
+                            detailDoc.id
+                          )
+                        }
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+                        aria-label={t('common.telecharger')}
+                      >
+                        <FontAwesomeIcon icon={faDownload} />
+                        <span>{t('common.telecharger')}</span>
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={closeDetailModal}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                      <span>{t('common.fermer')}</span>
+                    </button>
+                  </div>
                 </>
               ) : null}
             </Modal>
-          )}
-          {/* Document Lifecycle Modal */}
-          {showLifecycleModal && selectedDocId && (
-            <DocumentLifecycleModal
-              documentId={selectedDocId}
-              onClose={closeLifecycleModal}
-              isAdmin={isAdmin}
-              onStatusUpdated={(id, newStatus) => {
-                setDocuments((prev) =>
-                  prev.map((d) => (d.id === id ? { ...d, status: newStatus } : d))
-                );
-              }}
-            />
           )}
           {loading ? (
             <SearchResultsSkeleton rows={6} />
@@ -590,30 +590,9 @@ const Documents = ({ isAdmin }) => {
                     <td className="py-3 px-2 sm:px-4">
                       {isAdmin ? (
                         <div className="flex space-x-2 sm:space-x-4">
-                          <button
-                            onClick={() => openDetailModal(doc.id)}
-                            className={`hover:underline ${doc.resume_simplifie ? "text-blue-600" : "text-gray-500"}`}
-                            title={
-                              doc.resume_simplifie
-                                ? t('documents.voir_resume')
-                                : t('documents.voir_detail')
-                            }
-                          >
-                            <FontAwesomeIcon icon={faEye} />
-                          </button>
                           {doc.pdf_file || doc.fichier ? (
                             <div className="flex-row">
-                              <button
-                                onClick={() => {
-                                  doc.pdf_file
-                                    ? handleView(doc.pdf_file, "pdf", doc.id)
-                                    : handleView(doc.fichier, "pdf", doc.id);
-                                }}
-                                className="text-blue-800 hover:underline"
-                              >
-                                <FontAwesomeIcon icon={faReadme} />
-                              </button>
-                              <p>{doc.visits}</p>
+                              <p title={t('documents.consultations')}>{doc.visits}</p>
                             </div>
                           ) : (
                             <span className="text-gray-500">{t('documents.non_disponible')}</span>
@@ -623,33 +602,28 @@ const Documents = ({ isAdmin }) => {
                               onClick={() =>
                                 handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
                               }
+                              title={t('common.telecharger')}
+                              aria-label={t('common.telecharger')}
                               className="text-gray-700 hover:underline"
                             >
                               <FontAwesomeIcon icon={faDownload} />
-                            </button>
-                            <p>{doc.telechargements}</p>
+                            </button>                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
                           </div>
                           <button
                             onClick={() => handleEdit(doc?.id)}
+                            title={t('common.modifier')}
+                            aria-label={t('common.modifier')}
                             className="text-green-500 hover:underline"
                           >
                             <FontAwesomeIcon icon={faPenToSquare} />
                           </button>
                           <button
                             onClick={() => handleDelete(doc?.id)}
+                            title={t('common.supprimer')}
+                            aria-label={t('common.supprimer')}
                             className="text-red-500 hover:underline"
                           >
                             <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                          {/* P1 : plus aucune bascule de statut sans justification.
-                              La confirmation juridique passe par la modale
-                              Vie juridique (justification obligatoire + audit). */}
-                          <button
-                            onClick={() => openLifecycleModal(doc.id)}
-                            className="text-yellow-500 hover:underline"
-                            title={t('documents.confirmer_statut_title')}
-                          >
-                            <FontAwesomeIcon icon={faCashRegister} />
                           </button>
                           {doc.last_modified_by && (
                             <button
@@ -658,6 +632,8 @@ const Documents = ({ isAdmin }) => {
                                 date: doc.last_modified_at,
                                 details: doc.modification_details,
                               })}
+                              title={t('documents.details_modifications')}
+                              aria-label={t('documents.details_modifications')}
                               className="text-red-500 hover:underline"
                             >
                               <FontAwesomeIcon icon={faCircleInfo} />
@@ -666,30 +642,9 @@ const Documents = ({ isAdmin }) => {
                         </div>
                       ) : (
                         <div className="flex space-x-2 sm:space-x-4">
-                          <button
-                            onClick={() => openDetailModal(doc.id)}
-                            className={`hover:underline ${doc.resume_simplifie ? "text-blue-600" : "text-gray-500"}`}
-                            title={
-                              doc.resume_simplifie
-                                ? t('documents.voir_resume')
-                                : t('documents.voir_detail')
-                            }
-                          >
-                            <FontAwesomeIcon icon={faEye} />
-                          </button>
                           {doc.pdf_file || doc.fichier ? (
                             <div className="flex-row">
-                              <button
-                                onClick={() => {
-                                  doc.pdf_file
-                                    ? handleView(doc.pdf_file, "pdf", doc.id)
-                                    : handleView(doc.fichier, "pdf", doc.id);
-                                }}
-                                className="text-blue-800 hover:underline"
-                              >
-                                <FontAwesomeIcon icon={faReadme} />
-                              </button>
-                              <p>{doc.visits}</p>
+                              <p title={t('documents.consultations')}>{doc.visits}</p>
                             </div>
                           ) : (
                             <span className="text-gray-500">{t('documents.non_disponible')}</span>
@@ -699,11 +654,12 @@ const Documents = ({ isAdmin }) => {
                               onClick={() =>
                                 handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
                               }
+                              title={t('common.telecharger')}
+                              aria-label={t('common.telecharger')}
                               className="text-gray-700 hover:underline"
                             >
                               <FontAwesomeIcon icon={faDownload} />
-                            </button>
-                            <p>{doc.telechargements}</p>
+                            </button>                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
                           </div>
                         </div>
                       )}
@@ -828,7 +784,9 @@ const Documents = ({ isAdmin }) => {
               <h3 className="font-bold text-lg text-gray-800">Lecture du document</h3>
               <div className="flex gap-2">
                 <button 
-                  onClick={() => handleDownload(pdfViewerUrl, "pdf", pdfViewerDoc)}
+                  onClick={() =>
+                    handleDownload(pdfViewerUrl, `document-${pdfViewerDoc}.pdf`, pdfViewerDoc)
+                  }
                   className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition flex items-center gap-2"
                 >
                   <FontAwesomeIcon icon={faDownload} />
@@ -845,12 +803,8 @@ const Documents = ({ isAdmin }) => {
                 </button>
               </div>
             </div>
-            <div className="flex-1 p-2 bg-gray-100">
-              <iframe 
-                src={pdfViewerUrl} 
-                className="w-full h-full border-0 rounded"
-                title="Visionneuse PDF"
-              />
+            <div className="flex-1 min-h-0 p-2 bg-gray-100">
+              <PdfViewer fileUrl={pdfViewerUrl} />
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { ToastContainer } from 'react-toastify'
 import Login from './components/Login';
 import Dashboard from './components/Dashboard'
@@ -20,6 +20,7 @@ import Footer from './components/Footer';
 import AddActus from './components/AddActus';
 import RemarkForm from "./components/RemarkForm";
 import AdminRemarks from "./components/AdminRemarks";
+import AdminSubscribers from "./components/AdminSubscribers";
 import Documents from './components/AfficherDocs';
 import AnimatedCard from './components/AnimatedCard';
 import OrganigrammePage from './components/OrganigrammePage';
@@ -67,8 +68,8 @@ const App = () => {
                 const status = err.response?.status;
                 // 401 = plus de session valide : on repasse en visiteur anonyme.
                 if (status === 401) {
-                    setUser({});
-                    setIsAdmin(false);
+                    setUser({})
+                    setIsAdmin(false)
                     return;
                 }
                 console.error('Erreur lors de la récupération du profil :', err);
@@ -127,8 +128,8 @@ const App = () => {
                         <Route path="/animated" element={<AnimatedCard />} />
                         <Route path="/organigramme" element={<OrganigrammePage />} />
                         <Route path="/aide" element={<HelpPage />} />
-                        {/* Page publique (F12) : accessible sans connexion, aucune route protégée */}
-                        <Route path="/transparence" element={<TransparencePage />} />
+                        {/* Page transparence désormais réservée aux admins */}
+                        <Route path="/transparence" element={<ProtectedRoute isAuthenticated={user.refresh}><TransparencePage /></ProtectedRoute>} />
                         {/* Page institutionnelle publique « À propos » (Single Type éditable en admin) */}
                         <Route path="/a-propos" element={<AProposPage />} />
                         <Route path="/activate/:uid/:token" element={<ActivateAccountPage />} />

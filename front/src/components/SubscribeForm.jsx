@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { toast } from 'react-toastify';
 import axiosInstance from './AxiosConfig';
+import { userContext } from './Context';
 
 const SubscribeForm = () => {
+  const { isAdmin } = useContext(userContext);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If user is admin, do not show the subscription form
+  if (isAdmin) {
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,14 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import axiosInstance from "./AxiosConfig";
 import { toast } from "react-toastify";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { userContext } from "./Context";
 
 const RemarkForm = () => {
     const { t } = useTranslation();
+    const { isAdmin } = useContext(userContext);
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
+
+    // If user is admin, do not show the remark submission form
+    if (isAdmin) {
+        return null;
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();

@@ -31,3 +31,7 @@ front/*.ntvs*
 front/*.njsproj
 front/*.sln
 front/*.sw?
+
+# Documents de travail — ne JAMAIS publier (contenu non destiné au dépôt)
+/TEXTES APPLI DEAJ 2026/
+.aider*

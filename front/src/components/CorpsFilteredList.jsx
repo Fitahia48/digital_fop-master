@@ -204,6 +204,8 @@ const CorpsFilteredList = ({ isAdmin }) => {
                                                                             ? handleView(corps.pdf_file, "pdf", corps.id)
                                                                             : handleView(corps.fichier, "pdf", corps.id);
                                                                     }}
+                                                                    title="Lire le texte officiel"
+                                                                    aria-label="Lire le texte officiel"
                                                                     className="text-blue-800 hover:underline"
                                                                 >
                                                                     <FontAwesomeIcon icon={faReadme} />
@@ -211,33 +213,41 @@ const CorpsFilteredList = ({ isAdmin }) => {
                                                             ) : (
                                                                 <span className="text-gray-500">Non disponible</span>
                                                             )}
-                                                            <p>{corps.visits}</p>
+                                                            <p title="Nombre de consultations">{corps.visits}</p>
                                                         </div>
                                                         <div className='flex-row'>
                                                             <button
                                                                 onClick={() =>
                                                                     handleDownload(corps.pdf_file || corps.fichier, `document-${corps.id}.pdf`, corps.id)
                                                                 }
+                                                                title="Télécharger"
+                                                                aria-label="Télécharger"
                                                                 className="text-gray-700 hover:underline"
                                                             >
                                                                 <FontAwesomeIcon icon={faDownload} />
                                                             </button>
-                                                            <p>{corps.telechargements}</p>
+                                                            <p title="Nombre de téléchargements">{corps.telechargements}</p>
                                                         </div>
                                                         <button
                                                             onClick={() => handleEdit(corps?.id)}
+                                                            title="Modifier"
+                                                            aria-label="Modifier"
                                                             className="text-green-500 hover:underline"
                                                         >
                                                             <FontAwesomeIcon icon={faPenToSquare} />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(corps.id)}
+                                                            title="Supprimer"
+                                                            aria-label="Supprimer"
                                                             className="text-red-500 hover:underline"
                                                         >
                                                             <FontAwesomeIcon icon={faTrash} />
                                                         </button>
                                                         <button
                                                             className="text-yellow-500 hover:underline"
+                                                            title={corps.status === "actif" ? "Rendre inactif" : "Rendre actif"}
+                                                            aria-label={corps.status === "actif" ? "Rendre inactif" : "Rendre actif"}
                                                             onClick={() =>
                                                                 handleChangeStatus(
                                                                     corps.id,
@@ -258,6 +268,8 @@ const CorpsFilteredList = ({ isAdmin }) => {
                                                                             ? handleView(corps.pdf_file, "pdf", corps.id)
                                                                             : handleView(corps.fichier, "pdf", corps.id);
                                                                     }}
+                                                                    title="Lire le texte officiel"
+                                                                    aria-label="Lire le texte officiel"
                                                                     className="text-blue-800 hover:underline"
                                                                 >
                                                                     <FontAwesomeIcon icon={faReadme} />
@@ -265,7 +277,7 @@ const CorpsFilteredList = ({ isAdmin }) => {
                                                             ) : (
                                                                 <span className="text-gray-500">Non disponible</span>
                                                             )}
-                                                            <p>{corps.visits}</p>
+                                                            <p title="Nombre de consultations">{corps.visits}</p>
                                                         </div>
 
                                                         <div className='flex-row'>
@@ -273,11 +285,13 @@ const CorpsFilteredList = ({ isAdmin }) => {
                                                                 onClick={() =>
                                                                     handleDownload(corps.pdf_file || corps.fichier, `document-${corps.id}.pdf`, corps.id)
                                                                 }
+                                                                title="Télécharger"
+                                                                aria-label="Télécharger"
                                                                 className="text-gray-700 hover:underline"
                                                             >
                                                                 <FontAwesomeIcon icon={faDownload} />
                                                             </button>
-                                                            <p>{corps.telechargements}</p>
+                                                            <p title="Nombre de téléchargements">{corps.telechargements}</p>
                                                         </div>
                                                     </div>
                                                 )}

@@ -42,13 +42,6 @@ const Footer = () => {
         </Link>
         <span className="text-gray-600" aria-hidden="true">|</span>
         <Link
-          to="/transparence"
-          className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
-        >
-          <FontAwesomeIcon icon={faScaleBalanced} /> {t('footer.transparence')}
-        </Link>
-        <span className="text-gray-600" aria-hidden="true">|</span>
-        <Link
           to="/a-propos"
           className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
         >

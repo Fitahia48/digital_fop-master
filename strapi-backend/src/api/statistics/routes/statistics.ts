@@ -1,8 +1,7 @@
 /**
  * Routes statistics (visites — table analytique hors Strapi, D7).
  *
- * - `GET /visit-statistics` : URL legacy, **publique** (la page d'accueil
- *   affiche le compteur de visites aux visiteurs anonymes).
+ * - `GET /visit-statistics` : URL legacy, désormais authentifiée et réservée aux admins.
  * - `GET /statistics/visit-statistics` : chemin Strapi conservé pour l'admin.
  */
 export default {
@@ -11,13 +10,13 @@ export default {
       method: 'GET',
       path: '/visit-statistics',
       handler: 'statistics.getVisitStatistics',
-      config: { auth: false, policies: [], middlewares: [] },
+      config: { policies: [], middlewares: [] }, // auth requis, vérification admin dans le contrôleur
     },
     {
       method: 'GET',
       path: '/statistics/visit-statistics',
       handler: 'statistics.getVisitStatistics',
-      config: { policies: [], middlewares: [] }, // auth (admin)
+      config: { policies: [], middlewares: [] }, // auth requis, vérification admin dans le contrôleur
     },
   ],
 };

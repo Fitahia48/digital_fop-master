@@ -13,18 +13,10 @@ const CorpsForm = () => {
         description: '',
         type: '',
         date_creation: '',
-        status: '',
         fichier: null,
     });
-    const [typeCorps, setTypeCorps] = useState([])
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
-
-    useEffect(() => {
-        axiosInstance.get('/api/typecorps/')
-            .then(response => setTypeCorps(response.data.results))
-            .catch(error => console.error("Une erreur est survenue lors du récupération:", error))
-    }, [])
 
     const handleFileChange = (e) => {
         setFormData({ ...formData, fichier: e.target.files[0] });
@@ -82,44 +74,20 @@ const CorpsForm = () => {
                     >
                         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Ajouter un Corps</h2>
 
-                        {/* Nom du corps : Liste déroulante */}
+                        {/* Catégorie du corps : saisie manuelle */}
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégories des corps professionnels dans la fonction publique
-                                <HelpTooltip text="Sélectionnez la catégorie ministerielle à laquelle appartient le corps : chaque regroupement thématique facilite la recherche par statut particulier." />
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégorie du corps professionnel
+                                <HelpTooltip text="Saisissez manuellement la catégorie ministerielle du corps (ex. Administration Publique, Police nationale, Santé Publique...)." />
                             </label>
-                            <select
+                            <input
+                                type="text"
                                 name="nom"
                                 value={formData.nom}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
                                 required
-                            >
-                                <option value="">Choisir</option>
-                                <option value="Administration Publique">Administration Publique</option>
-                                <option value="Administration Judiciaire">Administration Judiciaire</option>
-                                <option value="Administration Pénitentiaire">Administration Pénitentiaire</option>
-                                <option value="Agriculture-Elevage-Pêche">Agriculture-Élevage-Pêche</option>
-                                <option value="Chercheur enseignant et Enseignement chercheur">Chercheur enseignant et Enseignement chercheur</option>
-                                <option value="Communication médiatisée">Communication médiatisée</option>
-                                <option value="Diplomatie">Diplomatie</option>
-                                <option value="Domaine-Topographie">Domaine-Topographie</option>
-                                <option value="Environnement Eaux et Forêts">Environnement - Eaux et Forêts</option>
-                                <option value="Éducation de base et Enseignement secondaire">Éducation de base et Enseignement secondaire</option>
-                                <option value="Énergie, Mines et Ressources">Énergie, Mines et Ressources</option>
-                                <option value="Économie, Finances et Plan">Économie, Finances et Plan</option>
-                                <option value="Inspection de l'Etat">Inspection de l'Etat</option>
-                                <option value="Forces Armées">Forces Armées</option>
-                                <option value="Jeunesse et Sports">Jeunesse et Sports</option>
-                                <option value="Météorologie">Météorologie</option>
-                                <option value="Planification">Planification</option>
-                                <option value="Police nationale">Police nationale</option>
-                                <option value="Poste et Télécommunications">Poste et Télécommunications</option>
-                                <option value="Travail et Lois Sociales">Travail et Lois Sociales</option>
-                                <option value="Corps transversaux">Corps transversaux</option>
-                                <option value="Travaux publics, Habitat et Aménagement">Travaux publics, Habitat et Aménagement</option>
-                                <option value="Transports">Transports</option>
-                                <option value="Santé Publique">Santé Publique</option>
-                            </select>
+                                placeholder="Ex. Administration Publique"
+                            />
                         </div>
 
                         <div className="mb-4">
@@ -146,19 +114,16 @@ const CorpsForm = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Type du corps</label>
-                            <select
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Type du corps (saisie manuelle)</label>
+                            <input
+                                type="text"
                                 name="type"
                                 value={formData.type}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
                                 required
-                            >
-                                <option value="">Choisir</option>
-                                {typeCorps.map((type) => (
-                                    <option key={type.id} value={type.id}>{type.nom}</option>
-                                ))}
-                            </select>
+                                placeholder="Ex. Administration, Technique, Magistracy..."
+                            />
                         </div>
 
                         <div className="mb-4">
@@ -171,23 +136,6 @@ const CorpsForm = () => {
                                 className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
                                 required
                             />
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Statut
-                                <HelpTooltip text="« Actif » : le corps existe actuellement et recrute. « Inactif » : il n'est plus utilisé (supprimé ou fusionné avec un autre corps)." />
-                            </label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
-                                required
-                            >
-                                <option value="">Choisir</option>
-                                <option value="actif">Actif</option>
-                                <option value="inactif">Inactif</option>
-                            </select>
                         </div>
 
                         <div>

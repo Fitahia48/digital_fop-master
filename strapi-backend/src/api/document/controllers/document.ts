@@ -16,6 +16,7 @@
  * n'existe pas en Strapi 5.
  */
 import { factories } from '@strapi/strapi';
+import { estPeriodeValide, sommeStatistiques } from '../../../utils/analytics';
 import {
   ValidationError,
   ForbiddenError,
@@ -274,8 +275,14 @@ export default factories.createCoreController(UID, () => ({
       // P1 : une nouvelle notice démarre TOUJOURS en « brouillon » pour les
       // utilisateurs non-admins. Pour les admins, la notice est directement
       // « validée » afin qu'elle soit visible immédiatement après création.
-      // Le statut juridique est TOUJOURS « non_verifie » à la création.
-      void b.status; // toute valeur reçue du client est ignorée (présomption nulle)
+      //
+      // Simplification du circuit : le formulaire d'ajout propose deux choix
+      // (« En vigueur » / « Abrogé »). La valeur reçue est validée et limitée
+      // à ces deux valeurs ; si elle est absente ou invalide, repli explicite
+      // sur « en_vigueur » (jamais d'erreur bloquante). L'enum complet reste
+      // inchangé en base : aucun document existant (non_verifie / modifie) n'est réécrit.
+      const requestedStatus = normalizeStatus(b.status, 'en_vigueur');
+      const status = requestedStatus === 'abroge' ? ('abroge' as const) : ('en_vigueur' as const);
       const creatingUser = getRequestUser(ctx);
       const etatNotice = isAdminUser(creatingUser) ? 'validee' : 'brouillon';
       const data: Record<string, any> = {
@@ -284,7 +291,7 @@ export default factories.createCoreController(UID, () => ({
         numero: b.numero,
         date: b.date,
         conseil: b.conseil || 'Autre',
-        status: 'non_verifie' as const,
+        status,
         etat_notice: etatNotice,
         mots_cles: Array.isArray(b.mots_cles)
           ? b.mots_cles
@@ -343,12 +350,14 @@ export default factories.createCoreController(UID, () => ({
         numero: b.numero || doc.numero,
         date: b.date || doc.date,
         conseil: b.conseil || doc.conseil,
-        // P1 : le statut juridique n'est JAMAIS modifiable via ce endpoint
-        // générique (aucun `status` lu du client — même admin) : il passe
-        // exclusivement par updateStatus (justification obligatoire + audit
-        // append-only). Sinon, un PATCH classique contournerait le circuit.
-        // Idem état éditorial : setEtatNotice (traçable) uniquement.
-        status: doc.status ?? ('non_verifie' as const),
+        // Simplification : l'admin modifie le statut directement depuis le
+        // formulaire d'édition (route réservée à l'admin). La valeur reçue est
+        // normalisée vers l'enum ; si elle est absente ou invalide, on conserve
+        // le statut actuel du document (aucune réécriture silencieuse).
+        status:
+          b.status !== undefined
+            ? normalizeStatus(b.status, doc.status ?? 'en_vigueur')
+            : doc.status ?? 'en_vigueur',
         inclus_journal: inclus,
         date_journal: b.date_journal || b.dateJournal || doc.date_journal,
         numero_journal: b.numero_journal || b.numeroJournal || doc.numero_journal,
@@ -496,37 +505,10 @@ export default factories.createCoreController(UID, () => ({
   async documentStatsApi(ctx: any) {
     try {
       const { period = 'daily', start_date, end_date } = ctx.query || {};
-      const today = new Date().toISOString().split('T')[0];
-      const month = new Date().getMonth() + 1;
-      const year = new Date().getFullYear();
-
-      let total = 0;
-      if (period === 'daily') {
-        const r = start_date && end_date
-          ? await strapi.db.connection.raw(
-              'SELECT COALESCE(SUM(daily_count),0) AS total FROM document_stats WHERE date BETWEEN ? AND ?',
-              [start_date, end_date]
-            )
-          : await strapi.db.connection.raw(
-              'SELECT COALESCE(SUM(daily_count),0) AS total FROM document_stats WHERE date = ?',
-              [today]
-            );
-        total = parseInt(r.rows[0].total, 10);
-      } else if (period === 'monthly') {
-        const r = await strapi.db.connection.raw(
-          'SELECT COALESCE(SUM(monthly_count),0) AS total FROM document_stats WHERE EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?',
-          [month, year]
-        );
-        total = parseInt(r.rows[0].total, 10);
-      } else if (period === 'yearly') {
-        const r = await strapi.db.connection.raw(
-          'SELECT COALESCE(SUM(yearly_count),0) AS total FROM document_stats WHERE EXTRACT(YEAR FROM date) = ?',
-          [year]
-        );
-        total = parseInt(r.rows[0].total, 10);
-      } else {
+      if (!estPeriodeValide(period)) {
         return ctx.badRequest("Période invalide. Utilisez 'daily', 'monthly' ou 'yearly'.");
       }
+      const total = await sommeStatistiques('document_stats', period, start_date, end_date);
 
       ctx.body = {
         daily_count: period === 'daily' ? total : 0,
@@ -580,12 +562,12 @@ export default factories.createCoreController(UID, () => ({
     }
   },
 
-  // PATCH /api/documents/:documentId/status — VALIDATION JURIDIQUE (rôle autorisé)
+  // PATCH /api/documents/:documentId/status — STATUT JURIDIQUE (rôle autorisé)
   //
-  // P1 : la modification du statut juridique n'est plus une bascule libre.
+  // Simplification du circuit de validation :
   //  - rôle habilité uniquement (contrôle serveur, pas seulement le front) ;
-  //  - justification OBLIGATOIRE (référence du texte ou source de la vérification) ;
-  //  - trace d'audit append-only (auteur, date, ancien → nouveau, justification).
+  //  - justification OPTIONNELLE : enregistrée dans l'audit s'il en est
+  //    fournie, journalisée vide sinon (plus de blocage 400).
   async updateStatus(ctx: any) {
     try {
       const user = getRequestUser(ctx);
@@ -602,11 +584,6 @@ export default factories.createCoreController(UID, () => ({
       if (!normalized) {
         return ctx.badRequest(
           'Statut invalide. Valeurs autorisées : en_vigueur, abroge, modifie, non_verifie.'
-        );
-      }
-      if (!justification || !String(justification).trim()) {
-        return ctx.badRequest(
-          'Une justification est obligatoire (référence du texte modificatif, source officielle…).'
         );
       }
 
@@ -632,7 +609,7 @@ export default factories.createCoreController(UID, () => ({
           document: doc.documentId,
           ancien_statut: ancien,
           nouveau_statut: normalized,
-          justification: String(justification).trim(),
+          justification: String(justification ?? '').trim(),
           auteur_id: user.id,
           auteur_nom: user.username || user.email || `user#${user.id}`,
           source: 'api',

@@ -48,7 +48,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "Ouvrez « Recherche » dans le menu (ou utilisez le raccourci « / » ou Ctrl+K). Tapez un mot-clé, un numéro ou choisissez un critère : objet, type, date, numéro ou Journal Officiel. Vous pouvez aussi affiner avec les filtres (type, domaine, statut juridique) ou naviguer par thème via « Accès par thème » dans le menu.",
       en: "Open “Search” in the menu (or use the “/” or Ctrl+K shortcut). Type a keyword, a number or pick a criterion: subject, type, date, number or Official Gazette. You can also refine with the filters (type, domain, legal status) or browse by theme via “Browse by theme” in the menu.",
-      mg: "Sokafy ny « Fikarohana » ao amin'ny menio (na ampiasao ny fanalana « / » na Ctrl+K). Soraty teny fanalahidy, laharana na safidiocriteria : lohahevitra, karazana, daty, laharana na Gazetim-Pirenena. Azonao atao koa ny manitsy amin'ny sivana (karazana, sehatra, sata ara-dalàna) na mitety araka lohahevitra amin'ny « Fidirana araka lohahevitra » ao amin'ny menio. TODO: à valider par un locuteur natif",
+      mg: "Sokafy ny « Fikarohana » ao amin'ny menio (na ampiasao ny fanalana « / » na Ctrl+K). Soraty teny fanalahidy, laharana na safidiocriteria : lohahevitra, karazana, daty, laharana na Gazetim-Pirenena. Azonao atao koa ny manitsy amin'ny sivana (karazana, sehatra, sata ara-dalàna) na mitety araka lohahevitra amin'ny « Fidirana araka lohahevitra » ao amin'ny menio.",
     },
   },
   {
@@ -61,7 +61,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "« En vigueur » : le texte est applicable en l'état. « Abrogé » : le texte a été officiellement supprimé et n'est plus applicable. « Modifié » : le texte reste en vigueur mais a été changé par un texte postérieur — consultez ses relations juridiques pour voir les textes qui le modifient.",
       en: "“In force”: the text is applicable as it stands. “Repealed”: the text has been officially removed and no longer applies. “Amended”: the text remains in force but has been changed by a later text — check its legal relations to see the amending texts.",
-      mg: "« Mihatra » : mihatra araka izay ao ny lahatsoratra. « Nofoanana » : voafoana ofisialy ny lahatsoratra ary tsy mihatra intsony. « Novaina » : mbola mihatra ny lahatsoratra nefa novain'ny lahatsoratra taty aoriana — jereo ny fifandraisana ara-dalàna mba hahitana ireo lahatsoratra manova. TODO: à valider par un locuteur natif",
+      mg: "« Mihatra » : mihatra araka izay ao ny lahatsoratra. « Nofoanana » : voafoana ofisialy ny lahatsoratra ary tsy mihatra intsony. « Novaina » : mbola mihatra ny lahatsoratra nefa novain'ny lahatsoratra taty aoriana — jereo ny fifandraisana ara-dalàna mba hahitana ireo lahatsoratra manova.",
     },
   },
   {
@@ -74,7 +74,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "Depuis la liste des résultats, cliquez sur un document pour ouvrir sa fiche détaillée. Vous y trouverez le résumé en langage clair, ses références (numéro, date, Journal Officiel) et le fichier PDF original consultable et téléchargeable.",
       en: 'From the results list, click a document to open its detailed record. You will find the plain-language summary, its references (number, date, Official Gazette) and the original PDF file, viewable and downloadable.',
-      mg: "Avy amin'ny lisitr'ireo valiny, tsindrio antontan-taratasy hanokafana ny antsipiriany. Hita ao ny famintinana amin'ny fiteny tsotra, ny mari-pamantarana (laharana, daty, Gazetim-Pirenena) ary ny rakitra PDF tany am-boalohany azo jerena sy azo ampidinina. TODO: à valider par un locuteur natif",
+      mg: "Avy amin'ny lisitr'ireo valiny, tsindrio antontan-taratasy hanokafana ny antsipiriany. Hita ao ny famintinana amin'ny fiteny tsotra, ny mari-pamantarana (laharana, daty, Gazetim-Pirenena) ary ny rakitra PDF tany am-boalohany azo jerena sy azo ampidinina.",
     },
   },
   {
@@ -87,7 +87,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "Rendez-vous dans la section « S'abonner aux alertes de publication » (page d'accueil ou pied de page), saisissez votre adresse email puis validez. Un email de confirmation vous sera envoyé pour activer l'abonnement. Vous pourrez vous désabonner à tout moment depuis le lien présent dans chaque email.",
       en: 'Go to the “Subscribe to publication alerts” section (home page or footer), enter your email address and confirm. A confirmation email will be sent to activate the subscription. You can unsubscribe at any time using the link in every email.',
-      mg: "Mandehana any amin'ny « Misoratra anarana amin'ny fampandrenesana » (pejy fototra na tongotra), ampidiro ny mailakao avy eo hamafiso. Handefasana mailaka fanamarinana hanetsika ny famandrihana. Azo atao ny miala amin'ny famandrihana isaky ny fotoana amin'ny rohy ao amin'ny mailaka tsirairay. TODO: à valider par un locuteur natif",
+      mg: "Mandehana any amin'ny « Misoratra anarana amin'ny fampandrenesana » (pejy fototra na tongotra), ampidiro ny mailakao avy eo hamafiso. Handefasana mailaka fanamarinana hanetsika ny famandrihana. Azo atao ny miala amin'ny famandrihana isaky ny fotoana amin'ny rohy ao amin'ny mailaka tsirairay.",
     },
   },
   {
@@ -100,7 +100,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "Pour noter l'application, utilisez les étoiles dans la section « Notez notre application » en bas de la page d'accueil (une seule note par navigateur). Pour une suggestion ou un signalement, cliquez sur « Remarques » dans le pied de page : votre message est transmis aux administrateurs.",
       en: 'To rate the application, use the stars in the “Rate our application” section at the bottom of the home page (one rating per browser). For a suggestion or a report, click “Comments” in the footer: your message is sent to the administrators.',
-      mg: "Raha hanombana ny rindranasa, ampiasao ny kintana ao amin'ny « Manombana ny rindranasa » eo ambany amin'ny pejy fototra (isa iray isaky ny navigateur). Raha soso-kevitra na tatitra, tsindrio « Hevitra » ao amin'ny tongotra: alefa amin'ny mpitantana ny hafatrao. TODO: à valider par un locuteur natif",
+      mg: "Raha hanombana ny rindranasa, ampiasao ny kintana ao amin'ny « Manombana ny rindranasa » eo ambany amin'ny pejy fototra (isa iray isaky ny navigateur). Raha soso-kevitra na tatitra, tsindrio « Hevitra » ao amin'ny tongotra: alefa amin'ny mpitantana ny hafatrao.",
     },
   },
   {
@@ -113,7 +113,7 @@ const FAQ_SEED: Array<{
     reponse: {
       fr: "Les coordonnées officielles (adresse, téléphone, email) du Ministère du Travail, de l'Emploi et de la Fonction Publique et des Lois Sociales sont regroupées dans la rubrique « Contacts » du pied de page, ainsi que sur la page Organigramme qui présente les directions et leurs rôles.",
       en: 'The official contact details (address, phone, email) of the Ministry of Labour, Employment and Public Service and Social Laws are grouped in the “Contacts” section of the footer, as well as on the Organisation page presenting the directorates and their roles.',
-      mg: "Ireo antontomaso aterineto (adiresy, finday, mailaka) ao amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta ary ny Lalàna Sosialy dia voaangona ao amin'ny « Fifandraisana » ao amin'ny tongotra, sy ao amin'ny pejin'ny Fandaminana miseo ny sampana sy ny andraikiny. TODO: à valider par un locuteur natif",
+      mg: "Ireo antontomaso aterineto (adiresy, finday, mailaka) ao amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta ary ny Lalàna Sosialy dia voaangona ao amin'ny « Fifandraisana » ao amin'ny tongotra, sy ao amin'ny pejin'ny Fandaminana miseo ny sampana sy ny andraikiny.",
     },
   },
   {
@@ -124,12 +124,12 @@ const FAQ_SEED: Array<{
     question: {
       fr: "C'est quoi cette application ou cette app ? (À propos de l'application)",
       en: 'What is this application or this app? (About)',
-      mg: "Inona ity rindranasa ity na ity app ity? (Mombamomba) TODO: à valider par un locuteur natif",
+      mg: "Inona ity rindranasa ity na ity app ity? (Mombamomba)",
     },
     reponse: {
       fr: "Cette application est la bibliothèque numérique du Ministère du Travail, de l'Emploi et de la Fonction Publique : elle donne accès aux textes réglementaires, à l'organigramme, aux actualités et aux statistiques de consultation du ministère. Le décret n°2024-055 du 20 janvier 2024 (article 2) charge le Ministre de la conception, de la mise en œuvre et du suivi de l'application de la Politique du Gouvernement en matière de Travail, Emploi et Fonction Publique. Pour plus de détails, consultez la page « À propos ».",
       en: "This application is the digital library of the Ministry of Labour, Employment and Public Service: it provides access to regulatory texts, the organisation chart, news and consultation statistics. Decree No. 2024-055 of 20 January 2024 (article 2) assigns the Minister responsibility for designing, implementing and monitoring the Government's policy on Labour, Employment and Public Service. For more details, see the “About” page.",
-      mg: "Ity rindranasa ity no tranomboky nomerika amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta: manome fahafahana hiditra amin'ny lahatsoratra ara-dalàna, ny fandaminana, ny vaovao ary ny antontan'isa fijerena. Ny dekreti n°2024-055 (20 janaro 2024, lahara 2) dia mampitra ny Minisitra amin'ny famolavolana, ny fampihatra ary ny fanaraha-maso ny politikan'ny Fivavahana momba ny Asa, ny Fampiasana ary ny Fitondrana Etre-Pahavinta. Hampidiro any amin'ny pejy « Mombamomba » raha te-hahalala bebe kokoa ianao. TODO: à valider par un locuteur natif",
+      mg: "Ity rindranasa ity no tranomboky nomerika amin'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitondrana Etre-Pahavinta: manome fahafahana hiditra amin'ny lahatsoratra ara-dalàna, ny fandaminana, ny vaovao ary ny antontan'isa fijerena. Ny dekreti n°2024-055 (20 janaro 2024, lahara 2) dia mampitra ny Minisitra amin'ny famolavolana, ny fampihatra ary ny fanaraha-maso ny politikan'ny Fivavahana momba ny Asa, ny Fampiasana ary ny Fitondrana Etre-Pahavinta. Hampidiro any amin'ny pejy « Mombamomba » raha te-hahalala bebe kokoa ianao.",
     },
   },
 ];
@@ -193,7 +193,21 @@ const A_PROPOS_FR = {
     "<p>Le Ministre du Travail, de l'Emploi et de la Fonction Publique est chargé de la conception, de la mise en œuvre et du suivi de l'application de la Politique du Gouvernement en matière de Travail, d'Emploi et de la Fonction Publique.</p>",
   // TODO: à valider par la Direction de la Communication
   presentation_application:
-    "<p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux statistiques de consultation du ministère.</p>",
+    "<p><em>[À valider par la Direction de la Communication]</em> </p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux démarches en ligne du ministère.",
+  // Champs de contact et liens utiles (valeurs de placeholder à valider par le ministère)
+  contact_email: 'contact@ministere.gov.mg',
+  contact_telephone: '+261 20 22 XXX XXX',
+  contact_adresse: 'Antananarivo, Madagascar',
+  liens_utiles: [
+    {
+      libelle: 'Site officiel du gouvernement',
+      url: 'https://www.gov.mg',
+    },
+    {
+      libelle: 'Portail des services publics',
+      url: 'https://www.service-public.gov.mg',
+    },
+  ],
 };
 
 const seedAPropos = async (strapi: Core.Strapi) => {

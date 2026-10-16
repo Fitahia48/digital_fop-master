@@ -19,13 +19,13 @@ const DEBOUNCE_MS = 300;
 const STATUS_FILTERS = [
     // `value` sert à la fois de filtre serveur et de suffixe de clé i18n
     // (recherche.statut_*) : garder les clés canoniques de l'enum Strapi.
-    // P1 : « non_verifie » fait partie de l'enum (présomption nulle) et est
-    // filtrable comme les autres statuts confirmés.
     { value: "", label: "Tous les statuts" },
     { value: "en_vigueur", label: "En vigueur" },
     { value: "abroge", label: "Abrogé" },
-    { value: "modifie", label: "Modifié" },
-    { value: "non_verifie", label: "Non vérifié" },
+    // « modifie » et « non_verifie » restent des valeurs de l'enum côté serveur
+    // (affichées sur les notices et les fiches) mais ne sont plus proposées
+    // comme filtres rapides : seuls les statuts franchement actionnables pour
+    // l'usager (en vigueur / abrogé) sont filtrables.
 ];
 
 // ─── Historique de recherche (localStorage, 5 dernières recherches) ──────────

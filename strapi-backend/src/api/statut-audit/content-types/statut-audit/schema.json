@@ -5,7 +5,7 @@
     "singularName": "statut-audit",
     "pluralName": "statuts-audit",
     "displayName": "Audit de statut juridique",
-    "description": "Journal append-only des changements de statut juridique des documents : auteur, date, ancienne valeur, nouvelle valeur, justification obligatoire. Aucune route content-API exposée : écriture/lecture par le code serveur uniquement."
+    "description": "Journal append-only des changements de statut juridique des documents : auteur, date, ancienne valeur, nouvelle valeur, justification optionnelle. Aucune route content-API exposée : écriture/lecture par le code serveur uniquement."
   },
   "options": {
     "draftAndPublish": false
@@ -26,7 +26,7 @@
     },
     "justification": {
       "type": "text",
-      "required": true
+      "required": false
     },
     "auteur_id": {
       "type": "integer"

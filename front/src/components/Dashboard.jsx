@@ -2,12 +2,12 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import axiosInstance from './AxiosConfig';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faCircleQuestion, faSquarePlus, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 import { FaStar } from "react-icons/fa";
 import { userContext } from './Context';
-import { faSquarePlus } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
-
+import TransparencePage from './TransparencePage';
+import RealTimeVisitors from './RealTimeVisitors';
 
 import Documents from './AfficherDocs';
 import AfficheActus from './AfficheActus';
@@ -28,7 +28,8 @@ const Dashboard = () => {
     actus: useRef(null),
     remarques: useRef(null),
     statistiques: useRef(null),
-    etoiles: useRef(null)
+    etoiles: useRef(null),
+    transparence: useRef(null), // NEW
   };
 
   const scrollTo = (sectionName) => {
@@ -60,12 +61,17 @@ const Dashboard = () => {
     { label: "Remarques", icon: faComment, section: "remarques" },
     { label: "Statistiques", icon: faChartBar, section: "statistiques" },
     { label: "Étoiles", icon: faStar, section: "etoiles" },
+    { label: "Transparence", icon: faScaleBalanced, section: "transparence" },
   ];
 
   return (
     <>
       {/* Section principale de navigation + actions */}
       <section className="pt-10 pb-6 shadow-sm">
+        {/* Compteur de visiteurs — en haut à gauche du tableau de bord */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex justify-start mb-4">
+          <RealTimeVisitors />
+        </div>
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-300">Tableau de bord administrateur</h1>
           <p className="text-gray-500 mt-1">Accès rapide aux fonctionnalités principales</p>
@@ -115,7 +121,6 @@ const Dashboard = () => {
         </div>
       </section>
 
-
       {/* Sections */}
       <section ref={sections.documents}>
         <Documents isAdmin={true} />
@@ -148,6 +153,11 @@ const Dashboard = () => {
       <section ref={sections.statistiques} className="mt-10">
         <h2 className="text-center text-gray-300 text-3xl font-bold mb-4">Reporting</h2>
         <VisitStatistics />
+      </section>
+
+      <section ref={sections.transparence} className="mt-10">
+        <h2 className="text-center text-gray-300 text-3xl font-bold mb-4">Transparence</h2>
+        <TransparencePage />
       </section>
 
       <section className="mt-6">

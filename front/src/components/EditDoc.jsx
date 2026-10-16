@@ -84,10 +84,9 @@ const EditDocument = () => {
     formDataToSend.append("date", formData.date);
     formDataToSend.append("conseil", formData.conseil);
     formDataToSend.append("domaine", formData.domaine);
-    // P1 : « status » n'est volontairement PAS envoyé — la modification du
-    // statut juridique passe exclusivement par le circuit dédié
-    // (PATCH /documents/:id/status, justification obligatoire + audit),
-    // jamais par ce PATCH générique.
+    // Statut juridique : modifiable directement depuis ce formulaire
+    // (sans justification obligatoire).
+    formDataToSend.append("status", formData.status || "en_vigueur");
     // Chaîne vide = suppression du résumé côté backend
     formDataToSend.append("resume_simplifie", formData.resume_simplifie ?? "");
 
@@ -265,20 +264,29 @@ const EditDocument = () => {
               </option>
             ))}
           </select>
-        </div>        {/* Statut juridique — lecture seule : seuls le circuit de confirmation
-            (Vie juridique, justification + audit) peut le modifier. */}
+        </div>        {/* Statut juridique — modifiable directement, sans justification */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
             Statut juridique
-            <HelpTooltip text="Modifiable uniquement via « Vie juridique » : la confirmation exige une justification obligatoire et est journalisée de façon permanente (auteur, date, anciennes et nouvelles valeurs)." />
+            <HelpTooltip text="Statut juridique actuel du texte." />
           </label>
-          <input
-            type="text"
-            value={statusLabel(formData.status)}
-            readOnly
-            disabled
-            className="w-full p-2 border border-gray-200 bg-gray-100 text-gray-600 rounded-md cursor-not-allowed"
-          />
+          <select
+            name="status"
+            value={formData.status || "en_vigueur"}
+            onChange={handleChange}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          >
+            {/* Valeur héritée d'avant la simplification (non_verifie / modifie) :
+                affichée telle quelle pour ne pas changer le statut à l'ouverture
+                du formulaire, sans l'imposer comme un nouveau choix. */}
+            {formData.status &&
+              formData.status !== "en_vigueur" &&
+              formData.status !== "abroge" && (
+                <option value={formData.status}>{statusLabel(formData.status)}</option>
+              )}
+            <option value="en_vigueur">{statusLabel("en_vigueur")}</option>
+            <option value="abroge">{statusLabel("abroge")}</option>
+          </select>
         </div>
 
         {/* Fichier */}

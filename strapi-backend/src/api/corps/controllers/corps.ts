@@ -10,6 +10,7 @@
  */
 import { factories } from '@strapi/strapi';
 import { findOneByRef } from '../../../utils/by-ref';
+import { estPeriodeValide, sommeStatistiques } from '../../../utils/analytics';
 
 // Le front historique appelle ces routes avec l'id numérique du corps.
 const findCorpsByDocumentId = (ref: string) => findOneByRef('api::corps.corps', ref);
@@ -166,37 +167,10 @@ export default factories.createCoreController('api::corps.corps', () => ({
   async statsApi(ctx: any) {
     try {
       const { period = 'daily', start_date, end_date } = ctx.query || {};
-      const today = new Date().toISOString().split('T')[0];
-      const month = new Date().getMonth() + 1;
-      const year = new Date().getFullYear();
-
-      let total = 0;
-      if (period === 'daily') {
-        const r = start_date && end_date
-          ? await strapi.db.connection.raw(
-              'SELECT COALESCE(SUM(daily_count),0) AS total FROM corps_stats WHERE date BETWEEN ? AND ?',
-              [start_date, end_date]
-            )
-          : await strapi.db.connection.raw(
-              'SELECT COALESCE(SUM(daily_count),0) AS total FROM corps_stats WHERE date = ?',
-              [today]
-            );
-        total = parseInt(r.rows[0].total, 10);
-      } else if (period === 'monthly') {
-        const r = await strapi.db.connection.raw(
-          'SELECT COALESCE(SUM(monthly_count),0) AS total FROM corps_stats WHERE EXTRACT(MONTH FROM date) = ? AND EXTRACT(YEAR FROM date) = ?',
-          [month, year]
-        );
-        total = parseInt(r.rows[0].total, 10);
-      } else if (period === 'yearly') {
-        const r = await strapi.db.connection.raw(
-          'SELECT COALESCE(SUM(yearly_count),0) AS total FROM corps_stats WHERE EXTRACT(YEAR FROM date) = ?',
-          [year]
-        );
-        total = parseInt(r.rows[0].total, 10);
-      } else {
+      if (!estPeriodeValide(period)) {
         return ctx.badRequest("Période invalide. Utilisez 'daily', 'monthly' ou 'yearly'.");
       }
+      const total = await sommeStatistiques('corps_stats', period, start_date, end_date);
 
       ctx.body = {
         daily_count: period === 'daily' ? total : 0,
