@@ -68,6 +68,14 @@
     "slide3_texte": "Dans une démarche continue d'amélioration de la transparence et de l'accessibilité de ses services, <0> le Ministère </0> œuvre pour la mise en place de solutions numériques, y compris une bibliothèque numérique qui soutiendra la gestion des informations et la diffusion des ressources publiques.",
     "visitors_today": "Visiteurs aujourd’hui"
   },
+  "telechargeable": {
+    "label": "Téléchargement",
+    "option_oui": "Téléchargeable",
+    "option_non": "Non téléchargeable",
+    "lire": "Lire",
+    "lire_aria": "Lire le document — s'ouvre dans un nouvel onglet",
+    "aide": "Non téléchargeable : le texte reste consultable en ligne mais le bouton Télécharger n'est pas proposé."
+  },
   "recherche": {
     "titre": "Formulaire de recherche",
     "critere": "Critère de recherche",
@@ -110,6 +118,11 @@
     "suivante": "Suivante",
     "corps_professionnels": "Corps professionnels",
     "annonces": "Actualités",
+    "web_manuelle_titre": "Recherche web manuelle",
+    "web_google_livres": "Recherche via Google Livres",
+    "web_quota": "Le quota journalier de recherche web est atteint ou l'API est indisponible.",
+    "web_lien_google_livres": "Cliquez sur ce lien pour effectuer votre recherche dans Google Livres",
+    "web_aide_ouverture": "S'ouvre dans un nouvel onglet (Google Livres) — terme recherché :",
     "visitors_today": "Visites aujourd’hui",
     "visitors_today": "Visites aujourd’hui"
   },

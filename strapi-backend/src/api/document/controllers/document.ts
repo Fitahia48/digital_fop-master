@@ -117,6 +117,8 @@ const legacyDocument = (doc: any) => ({
   // Masquer les champs système de validation juridique (pur admin) au public :
   statut_verifie_par: undefined,
   statut_verifie_le: doc.statut_verifie_le ?? null,
+  // Nouveaux champs pour le telechargeable
+  telechargeable: doc.telechargeable ?? true,
 });
 
 /** Téléverse un éventuel fichier multipart (champ « fichier ») → id média Strapi. */
@@ -312,6 +314,18 @@ export default factories.createCoreController(UID, () => ({
       };
       if (b.domaine && !isNaN(Number(b.domaine))) data.domaine = Number(b.domaine);
 
+      // Nouveaux champs : telechargeable
+      const telechargeableRaw = b.telechargeable ?? b.teleChargeable ?? 'true';
+      // Accept string "true"/"false" or boolean
+      if (typeof telechargeableRaw === 'boolean') {
+        data.telechargeable = telechargeableRaw;
+      } else if (typeof telechargeableRaw === 'string') {
+        const val = telechargeableRaw.toLowerCase();
+        data.telechargeable = val === 'true' || val === '1' || val === 'yes';
+      } else {
+        data.telechargeable = true; // défaut
+      }
+
       const fileId = await uploadFichier(ctx);
       if (fileId) data.fichier = fileId;
 
@@ -393,6 +407,23 @@ export default factories.createCoreController(UID, () => ({
       const requester = getRequestUser(ctx);
       if (requester?.id) data.last_modified_by = requester.id;
 
+      // Nouveaux champs : telechargeable
+      if (b.telechargeable !== undefined || b.teleChargeable !== undefined) {
+        const telechargeableRaw = b.telechargeable ?? b.teleChargeable;
+        if (typeof telechargeableRaw === 'boolean') {
+          data.telechargeable = telechargeableRaw;
+        } else if (typeof telechargeableRaw === 'string') {
+          const val = telechargeableRaw.toLowerCase();
+          data.telechargeable = val === 'true' || val === '1' || val === 'yes';
+        } else {
+          // garder la valeur existante
+          data.telechargeable = doc.telechargeable;
+        }
+      } else {
+        // garder la valeur existante
+        data.telechargeable = doc.telechargeable;
+      }
+
       const fileId = await uploadFichier(ctx);
       if (fileId) data.fichier = fileId;
 
@@ -445,6 +476,11 @@ export default factories.createCoreController(UID, () => ({
     try {
       const doc = await findDocByDocumentId(ctx.params.documentId);
       if (!doc) return ctx.notFound('Document non trouvé');
+      // Vérifier si le document est telechargeable
+      if (!doc.telechargeable) {
+        // Refuser l'appel avec 403 Forbidden
+        return ctx.forbidden('Téléchargement non autorisé pour ce document');
+      }
       await strapi.documents(UID).update({
         documentId: doc.documentId,
         data: { telechargements: (doc.telechargements || 0) + 1 },

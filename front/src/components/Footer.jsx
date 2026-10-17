@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import ItemsContener from './ItemsContener'
 import SocialIcons from './SocialIcons'
 import { Icons } from './MenuFooter'
@@ -10,9 +10,16 @@ import { requestOnboardingRestart } from './OnboardingTour'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleInfo, faCircleQuestion, faMapLocationDot, faScaleBalanced } from '@fortawesome/free-solid-svg-icons'
 
+const LOGIN_PATH = '/portail-gestion/connexion'
+
 const Footer = () => {
+  const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
+
+  if (location.pathname === LOGIN_PATH) {
+    return null
+  }
 
   return (
     <footer className="bg-gray-900 z-50 text-white mt-20">

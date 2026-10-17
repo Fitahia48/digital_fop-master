@@ -5,6 +5,7 @@ import { faDownload, faPenToSquare, faTrash, faCashRegister, faForward, faBackwa
 import { faReadme } from '@fortawesome/free-brands-svg-icons';
 import axiosInstance from './AxiosConfig';
 import { resolveFileUrl } from './Utils';
+import downloadFile from '../utils/downloadFile';
 import { toast } from 'react-toastify';
 
 const CorpsFilteredList = ({ isAdmin }) => {
@@ -113,23 +114,20 @@ const CorpsFilteredList = ({ isAdmin }) => {
 
     const handleDownload = async (fileUrl, fileName, corpsId) => {
         try {
-            const response = await axiosInstance.get(fileUrl, {
-                responseType: "blob",
-            });
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", fileName || "document.pdf");
-            document.body.appendChild(link);
-            link.click();
-
-            link.parentNode.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            await axiosInstance.post(`/api/corps/${corpsId}/telechargement/`);
+            // Helper avec repli sur le lien direct si le XHR est bloqué (CORS/IDM).
+            await downloadFile(fileUrl, fileName || "document.pdf");
         } catch (error) {
             console.error("Erreur lors du téléchargement :", error);
             toast.error("Erreur lors du téléchargement du fichier.");
+            return;
+        }
+
+        // Comptage du téléchargement : le fichier est déjà parti, un échec du
+        // compteur ne doit donc pas afficher une fausse erreur.
+        try {
+            await axiosInstance.post(`/api/corps/${corpsId}/telechargement/`);
+        } catch (error) {
+            console.error("Erreur lors de l'enregistrement du téléchargement :", error);
         }
     };
 
@@ -140,11 +138,11 @@ const CorpsFilteredList = ({ isAdmin }) => {
 
     return (
         <div className="overflow-x-auto w-full max-w-6xl bg-white shadow-md rounded-lg text-center mx-auto p-4">
-            <h1 className="text-2xl font-semibold text-gray-800 mb-4">Liste des Corps Professionnels</h1>
+            <h1 className="text-2xl font-semibold text-gray-800 mb-4">Liste des Corps</h1>
 
             {/* Liste déroulante pour sélectionner un corps */}
             <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par corps professionnel :</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par corps:</label>
                 <select
                     id="corps"
                     value={selectedCorps}

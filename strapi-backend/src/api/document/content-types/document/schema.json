@@ -120,6 +120,10 @@
       "type": "integer",
       "default": 0
     },
+    "telechargeable": {
+      "type": "boolean",
+      "default": true
+    },
     "resume_simplifie": {
       "type": "text"
     },

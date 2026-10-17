@@ -34,6 +34,7 @@ import ActivateAccountPage from './pages/ActivateAccountPage';
 import AdminFaq from './components/AdminFaq';
 import ChatWidget from './components/ChatWidget';
 import OfflineBanner from './components/OfflineBanner';
+import RightColumn from './components/RightColumn';
 import TransparencePage from './components/TransparencePage';
 import DocumentFiche from './components/DocumentFiche';
 import AProposPage from './components/AProposPage';
@@ -139,8 +140,8 @@ const App = () => {
                     </main>
                     {/* Le Footer doit rester dans le Router : il utilise useNavigate (« Revoir le guide ») */}
                     <Footer />
-                    {/* Bulle de chat FAQ (F9) : doit être dans le Router pour pouvoir naviguer */}
-                    <ChatWidget />
+                    {/* Colonne droite : assistant + bouton Déconnecter (en bas à droite, côte à côte) */}
+                    <RightColumn />
                 </Router>
             </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { getCsrfToken, statusLabel } from "./Utils";
 import HelpTooltip from "./HelpTooltip";
@@ -9,6 +10,7 @@ import axiosInstance from "./AxiosConfig";
 const EditDocument = () => {
   const { id: documentId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     type: "",
     objet: "",
@@ -21,6 +23,8 @@ const EditDocument = () => {
     lieu_signature: "",
     signataires: "",
     fichier: null,
+    // Nouveau champ : téléchargeable
+    telechargeable: true,
   });
 
   const [domaines, setDomaines] = useState([]);
@@ -40,7 +44,13 @@ const EditDocument = () => {
     if (documentId) {
       axiosInstance
         .get(`/api/documents/${documentId}/`)
-        .then((response) => setFormData(response.data))
+        .then((response) => {
+          setFormData({
+            ...response.data,
+            // Ensure telechargeable is boolean
+            telechargeable: !!response.data.telechargeable,
+          });
+        })
         .catch((error) =>
           console.error("Erreur lors de la récupération du document :", error)
         );
@@ -64,6 +74,11 @@ const EditDocument = () => {
     });
   };
 
+  // Sélecteur « Téléchargement » : valeur du <select> (chaîne) → booléen.
+  const handleTelechargeableChange = (e) => {
+    setFormData({ ...formData, telechargeable: e.target.value === "true" });
+  };
+
   // Soumettre le formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,12 +98,34 @@ const EditDocument = () => {
     formDataToSend.append("numero", formData.numero);
     formDataToSend.append("date", formData.date);
     formDataToSend.append("conseil", formData.conseil);
-    formDataToSend.append("domaine", formData.domaine);
+    // Ne jamais déverrouiller le payload obligatoire du formulaire (ex. objet
+    // lettres). Si le formulaire pré-remplit le domaine par un objet {id, nom…}
+    // (issue de l'API), on envoie son id ; tout autre forme (chaines, objets) est
+    // ignorée pour ne pas corrompre la requête PATCH (receive une string non
+    // convertissable côté serveur).
+    if (formData.domaine != null) {
+      const valeur = (formData.domaine && typeof formData.domaine === 'object' && formData.domaine.id)
+        ? String(formData.domaine.id)
+        : (typeof formData.domaine === 'string' ? formData.domaine : String(formData.domaine ?? ''));
+      if (valeur && valeur !== '') {
+        formDataToSend.append("domaine", valeur);
+      }
+    }
     // Statut juridique : modifiable directement depuis ce formulaire
     // (sans justification obligatoire).
     formDataToSend.append("status", formData.status || "en_vigueur");
     // Chaîne vide = suppression du résumé côté backend
     formDataToSend.append("resume_simplifie", formData.resume_simplifie ?? "");
+    // Lieu de signature (optionnel)
+    formDataToSend.append("lieu_signature", formData.lieu_signature || "");
+    // Signataire(s) (optionnel)
+    formDataToSend.append("signataires", formData.signataires || "");
+
+    // Nouveau champ : telechargeable
+    formDataToSend.append(
+      "telechargeable",
+      formData.telechargeable ? "true" : "false"
+    );
 
     // Ajoutez le nouveau fichier si sélectionné
     if (formData.fichier instanceof File) {
@@ -110,13 +147,10 @@ const EditDocument = () => {
     } catch (error) {
       console.error("Détails de l'erreur :", error.response?.data || error.message);
       toast.error(
-        `Erreur : ${error.response?.data?.pdf_file?.[0] || "Un problème est survenu."
-        }`
+        `Erreur : ${error.response?.data?.pdf_file?.[0] || "Un problème est survenu."}`
       );
     }
   };
-
-
 
 
   return (
@@ -243,7 +277,7 @@ const EditDocument = () => {
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           >
             <option value="Autre">Autre</option>
-            <option value="ministre">Ministre</option>
+            <option value="minister">Ministre</option>
             <option value="gouvernement">Gouvernement</option>
           </select>
         </div>
@@ -264,7 +298,9 @@ const EditDocument = () => {
               </option>
             ))}
           </select>
-        </div>        {/* Statut juridique — modifiable directement, sans justification */}
+        </div>
+
+        {/* Statut juridique — modifiable directement, sans justification */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
             Statut juridique
@@ -292,14 +328,34 @@ const EditDocument = () => {
         {/* Fichier */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">Fichier</label>
+          {/* Pas de « required » : on peut modifier un autre champ (ex. le
+              téléchargement) sans re-téléverser le fichier. Le serveur conserve
+              le fichier existant si aucun nouveau n'est envoyé. */}
           <input
             type="file"
             name="fichier"
             accept=".pdf,.docx"
             onChange={handleFileChange}
-            required
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        {/* Téléchargeable / Non téléchargeable */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            {t('telechargeable.label')}
+            <HelpTooltip text={t('telechargeable.aide')} />
+          </label>
+          {/* Pré-rempli avec la valeur actuelle du document (booléenne) */}
+          <select
+            name="telechargeable"
+            value={formData.telechargeable ? "true" : "false"}
+            onChange={handleTelechargeableChange}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="true">{t('telechargeable.option_oui')}</option>
+            <option value="false">{t('telechargeable.option_non')}</option>
+          </select>
         </div>
 
         {/* Bouton Modifier */}

@@ -76,7 +76,7 @@ const CorpsForm = () => {
 
                         {/* Catégorie du corps : saisie manuelle */}
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégorie du corps professionnel
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Catégorie du corps
                                 <HelpTooltip text="Saisissez manuellement la catégorie ministerielle du corps (ex. Administration Publique, Police nationale, Santé Publique...)." />
                             </label>
                             <input
@@ -114,7 +114,7 @@ const CorpsForm = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Type du corps (saisie manuelle)</label>
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Type du corps</label>
                             <input
                                 type="text"
                                 name="type"

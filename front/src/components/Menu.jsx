@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { Link, useNavigate, NavLink } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { logout, reset } from '../features/auth/authSlice'
 import { userContext } from './Context'
 import biblio from "../assets/logo.png"
 import axiosInstance from './AxiosConfig'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRightFromBracket, faHouse, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
+import { faHouse, faCircleQuestion, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { requestOnboardingRestart } from './OnboardingTour';
 
 const Menu = ({ onSelectDomaine }) => {
@@ -24,6 +24,12 @@ const Menu = ({ onSelectDomaine }) => {
   const toggleMenu = () => {
     SetisMenuOpen(!isMenuOpen)
   }
+  const handleLogout = () => {
+    dispatch(logout())
+    setUser('')
+    dispatch(reset())
+    navigate("/")
+  }
   useEffect(() => {
     axiosInstance.get('/api/domaines/')
       .then(response => setDomaines(response.data.results))
@@ -37,19 +43,7 @@ const Menu = ({ onSelectDomaine }) => {
       navigate("/AfficherDoc");
     }
   }
-  // const { user } = useSelector((state) => state.auth)
-  const { user, setUser, setIsAdmin } = useContext(userContext)
-
-  const handleLogout = () => {
-    SetisMenuOpen(false)
-    dispatch(logout())
-    setUser('')
-    // Le rôle admin vit dans le contexte : sans le remettre à false, les zones
-    // d'administration restent affichées après la déconnexion.
-    setIsAdmin(false)
-    dispatch(reset())
-    navigate("/")
-  }
+  const { user, setUser } = useContext(userContext)
 
   // Define menu items configuration
   const menuItems = [
@@ -108,7 +102,6 @@ const Menu = ({ onSelectDomaine }) => {
       icon: <FontAwesomeIcon icon={faCircleQuestion} className='px-2 mb-0.5' />,
       authOnly: false,
       type: 'button',
-      titleKey: 'menu.revoir_guide_title',
       onClick: handleRevoirGuide
     },
     {
@@ -125,10 +118,7 @@ const Menu = ({ onSelectDomaine }) => {
       route: null,
       icon: <FontAwesomeIcon icon={faRightFromBracket} className='px-2' />,
       authOnly: true,
-      // Action, pas une navigation : un « link » n'exécute jamais son onClick
-      // dans renderItem, ce qui rendait le bouton inopérant.
-      type: 'button',
-      titleKey: 'menu.deconnecter',
+      type: 'link',
       onClick: handleLogout
     }
   ];
@@ -180,7 +170,7 @@ const Menu = ({ onSelectDomaine }) => {
             <button
               type="button"
               onClick={item.onClick}
-              title={t(item.titleKey || 'menu.revoir_guide_title')}
+              title={t('menu.revoir_guide_title')}
               className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
             >
               {item.icon}

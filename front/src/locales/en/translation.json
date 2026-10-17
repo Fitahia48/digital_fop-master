@@ -68,6 +68,14 @@
     "slide3_texte": "In a continuous effort to improve the transparency and accessibility of its services, <0> the Ministry </0> is working to implement digital solutions, including a digital library that will support information management and the dissemination of public resources.",
     "visitors_today": "Visitors today"
   },
+  "telechargeable": {
+    "label": "Download",
+    "option_oui": "Downloadable",
+    "option_non": "Not downloadable",
+    "lire": "Read",
+    "lire_aria": "Read the document — opens in a new tab",
+    "aide": "Not downloadable: the text remains available to read online, but the Download button is not offered."
+  },
   "recherche": {
     "titre": "Search form",
     "critere": "Search criterion",
@@ -110,6 +118,11 @@
     "suivante": "Next",
     "corps_professionnels": "Professional bodies",
     "annonces": "News",
+    "web_manuelle_titre": "Manual web search",
+    "web_google_livres": "Search via Google Books",
+    "web_quota": "The daily web search quota has been reached or the API is unavailable.",
+    "web_lien_google_livres": "Click this link to run your search in Google Books",
+    "web_aide_ouverture": "Opens in a new tab (Google Books) — searched term:",
     "visitors_today": "Visits today"
   },
   "documents": {

@@ -193,7 +193,7 @@ const A_PROPOS_FR = {
     "<p>Le Ministre du Travail, de l'Emploi et de la Fonction Publique est chargé de la conception, de la mise en œuvre et du suivi de l'application de la Politique du Gouvernement en matière de Travail, d'Emploi et de la Fonction Publique.</p>",
   // TODO: à valider par la Direction de la Communication
   presentation_application:
-    "<p><em>[À valider par la Direction de la Communication]</em> </p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux démarches en ligne du ministère.",
+    "<p>Cette application est une bibliothèque numérique donnant accès aux textes réglementaires, à l'organigramme, aux actualités et aux démarches en ligne du ministère.</p>",
   // Champs de contact et liens utiles (valeurs de placeholder à valider par le ministère)
   contact_email: 'contact@ministere.gov.mg',
   contact_telephone: '+261 20 22 XXX XXX',

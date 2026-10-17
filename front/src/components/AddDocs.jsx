@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import axiosInstance from "./AxiosConfig";
 import { statusLabel } from "./Utils";
@@ -9,6 +9,7 @@ import { ThreeDots } from "react-loader-spinner"
 import { useNavigate } from "react-router-dom";
 
 const AjouterDocument = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     type: "",
     objet: "",
@@ -31,6 +32,8 @@ const AjouterDocument = () => {
     organisme_emetteur: "",
     lieu_signature: "",
     signataires: "",
+    // Nouveau champ : téléchargeable
+    telechargeable: true,
   });
 
 
@@ -60,17 +63,29 @@ const AjouterDocument = () => {
   const handleFileChange = (e) => {
     setFormData({ ...formData, fichier: e.target.files[0] });
   };
+  // Sélecteur « Téléchargement » : la valeur du <select> est une chaîne,
+  // on la reconvertit en booléen dans le state (« false » ≠ true).
+  const handleTelechargeableChange = (e) => {
+    setFormData({ ...formData, telechargeable: e.target.value === "true" });
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
-  
+
     Object.keys(formData)
       .forEach((key) => {
+        // telechargeable est exclu ici : il est ajouté explicitement juste
+        // après, pour ne jamais être envoyé deux fois (et jamais perdu même
+        // quand il vaut false — la boucle ignore les valeurs vides/fausses).
+        if (key === "telechargeable") return;
         if (formData[key] !== null && formData[key] !== "") {
           data.append(key, formData[key]);
         }
-    });
-  
+      });
+
+    // Multipart envoie des chaînes : « true » / « false » interprétés côté serveur
+    data.append("telechargeable", formData.telechargeable ? "true" : "false");
+
     setLoading(true);
     try {
       const response = await axiosInstance.post("/api/documents/", data, {
@@ -106,7 +121,7 @@ const AjouterDocument = () => {
       <div className="flex flex-wrap bg-white rounded-lg shadow-lg overflow-hidden md:w-1/2 w-full lg:w-3/4 animate__animated animate__pulse">
         <div className="hidden md:block w-1/2 bg-cover bg-center"
           style={{
-        backgroundImage: "url('/ajout.jpg')", width: "50%",
+          backgroundImage: "url('/ajout.jpg')", width: "50%",
 
             height: "auto", backgroundSize: "cover",
             backgroundPosition: "center",
@@ -221,7 +236,7 @@ const AjouterDocument = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Autre">Autre</option>
-                <option value="ministre">Ministre</option>
+                <option value="minister">Ministre</option>
                 <option value="gouvernement">Gouvernement</option>
               </select>
             </div>
@@ -364,6 +379,23 @@ const AjouterDocument = () => {
               <p className="text-xs text-gray-500 mt-1">Formats acceptés : PDF uniquement</p>
 
             </div>
+            {/* Téléchargeable / Non téléchargeable */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                {t('telechargeable.label')}
+                <HelpTooltip text={t('telechargeable.aide')} />
+              </label>
+              <select
+                name="telechargeable"
+                value={formData.telechargeable ? "true" : "false"}
+                onChange={handleTelechargeableChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="true">{t('telechargeable.option_oui')}</option>
+                <option value="false">{t('telechargeable.option_non')}</option>
+              </select>
+            </div>
+
             {/* Inclus dans le Journal Officiel */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">

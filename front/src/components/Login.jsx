@@ -79,58 +79,59 @@ function Login() {
     }, [isError, isSuccess, user, message, navigate]);
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-transparent">
-            <div className="flex flex-col md:flex-row bg-white rounded-lg shadow-lg overflow-hidden w-full md:w-1/2 lg:w-1/2">
+        <div className="flex items-center justify-center min-h-screen overflow-hidden bg-gray-900">
+            <div className="w-full max-w-md">
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
 
-                {/* Image Section */}
-                <div className="w-full md:w-1/2 bg-cover bg-center animate__animated animate__flipInY lg:mt-5"
-                    style={{ backgroundImage: "url('../../public/login2.jpg')", height: "300px", backgroundSize: "cover", backgroundPosition: "center" }}>
-                </div>
+                    {/* Image Section */}
+                    <div className="w-full bg-cover bg-center animate__animated animate__flipInY"
+                        style={{ backgroundImage: "url('../../public/login2.jpg')", height: "220px", backgroundSize: "cover", backgroundPosition: "center" }}>
+                    </div>
 
-                {/* Form Section */}
-                <div className="w-full md:w-1/2 p-6 animate__animated animate__jackInTheBox">
-                    <h1 className="text-2xl font-semibold text-center text-gray-800 mb-4">{t('auth.se_connecter')}</h1>
-                    <form onSubmit={handleSubmit}>
-                        <div className="mb-4">
-                            <input
-                                type="email"
-                                name="email"
-                                value={email}
-                                onChange={handleChange}
-                                placeholder={t('auth.email')}
-                                aria-label={t('auth.email')}
-                                className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <input
-                                type="password"
-                                name="password"
-                                value={password}
-                                onChange={handleChange}
-                                placeholder={t('auth.mot_de_passe')}
-                                aria-label={t('auth.mot_de_passe')}
-                                className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                        <div className="flex items-center justify-between mb-4">
-                            <a href="/resetpassword" className="text-sm text-indigo-500 hover:underline">
-                                {t('auth.mot_de_passe_oublie')}
-                            </a>
-                        </div>
-                        <button
-                            type="submit"
-                            className="w-full px-4 py-2 text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-800 to-teal-600 hover:from-blue-600 hover:to-teal-700 transition ..."
-                        >
-                            {t('auth.se_connecter')}
-                        </button>
-                        {/* Plus d'inscription : le lien « Créer un compte » a été
-                            retiré (comptes créés par un administrateur). */}
-                    </form>
+                    {/* Form Section */}
+                    <div className="p-6 animate__animated animate__jackInTheBox">
+                        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-4">{t('auth.se_connecter')}</h1>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={email}
+                                    onChange={handleChange}
+                                    placeholder={t('auth.email')}
+                                    aria-label={t('auth.email')}
+                                    className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    value={password}
+                                    onChange={handleChange}
+                                    placeholder={t('auth.mot_de_passe')}
+                                    aria-label={t('auth.mot_de_passe')}
+                                    className="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between mb-4">
+                                <a href="/resetpassword" className="text-sm text-indigo-500 hover:underline">
+                                    {t('auth.mot_de_passe_oublie')}
+                                </a>
+                            </div>
+                            <button
+                                type="submit"
+                                className="w-full px-4 py-2 text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-800 to-teal-600 hover:from-blue-600 hover:to-teal-700 transition duration-200"
+                            >
+                                {t('auth.se_connecter')}
+                            </button>
+                            {/* Plus d'inscription : le lien « Créer un compte » a été
+                                retiré (comptes créés par un administrateur). */}
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-
     );
 }
 

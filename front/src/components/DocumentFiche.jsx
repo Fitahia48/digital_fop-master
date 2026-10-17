@@ -6,30 +6,20 @@ import axiosInstance from './AxiosConfig';
 import { resolveFileUrl, statusLabel, normalizeStatus } from './Utils';
 import { documentTypeLabel } from '../utils/documentTypes';
 import { fileAvailability } from '../utils/fileAvailability';
+import downloadFile from '../utils/downloadFile';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft,
   faDownload,
   faBookOpen,
   faCalendarAlt,
-  faBan,
   faPen,
   faCircleCheck,
   faTriangleExclamation,
   faLink,
 } from '@fortawesome/free-solid-svg-icons';
 
-/**
- * P1 — Fiche documentaire à URL stable : /documents/:id
- *
- * Remplace la modale de détail comme point d'entrée partageable :
- * - fonctionne au chargement direct et au rechargement (route React Router) ;
- * - affiche « document introuvable » pour un id inexistant ou non publié
- *   (le serveur renvoie 404 pour un brouillon — aucune fuite par devinette) ;
- * - présente métadonnées, résumé, vie juridique et disponibilité du fichier ;
- * - « retour aux résultats » préserve la recherche (state.location) quand
- *   l'usager arrive depuis la liste, sinon retour simple à la liste.
- */
+/** P1 — Fiche documentaire à URL stable : /documents/:id */
 
 const ETAT_BADGES = {
   brouillon: {
@@ -85,7 +75,6 @@ const DocumentFiche = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  // Titre de page accessible (onglet navigateur / lecteurs d'écran)
   useEffect(() => {
     document.title = t('fiche.page_titre', { defaultValue: 'Fiche document — Bibliothèque numérique' });
     return () => {
@@ -102,7 +91,6 @@ const DocumentFiche = () => {
       .then((res) => {
         if (!cancelled) {
           setDoc(res.data);
-          // Le texte est lu directement, on incrémente la vue
           axiosInstance.post(`/api/documents/${id}/visit/`).catch(() => {});
         }
       })
@@ -112,12 +100,9 @@ const DocumentFiche = () => {
         else toast.error(t('common.erreur_generique'));
       })
       .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id, t]);
 
-  // Titre de page avec référence du document (une fois chargé)
   useEffect(() => {
     if (doc) {
       const ref = doc.numero ? `n° ${doc.numero}` : '';
@@ -125,8 +110,6 @@ const DocumentFiche = () => {
     }
   }, [doc, t]);
 
-  // Retour : vers la recherche si l'usager en provient (contexte conservé
-  // via history back), sinon vers la liste des documents.
   const backTarget = location.key !== 'default' ? -1 : '/AfficherDoc';
 
   if (loading) {
@@ -144,10 +127,7 @@ const DocumentFiche = () => {
           <p className="text-4xl mb-4" aria-hidden>🔍</p>
           <h1 className="text-xl font-bold text-gray-800 mb-2">{t('fiche.introuvable_titre')}</h1>
           <p className="text-sm text-gray-600 mb-6">{t('fiche.introuvable_detail')}</p>
-          <Link
-            to="/AfficherDoc"
-            className="inline-flex items-center gap-2 bg-blue-900 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition"
-          >
+          <Link to="/AfficherDoc" className="inline-flex items-center gap-2 bg-blue-900 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition">
             <FontAwesomeIcon icon={faArrowLeft} />
             {t('fiche.retour_liste')}
           </Link>
@@ -162,38 +142,36 @@ const DocumentFiche = () => {
   const statutStyles = {
     en_vigueur: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     abroge: 'bg-red-100 text-red-800 border-red-300',
-    modifie: 'bg-amber-100 text-amber-800 border-amber-300',
+    modifie: 'bg-amber-100 text-amber-700 border-amber-300',
     non_verifie: 'bg-gray-100 text-gray-700 border-gray-400',
   };
   const motsCles = Array.isArray(doc.mots_cles) ? doc.mots_cles : [];
 
+  const telechargeable = doc.telechargeable !== false;
 
   const handleDownload = async () => {
     if (!file.available) return;
     try {
-      const res = await axiosInstance.get(resolveFileUrl(file.url), { responseType: 'blob' });
-      const url = URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `document-${doc.numero || doc.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      await axiosInstance.post(`/api/documents/${doc.id}/telechargement/`);
+      // Helper avec repli sur le lien direct si le XHR est bloqué (CORS/IDM).
+      await downloadFile(file.url, `document-${doc.numero || doc.id}.pdf`);
     } catch {
       toast.error(t('documents.telechargement_erreur'));
+      return;
+    }
+    // Comptage du téléchargement : un échec du compteur ne doit pas afficher
+    // une fausse erreur alors que le fichier est parti.
+    try {
+      await axiosInstance.post(`/api/documents/${doc.id}/telechargement/`);
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement du téléchargement :", error);
     }
   };
 
   const formatDate = (d) =>
-    d
-      ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(d))
-      : '—';
+    d ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(d)) : '—';
 
   return (
     <div className="max-w-4xl mx-auto px-4 mt-40 pb-16">
-      {/* Retour : conserve le contexte de recherche via l'historique navigateur */}
       <button
         type="button"
         onClick={() => (backTarget === -1 ? navigate(-1) : navigate(backTarget))}
@@ -204,24 +182,18 @@ const DocumentFiche = () => {
       </button>
 
       <article className="bg-white rounded-lg shadow-lg p-6 sm:p-8" aria-labelledby="fiche-titre">
-        {/* Status badge */}
         <div className="flex items-center gap-3 mb-4">
-          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold 
-            ${doc.status === "en_vigueur" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}
-          `}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold \n            ${doc.status === "en_vigueur" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}\n          `}>
             {statusLabel(doc.status)}
           </span>
         </div>
-        
-        {/* Title */}
+
         <h1 id="fiche-titre" className="text-3xl font-bold text-gray-900 mb-2 leading-snug">
           {doc.type} {doc.numero ? `n°${doc.numero}` : ''} {doc.objet}
         </h1>
-        
-        {/* Metadata line */}
+
         <div className="text-sm text-gray-600 mb-4">
-          {/* Build metadata dynamically */}
-          {[ 
+          {[
             doc.inclus_journal && doc.date_journal ? (
               <>
                 <span>Journal officiel </span>
@@ -268,10 +240,9 @@ const DocumentFiche = () => {
             <React.Fragment key={index}>{item}</React.Fragment>
           ))}
         </div>
-        
-        {/* Detail bloc */}
+
         <div className="mb-4">
-          {[ 
+          {[
             doc.numero_journal && doc.page_journal ? (
               <>
                 <div className="flex items-center gap-2 mb-1">
@@ -300,12 +271,11 @@ const DocumentFiche = () => {
             <React.Fragment key={index}>{item}</React.Fragment>
           ))}
         </div>
-        
-        {/* Resume card */}
+
         {doc.resume_simplifie ? (
           <section className="bg-emerald-50 rounded-lg p-6 border-l-4 border-emerald-400">
             <div className="flex items-center gap-2 mb-4">
-              <FontAwesomeIcon icon={faLightbulb} className="text-emerald-900" />
+              <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-900" />
               <h2 className="text-xl font-semibold text-emerald-900">{t('documents.en_resume')}</h2>
             </div>
             <p className="text-gray-800 leading-relaxed whitespace-pre-line mb-4">
@@ -320,10 +290,13 @@ const DocumentFiche = () => {
             {t('documents.aucun_resume_disponible', { defaultValue: 'Aucun résumé disponible pour ce texte' })}
           </p>
         )}
-        
-        {/* Action buttons */}
-        <div className="flex justify-end pt-6 space-x-3">
-          {file.available ? (
+
+        {/* Action buttons : téléchargeable → « Télécharger » ; sinon → « Lire » (nouvel onglet) */}
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-6">
+          {file.available && !telechargeable && (
+            <span className="text-xs font-medium text-gray-500">{t('telechargeable.option_non')}</span>
+          )}
+          {file.available && telechargeable ? (
             <button
               onClick={handleDownload}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
@@ -333,6 +306,19 @@ const DocumentFiche = () => {
               <span>{t('common.telecharger')}</span>
             </button>
           ) : null}
+          {file.available && !telechargeable ? (
+            <a
+              href={resolveFileUrl(file.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-800 text-white rounded-md hover:bg-blue-700 transition-colors"
+              aria-label={t('telechargeable.lire_aria')}
+            >
+              <FontAwesomeIcon icon={faBookOpen} />
+              <span>{t('telechargeable.lire')}</span>
+              <span className="text-xs opacity-80">({t('documents.ouvrir_nouvel_onglet')})</span>
+            </a>
+          ) : null}
           <button
             onClick={() => (backTarget === -1 ? navigate(-1) : navigate(backTarget))}
             className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
@@ -340,8 +326,7 @@ const DocumentFiche = () => {
             <span>{t('common.retour')}</span>
           </button>
         </div>
-        
-        {/* Vie juridique : relations (keep existing if already visible) */}
+
         {(doc.relations_actives?.length > 0 || doc.relations_passives?.length > 0) && (
           <div className="mt-8">
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -356,10 +341,7 @@ const DocumentFiche = () => {
                     <span className={`px-2 py-0.5 text-xs font-bold rounded border ${b.style}`}>
                       {t(b.label)}
                     </span>
-                    <Link
-                      to={`/documents/${rel.document_cible_id}`}
-                      className="text-blue-800 hover:underline"
-                    >
+                    <Link to={`/documents/${rel.document_cible_id}`} className="text-blue-800 hover:underline">
                       {rel.type ? `${rel.type} ` : ''}
                       {rel.numero ? `n° ${rel.numero}` : ''} — {rel.objet}
                     </Link>
@@ -373,10 +355,7 @@ const DocumentFiche = () => {
                     <span className={`px-2 py-0.5 text-xs font-bold rounded border ${b.style}`}>
                       {t(b.label_inverse)}
                     </span>
-                    <Link
-                      to={`/documents/${rel.document_source_id}`}
-                      className="text-blue-800 hover:underline"
-                    >
+                    <Link to={`/documents/${rel.document_source_id}`} className="text-blue-800 hover:underline">
                       {rel.type ? `${rel.type} ` : ''}
                       {rel.numero ? `n° ${rel.numero}` : ''} — {rel.objet}
                     </Link>

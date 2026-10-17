@@ -8,6 +8,7 @@ import axiosInstance from "./AxiosConfig";
 import { toast } from "react-toastify";
 import { userContext } from "./Context";
 import { resolveFileUrl, statusLabel } from "./Utils";
+import downloadFile from "../utils/downloadFile";
 import { Link } from "react-router-dom";
 import { Oval } from "react-loader-spinner";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -46,6 +47,8 @@ const Documents = ({ isAdmin }) => {
 
   const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
   const [pdfViewerDoc, setPdfViewerDoc] = useState(null);
+  // Téléchargeable du document ouvert dans la visionneuse (bouton « Télécharger »)
+  const [pdfViewerTelechargeable, setPdfViewerTelechargeable] = useState(true);
 
 
 
@@ -149,11 +152,12 @@ const Documents = ({ isAdmin }) => {
     navigate(`/edit/${id}`);
   };
 
-  const handleView = async (fileUrl, fileType, documentId) => {
+  const handleView = async (fileUrl, fileType, documentId, telechargeable = true) => {
     fileUrl = resolveFileUrl(fileUrl);
     if (fileType === "pdf") {
       setPdfViewerUrl(fileUrl);
       setPdfViewerDoc(documentId);
+      setPdfViewerTelechargeable(telechargeable !== false);
 
       // Enregistrer la visite
       try {
@@ -306,19 +310,8 @@ const Documents = ({ isAdmin }) => {
 
   const handleDownload = async (fileUrl, fileName, documentId) => {
     try {
-      const response = await axiosInstance.get(resolveFileUrl(fileUrl), {
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName || "document.pdf");
-      document.body.appendChild(link);
-      link.click();
-
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Helper avec repli sur le lien direct si le XHR est bloqué (CORS/IDM).
+      await downloadFile(fileUrl, fileName || "document.pdf");
     } catch (error) {
       console.error("Erreur lors du téléchargement :", error);
       toast.error("Erreur lors du téléchargement du fichier.");
@@ -508,9 +501,12 @@ const Documents = ({ isAdmin }) => {
                     </p>
                   )}
                   
-                  {/* Action buttons */}
-                  <div className="flex justify-end pt-6 space-x-3">
-                    {detailDoc.pdf_file || detailDoc.fichier ? (
+                  {/* Action buttons : téléchargeable → « Télécharger » ; sinon → « Lire » (nouvel onglet) */}
+                  <div className="flex flex-wrap items-center justify-end gap-3 pt-6">
+                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false && (
+                      <span className="text-xs font-medium text-gray-500">{t('telechargeable.option_non')}</span>
+                    )}
+                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable !== false ? (
                       <button
                         onClick={() => 
                           handleDownload(
@@ -525,6 +521,19 @@ const Documents = ({ isAdmin }) => {
                         <FontAwesomeIcon icon={faDownload} />
                         <span>{t('common.telecharger')}</span>
                       </button>
+                    ) : null}
+                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false ? (
+                      <a
+                        href={resolveFileUrl(detailDoc.pdf_file || detailDoc.fichier)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-800 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        aria-label={t('telechargeable.lire_aria')}
+                      >
+                        <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                        <span>{t('telechargeable.lire')}</span>
+                        <span className="text-xs opacity-80">({t('documents.ouvrir_nouvel_onglet')})</span>
+                      </a>
                     ) : null}
                     <button
                       onClick={closeDetailModal}
@@ -596,18 +605,23 @@ const Documents = ({ isAdmin }) => {
                             </div>
                           ) : (
                             <span className="text-gray-500">{t('documents.non_disponible')}</span>
-                          )}
-                          <div className="flex-row">
-                            <button
-                              onClick={() =>
-                                handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
-                              }
-                              title={t('common.telecharger')}
-                              aria-label={t('common.telecharger')}
-                              className="text-gray-700 hover:underline"
-                            >
-                              <FontAwesomeIcon icon={faDownload} />
-                            </button>                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
+                          )}                          <div className="flex-row">
+                            {doc.telechargeable === false ? (
+                              // Non téléchargeable : pas de bouton, mention sobre à la place
+                              <span className="text-xs text-gray-500">{t('telechargeable.option_non')}</span>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
+                                }
+                                title={t('common.telecharger')}
+                                aria-label={t('common.telecharger')}
+                                className="text-gray-700 hover:underline"
+                              >
+                                <FontAwesomeIcon icon={faDownload} />
+                              </button>
+                            )}
+                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
                           </div>
                           <button
                             onClick={() => handleEdit(doc?.id)}
@@ -648,18 +662,23 @@ const Documents = ({ isAdmin }) => {
                             </div>
                           ) : (
                             <span className="text-gray-500">{t('documents.non_disponible')}</span>
-                          )}
-                          <div className="flex-row">
-                            <button
-                              onClick={() =>
-                                handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
-                              }
-                              title={t('common.telecharger')}
-                              aria-label={t('common.telecharger')}
-                              className="text-gray-700 hover:underline"
-                            >
-                              <FontAwesomeIcon icon={faDownload} />
-                            </button>                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
+                          )}                          <div className="flex-row">
+                            {doc.telechargeable === false ? (
+                              // Non téléchargeable : pas de bouton, mention sobre à la place
+                              <span className="text-xs text-gray-500">{t('telechargeable.option_non')}</span>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
+                                }
+                                title={t('common.telecharger')}
+                                aria-label={t('common.telecharger')}
+                                className="text-gray-700 hover:underline"
+                              >
+                                <FontAwesomeIcon icon={faDownload} />
+                              </button>
+                            )}
+                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
                           </div>
                         </div>
                       )}
@@ -782,7 +801,8 @@ const Documents = ({ isAdmin }) => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col animate__animated animate__fadeIn">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="font-bold text-lg text-gray-800">Lecture du document</h3>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {pdfViewerTelechargeable ? (
                 <button 
                   onClick={() =>
                     handleDownload(pdfViewerUrl, `document-${pdfViewerDoc}.pdf`, pdfViewerDoc)
@@ -792,6 +812,9 @@ const Documents = ({ isAdmin }) => {
                   <FontAwesomeIcon icon={faDownload} />
                   Télécharger
                 </button>
+                ) : (
+                  <span className="text-xs font-medium text-gray-500">{t('telechargeable.option_non')}</span>
+                )}
                 <button 
                   onClick={() => {
                     setPdfViewerUrl(null);

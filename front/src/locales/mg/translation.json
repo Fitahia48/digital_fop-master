@@ -48,7 +48,7 @@
     "titre": "Lalàna sy Fitsarana",
     "description": "Ireo lahatsoratra ankapobeny navoaka tao amin'ny Gazety Ofisialy no hita eto. Misy ny loharanon'ireo lahatsoratra nanomboka ny taona 1897 sy ny lahatsoratra feno nanomboka ny taona 1998.",
     "aide_faq": "Fanampiana / Fanontaniana",
-        "a_propos": "Mombamomba",
+    "a_propos": "Mombamomba",
     "revoir_le_guide": "Haverina ny torolalana",
     "droits": "© 2024 Apply. All rights reserved",
     "mentions": "Fepetra sy Fiainana manokana",
@@ -67,6 +67,14 @@
     "slide3_titre": "Ny hevitray",
     "slide3_texte": "Amin'ny ezaka maharitra hanatsara ny fahamarinana sy ny fahafahana miditra amin'ny tolotra, <0> ny Ministera </0> dia mikatsaka vahaolana nomerika, anisan'izany ny tranomboky nomerika.",
     "visitors_today": "Mpitsidika androany"
+  },
+  "telechargeable": {
+    "label": "TODO: à valider par un locuteur natif",
+    "option_oui": "TODO: à valider par un locuteur natif",
+    "option_non": "TODO: à valider par un locuteur natif",
+    "lire": "TODO: à valider par un locuteur natif",
+    "lire_aria": "TODO: à valider par un locuteur natif",
+    "aide": "TODO: à valider par un locuteur natif"
   },
   "recherche": {
     "titre": "Endrika fikarohana",
@@ -110,6 +118,11 @@
     "suivante": "Manaraka",
     "corps_professionnels": "Mpiasa matihanina",
     "annonces": "Vaovao",
+    "web_manuelle_titre": "Fikarohana amin'ny tranonkala — TODO: à valider par un locuteur natif",
+    "web_google_livres": "Fikarohana amin'ny Google Livres",
+    "web_quota": "TODO: à valider par un locuteur natif",
+    "web_lien_google_livres": "TODO: à valider par un locuteur natif",
+    "web_aide_ouverture": "TODO: à valider par un locuteur natif",
     "visitors_today": "Fijerena tao an-dianina"
   },
   "documents": {
@@ -123,15 +136,11 @@
     "voir_detail": "Hijery ny antsipirian'ny antontan-taratasy",
     "non_disponible": "Tsy misy",
     "en_resume": "Famintinana",
-
     "texte_pdf_intro": "Ny lahatsoratra ofisialy dia misy amin'ny endrika PDF.",
     "lire_texte": "Hamaky ny lahatsoratra ofisialy",
     "le_resume_est_aide": "Io famintinana io dia fanampiana famakiana: ny lahatsoratra ofisialy ihany no manan-kery.",
     "aucun_resume": "Tsy misy famintinana amin'ny teny tsotra ho an'io antontan-taratasy io.",
     "aucun_resume_disponible": "Tsy misy famintinana ho an'io antsipiriany io",
-
-
-
     "date_signature": "Daty sonia/famenoana:",
     "entree_vigueur": "Fidiran'ny hery:",
     "non_renseignee": "Tsy voafaritra",
