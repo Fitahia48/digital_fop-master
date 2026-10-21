@@ -22,6 +22,7 @@ import AddActus from './components/AddActus';
 import RemarkForm from "./components/RemarkForm";
 import AdminRemarks from "./components/AdminRemarks";
 import AdminSubscribers from "./components/AdminSubscribers";
+import AdminThemes from "./components/AdminThemes";
 import Documents from './components/AfficherDocs';
 import AnimatedCard from './components/AnimatedCard';
 import OrganigrammePage from './components/OrganigrammePage';
@@ -153,6 +154,9 @@ const App = () => {
                             réalisée dans AdminSubscribers (appel /users/me) ; le
                             serveur refuse aussi tout non-admin (double verrou). */}
                         <Route path="/admin/abonnes" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminSubscribers /></ProtectedRoute>} />
+                        {/* Gestion des thèmes (domaines) : même double verrou que
+                            les abonnés — ProtectedRoute + contrôle admin dans la page. */}
+                        <Route path="/admin/themes" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminThemes /></ProtectedRoute>} />
                         {/* Statistiques administrateur : page unique à onglets.
                             Même verrou que les anciennes sections du dashboard
                             (authentification) — aucune règle d'accès modifiée. */}

@@ -34,10 +34,18 @@ const Menu = ({ onSelectDomaine }) => {
     navigate("/")
   }
 
+  // Thèmes du select « Accès par thème ». La liste est rechargée aussi quand la
+  // page d'administration (/admin/themes) en crée, renomme ou supprime un
+  // (événement « domaines:updated ») : le menu suit sans rechargement complet.
   useEffect(() => {
-    axiosInstance.get('/api/domaines/')
-      .then(response => setDomaines(response.data.results))
-      .catch(error => console.error("Erreur est survenue lors du recuperation des domaines", error))
+    const chargerDomaines = () => {
+      axiosInstance.get('/api/domaines/')
+        .then(response => setDomaines(response.data.results || []))
+        .catch(error => console.error("Erreur est survenue lors du recuperation des domaines", error))
+    }
+    chargerDomaines()
+    window.addEventListener('domaines:updated', chargerDomaines)
+    return () => window.removeEventListener('domaines:updated', chargerDomaines)
   }, [])
 
   const handleChangeDomaine = (e) => {
@@ -97,6 +105,16 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'abonnes',
       labelKey: 'menu.abonnes_admin',
       route: '/admin/abonnes',
+      authOnly: true,
+      adminOnly: true,
+      type: 'link'
+    },
+    {
+      // Gestion des thèmes (domaines) : comme les abonnés, visible uniquement
+      // pour un administrateur.
+      id: 'themes',
+      labelKey: 'menu.themes_admin',
+      route: '/admin/themes',
       authOnly: true,
       adminOnly: true,
       type: 'link'
