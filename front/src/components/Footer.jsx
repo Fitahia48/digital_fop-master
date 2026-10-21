@@ -7,6 +7,7 @@ import { Icons } from './MenuFooter'
 import RemarkForm from './RemarkForm'
 import SubscribeForm from './SubscribeForm'
 import { requestOnboardingRestart } from './OnboardingTour'
+import { scrollToTop } from '../utils/scrollToTop'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleInfo, faCircleQuestion, faMapLocationDot, faScaleBalanced } from '@fortawesome/free-solid-svg-icons'
 
@@ -43,6 +44,7 @@ const Footer = () => {
       <div className="sm:px-12 px-4 py-4 border-t border-white/10 flex flex-wrap items-center justify-center gap-3 text-sm">
         <Link
           to="/aide"
+          onClick={() => location.pathname === '/aide' && scrollToTop()}
           className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
         >
           <FontAwesomeIcon icon={faCircleQuestion} /> {t('footer.aide_faq')}
@@ -50,6 +52,7 @@ const Footer = () => {
         <span className="text-gray-600" aria-hidden="true">|</span>
         <Link
           to="/a-propos"
+          onClick={() => location.pathname === '/a-propos' && scrollToTop()}
           className="inline-flex items-center gap-2 text-gray-300 hover:text-yellow-300 transition"
         >
           <FontAwesomeIcon icon={faCircleInfo} /> {t('footer.a_propos')}

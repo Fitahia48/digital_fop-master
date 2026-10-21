@@ -8,6 +8,7 @@ import {
   faBullseye,
   faEnvelope,
   faFileLines,
+  faFingerprint,
   faLandmark,
   faLocationDot,
   faPhone,
@@ -220,6 +221,25 @@ const AProposPage = () => {
                 />
               </section>
             )}
+
+            {/* Confidentialité du comptage des visites (Étape 7) : texte court
+                fr/en/mg — le libellé malgache reste « à valider » (convention
+                du projet, voir IMPLEMENTATION.md §5). */}
+            <section
+              aria-labelledby="apropos-anonymat"
+              className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-7"
+            >
+              <h2
+                id="apropos-anonymat"
+                className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-3"
+              >
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-900 text-white text-sm" aria-hidden="true">
+                  <FontAwesomeIcon icon={faFingerprint} />
+                </span>
+                {t('apropos.anonymat_titre')}
+              </h2>
+              <p className="text-gray-700 leading-relaxed">{t('apropos.anonymat_visites')}</p>
+            </section>
           </div>
 
           {/* Colonne latérale : cadre légal, contacts, liens utiles */}

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { ToastContainer } from 'react-toastify'
 import Login from './components/Login';
@@ -17,6 +17,7 @@ import axiosInstance from './components/AxiosConfig';
 import ResetPasswordConfirmPage from './components/ResetPasswordConfirmPage';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import AddActus from './components/AddActus';
 import RemarkForm from "./components/RemarkForm";
 import AdminRemarks from "./components/AdminRemarks";
@@ -38,7 +39,18 @@ import RightColumn from './components/RightColumn';
 import TransparencePage from './components/TransparencePage';
 import DocumentFiche from './components/DocumentFiche';
 import AProposPage from './components/AProposPage';
+// Page unique à onglets des statistiques (chargée en lazy : Chart.js et les
+// graphiques ne sont téléchargés qu'à l'ouverture de la page).
+const AdminStats = lazy(() => import('./components/AdminStats'));
 axios.defaults.withCredentials = true;
+
+// Comptage anonyme des visites : UN SEUL ping par session de navigateur au
+// montage de l'application (et non à chaque changement de page). Le serveur
+// ne compte ce visiteur qu'une seule fois par jour (fuseau Madagascar) ; les
+// erreurs sont ignorées silencieusement — le comptage ne bloque jamais la
+// navigation. Le garde ci-dessous neutralise aussi le double montage de
+// React.StrictMode en développement.
+let visiteurPingue = false;
 
 const App = () => {
     const { user, setUser, isAdmin, setIsAdmin, setSelectedDomaine } = useContext(userContext)
@@ -92,12 +104,23 @@ const App = () => {
         return () => window.removeEventListener('auth:session-expired', onExpired)
     }, [])
 
+    // Visite de l'application — 1 appel au montage (voir visiteurPingue).
+    useEffect(() => {
+        if (visiteurPingue) return
+        visiteurPingue = true
+        axiosInstance.post('/api/visites/ping/').catch(() => {})
+    }, [])
+
     return (
         <>
             <div className='bg-gray-900'>
                 <Header />
                 <ToastContainer />
                 <Router>
+                    {/* Remet la page en haut à chaque navigation : les liens du
+                        pied de page ouvrent sinon la nouvelle page à la même
+                        hauteur de défilement (on restait sur le bas de page). */}
+                    <ScrollToTop />
                     <SearchShortcut />
                     {/* Bandeau hors-ligne (F10) : visible uniquement sans connexion */}
                     <OfflineBanner />
@@ -126,6 +149,30 @@ const App = () => {
                         <Route path='/documents/:id' element={<DocumentFiche />} />
                         <Route path='/status' element={<CorpsFilteredList />} />
                         <Route path="/admin/remarks" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminRemarks /></ProtectedRoute>} />
+                        {/* Espace « Abonnés » : ProtectedRoute + vérification admin
+                            réalisée dans AdminSubscribers (appel /users/me) ; le
+                            serveur refuse aussi tout non-admin (double verrou). */}
+                        <Route path="/admin/abonnes" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminSubscribers /></ProtectedRoute>} />
+                        {/* Statistiques administrateur : page unique à onglets.
+                            Même verrou que les anciennes sections du dashboard
+                            (authentification) — aucune règle d'accès modifiée. */}
+                        <Route
+                            path="/admin/statistiques"
+                            element={
+                                <ProtectedRoute isAuthenticated={user.refresh}>
+                                    <Suspense
+                                        fallback={(
+                                            <div className="flex items-center justify-center py-24" role="status">
+                                                <span className="animate-spin rounded-full h-8 w-8 border-4 border-yellow-500 border-t-transparent" />
+                                                <span className="sr-only">Chargement…</span>
+                                            </div>
+                                        )}
+                                    >
+                                        <AdminStats />
+                                    </Suspense>
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route path="/animated" element={<AnimatedCard />} />
                         <Route path="/organigramme" element={<OrganigrammePage />} />
                         <Route path="/aide" element={<HelpPage />} />
@@ -140,7 +187,7 @@ const App = () => {
                     </main>
                     {/* Le Footer doit rester dans le Router : il utilise useNavigate (« Revoir le guide ») */}
                     <Footer />
-                    {/* Colonne droite : assistant + bouton Déconnecter (en bas à droite, côte à côte) */}
+                    {/* Colonne droite : assistant MTeFOP (déconnexion uniquement dans le menu) */}
                     <RightColumn />
                 </Router>
             </div>

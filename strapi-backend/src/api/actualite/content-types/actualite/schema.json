@@ -35,6 +35,10 @@
       "type": "enumeration",
       "enum": ["actualite", "offre", "nouveaute"],
       "default": "actualite"
+    },
+    "notifie_le": {
+      "type": "datetime",
+      "required": false
     }
   }
 }

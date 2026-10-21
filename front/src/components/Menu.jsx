@@ -6,9 +6,7 @@ import { logout, reset } from '../features/auth/authSlice'
 import { userContext } from './Context'
 import biblio from "../assets/logo.png"
 import axiosInstance from './AxiosConfig'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHouse, faCircleQuestion, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
-import { requestOnboardingRestart } from './OnboardingTour';
+import { requestOnboardingRestart } from './OnboardingTour'
 
 const Menu = ({ onSelectDomaine }) => {
   const [domaines, setDomaines] = useState([])
@@ -16,6 +14,8 @@ const Menu = ({ onSelectDomaine }) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const { user, setUser, isAdmin, setIsAdmin } = useContext(userContext)
+
   const handleRevoirGuide = () => {
     SetisMenuOpen(false)
     requestOnboardingRestart(navigate)
@@ -24,12 +24,16 @@ const Menu = ({ onSelectDomaine }) => {
   const toggleMenu = () => {
     SetisMenuOpen(!isMenuOpen)
   }
+
   const handleLogout = () => {
-    dispatch(logout())
+    SetisMenuOpen(false) // referme le panneau mobile si ouvert
+    dispatch(logout()) // vide le localStorage + révoque le refresh token (best effort)
     setUser('')
+    setIsAdmin(false) // pas d'état admin fantôme après déconnexion
     dispatch(reset())
     navigate("/")
   }
+
   useEffect(() => {
     axiosInstance.get('/api/domaines/')
       .then(response => setDomaines(response.data.results))
@@ -43,23 +47,20 @@ const Menu = ({ onSelectDomaine }) => {
       navigate("/AfficherDoc");
     }
   }
-  const { user, setUser } = useContext(userContext)
 
-  // Define menu items configuration
+  // Définition des éléments du menu (ordre, identité, règles d'affichage conservés)
   const menuItems = [
     {
       id: 'home',
       labelKey: 'menu.accueil',
       route: '/',
-      icon: <FontAwesomeIcon icon={faHouse} className='px-2 mb-0.5' />,
       authOnly: false,
       type: 'link'
     },
     {
       id: 'theme-selector',
-      labelKey: null, // special case for select
+      labelKey: null, // cas spécial : select
       route: null,
-      icon: null,
       authOnly: false,
       type: 'select'
     },
@@ -67,7 +68,6 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'status',
       labelKey: 'menu.status_particuliers',
       route: '/status',
-      icon: null,
       authOnly: false,
       type: 'link'
     },
@@ -75,7 +75,6 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'search',
       labelKey: 'menu.recherche',
       route: '/AfficherDoc',
-      icon: null,
       authOnly: false,
       type: 'link'
     },
@@ -83,7 +82,6 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'organigramme',
       labelKey: 'menu.organigramme',
       route: '/organigramme',
-      icon: null,
       authOnly: false,
       type: 'link'
     },
@@ -91,15 +89,22 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'dashboard',
       labelKey: 'menu.dashboard',
       route: '/dashboard',
-      icon: null,
       authOnly: true,
+      type: 'link'
+    },
+    {
+      // Espace admin : visible UNIQUEMENT pour un administrateur (adminOnly).
+      id: 'abonnes',
+      labelKey: 'menu.abonnes_admin',
+      route: '/admin/abonnes',
+      authOnly: true,
+      adminOnly: true,
       type: 'link'
     },
     {
       id: 'revoir-guide',
       labelKey: 'menu.revoir_guide',
       route: null,
-      icon: <FontAwesomeIcon icon={faCircleQuestion} className='px-2 mb-0.5' />,
       authOnly: false,
       type: 'button',
       onClick: handleRevoirGuide
@@ -108,7 +113,6 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'a-propos',
       labelKey: 'menu.a_propos',
       route: '/a-propos',
-      icon: null,
       authOnly: false,
       type: 'link'
     },
@@ -116,18 +120,21 @@ const Menu = ({ onSelectDomaine }) => {
       id: 'logout',
       labelKey: 'menu.deconnecter',
       route: null,
-      icon: <FontAwesomeIcon icon={faRightFromBracket} className='px-2' />,
       authOnly: true,
-      type: 'link',
+      type: 'button',
+      variant: 'outline',
       onClick: handleLogout
     }
   ];
 
-  // Filter items based on authentication
-  const authItems = menuItems.filter(item => !item.authOnly || user?.refresh);
-  const unauthItems = menuItems.filter(item => !item.authOnly);
+  // Filtrage selon l'authentification (sans changer les règles) —
+  // adminOnly en plus : l'élément n'apparaît que pour un administrateur.
+  const authItems = menuItems.filter(
+    item => (!item.authOnly || user?.refresh) && (!item.adminOnly || isAdmin)
+  );
+  const unauthItems = menuItems.filter(item => !item.authOnly && !item.adminOnly);
 
-  // Render a menu item based on its type
+  // Rendu d'un élément selon son type
   const renderItem = (item) => {
     switch (item.type) {
       case 'link':
@@ -137,11 +144,11 @@ const Menu = ({ onSelectDomaine }) => {
               to={item.route}
               end
               className={({ isActive }) => `
-                text-gray-700 hover:text-blue-500 font-medium transition duration-200
-                ${isActive ? 'text-blue-600 font-semibold' : ''}
+                inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium text-gray-700 transition-colors duration-150
+                hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                ${isActive ? 'bg-blue-50 text-blue-900 font-semibold' : ''}
               `}
             >
-              {item.icon}
               {t(item.labelKey)}
             </NavLink>
           </li>
@@ -153,7 +160,7 @@ const Menu = ({ onSelectDomaine }) => {
               name="domaine"
               onChange={handleChangeDomaine}
               aria-label={t('menu.acces_par_theme_label')}
-              className="text-gray-700 border rounded-lg px-3 py-1"
+              className="w-44 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 focus:border-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 sm:w-52"
             >
               <option value="">{t('menu.acces_par_theme')}</option>
               {
@@ -170,10 +177,13 @@ const Menu = ({ onSelectDomaine }) => {
             <button
               type="button"
               onClick={item.onClick}
-              title={t('menu.revoir_guide_title')}
-              className="text-gray-700 hover:text-blue-500 font-medium transition duration-200"
+              title={item.id === 'revoir-guide' ? t('menu.revoir_guide_title') : t('menu.deconnecter')}
+              aria-label={item.id === 'revoir-guide' ? t('menu.revoir_guide_title') : t('menu.deconnecter')}
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2
+                ${item.variant === 'outline'
+                  ? 'border border-gray-200 bg-gray-50 text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-700'
+                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
             >
-              {item.icon}
               {t(item.labelKey)}
             </button>
           </li>
@@ -185,20 +195,20 @@ const Menu = ({ onSelectDomaine }) => {
 
   return (
     <>
-      <nav className="fixed container top-28 w-3/4 mx-auto max-w-[1500px] sm:text-sm md:text-sm rounded-lg left-0 right-0 bg-white shadow-xl p-2 z-50 ">
-        <div className="flex items-center justify-between">
-          <div className='gap-x-4 flex  text-black text-lg font-bold ml-8'>
-            <div className='shrink-0'>
-              <img src={biblio} alt='' className='size-6 ' />
+      <nav className="fixed left-0 right-0 top-28 z-50 mx-auto w-[94%] max-w-[1600px] rounded-xl border border-gray-100 bg-white p-1 shadow-md">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-2">
+          {/* Marque : icône + titre sur une ligne, en revanche de l'écran */}
+          <div className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
+            <div className="shrink-0">
+              <img src={biblio} alt="" className="size-6" />
             </div>
-            <div>
-              <h3 className='text-yellow-950 sm:text-sm md:text-lg'>{t('menu.bibliotheque')}</h3>
-            </div>
+            <h3 className="text-xs font-bold leading-tight text-yellow-950 tracking-tight sm:text-sm lg:text-base">{t('menu.bibliotheque')}</h3>
           </div>
 
-          <div className="md:hidden ">
+          <div className="md:hidden">
             <button
-              className="text-black"
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors duration-150"
               onClick={toggleMenu}
               aria-label={isMenuOpen ? t('menu.fermer_menu') : t('menu.ouvrir_menu')}
               aria-expanded={isMenuOpen}
@@ -213,12 +223,20 @@ const Menu = ({ onSelectDomaine }) => {
                 viewBox="0 0 24 24"
                 aria-hidden="true"
                 focusable="false"
-                className="w-6 h-6">
-                <path d="M4 6h16M4 12h16M4 18h16"></path>
+                className="h-5 w-5"
+              >
+                <path d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
-          <ul className="hidden md:flex space-x-6 mr-2 animate__animated animate__zoomInRight">
+
+          {/* Liens bureau : espacement régulier, pas de retour à la ligne.
+              min-w-0 + overflow-x-auto : sur les écrans étroits (1280–1500 px),
+              la barre déborde (items en nowrap) — le défilement horizontal rend
+              les derniers items (« À propos », « Déconnecter ») atteignables au
+              lieu de les couper hors écran. Aucun changement visuel quand tout
+              tient (>= ~1600 px). */}
+          <ul className="hidden min-w-0 items-center gap-x-1 gap-y-1.5 whitespace-nowrap overflow-x-auto md:flex lg:gap-x-2 xl:gap-x-2.5">
             {user?.refresh ? (
               <>
                 {authItems.map(renderItem)}
@@ -231,8 +249,12 @@ const Menu = ({ onSelectDomaine }) => {
           </ul>
         </div>
       </nav>
+
       {isMenuOpen && (
-        <ul id="menu-principal-mobile" className="flex-col md:hidden  animate__animated animate__zoomInRight">
+        <ul
+          id="menu-principal-mobile"
+          className="flex-col space-y-1 bg-white border-t border-gray-100 rounded-b-xl border-gray-100 md:hidden xl:hidden animate-[fadeIn_0.15s_ease-out]"
+        >
           {user?.refresh ? (
             <>
               {authItems.map(renderItem)}
@@ -246,6 +268,6 @@ const Menu = ({ onSelectDomaine }) => {
       )}
     </>
   );
-}
+};
 
 export default Menu;

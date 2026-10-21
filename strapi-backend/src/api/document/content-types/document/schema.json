@@ -68,6 +68,10 @@
       "enum": ["brouillon", "a_valider", "validee"],
       "default": "brouillon"
     },
+    "notifie_le": {
+      "type": "datetime",
+      "required": false
+    },
     "mots_cles": {
       "type": "json"
     },
@@ -123,9 +127,6 @@
     "telechargeable": {
       "type": "boolean",
       "default": true
-    },
-    "resume_simplifie": {
-      "type": "text"
     },
     "relations_source": {
       "type": "relation",

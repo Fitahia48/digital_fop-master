@@ -24,6 +24,7 @@ import {
   isAdminUser,
 } from '../../../utils/errors';
 import { findOneByRef } from '../../../utils/by-ref';
+import { enregistrerConsultation } from '../../../utils/comptage';
 
 const UID = 'api::document.document';
 const REL_UID = 'api::document-relation.document-relation';
@@ -306,7 +307,6 @@ export default factories.createCoreController(UID, () => ({
         signataires: b.signataires || null,
         date_entree_vigueur: b.date_entree_vigueur || null,
         modification_details: b.modification_details || null,
-        resume_simplifie: b.resume_simplifie || null,
         inclus_journal: inclus,
         date_journal: inclus ? b.dateJournal || b.date_journal || null : null,
         numero_journal: inclus ? b.numeroJournal || b.numero_journal || null : null,
@@ -380,9 +380,7 @@ export default factories.createCoreController(UID, () => ({
           b.modification_details !== undefined ? b.modification_details : doc.modification_details,
         date_entree_vigueur:
           b.date_entree_vigueur !== undefined ? b.date_entree_vigueur || null : doc.date_entree_vigueur,
-        // Chaîne vide = suppression du résumé (comportement legacy)
-        resume_simplifie:
-          b.resume_simplifie !== undefined ? b.resume_simplifie || null : doc.resume_simplifie,
+
         last_modified_at: new Date(),
       };
       if (b.domaine || b.domaine_id) data.domaine = Number(b.domaine || b.domaine_id);
@@ -456,18 +454,30 @@ export default factories.createCoreController(UID, () => ({
   // ─── Endpoints non-CRUD ──────────────────────────────────────────────────────
 
   // POST /api/documents/:documentId/visit
+  // Règle métier : 1 visiteur (empreinte anonyme) = 1 comptage par texte et
+  // par jour (jour à Madagascar). L'unicité est garantie par la base
+  // (clé unique + ON CONFLICT DO NOTHING, utils/comptage.ts) : les appels
+  // répétés (refresh, modale + fiche) ne comptent qu'une fois.
   async incrementVisit(ctx: any) {
     try {
       const doc = await findDocByDocumentId(ctx.params.documentId);
       if (!doc) return ctx.notFound('Document non trouvé');
-      await strapi.documents(UID).update({
-        documentId: doc.documentId,
-        data: { visits: (doc.visits || 0) + 1 },
-      });
-      ctx.body = { message: 'Visite enregistrée' };
+
+      // Un texte non consultable par le public (brouillon / à valider) ne se
+      // compte pas — même filtre que findOne (publicationFilter).
+      const pub = await publicationFilter(ctx);
+      if (pub && doc.etat_notice !== 'validee') return ctx.notFound('Document non trouvé');
+
+      const counted = await enregistrerConsultation(ctx, 'document', Number(doc.id));
+      ctx.body = {
+        counted,
+        message: counted ? 'Visite enregistrée' : 'Visite déjà comptée pour aujourd’hui',
+      };
     } catch (err) {
       console.error('incrementDocumentVisit error:', err);
-      return ctx.internalServerError((err as Error).message);
+      // Jamais d'erreur bloquante pour l'usager côté comptage : on répond 200
+      // non compté plutôt qu'un 500 (le serveur reste la garantie d'unicité).
+      ctx.body = { counted: false, message: 'Visite non comptée' };
     }
   },
 

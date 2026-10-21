@@ -19,7 +19,6 @@ const EditDocument = () => {
     conseil: "",
     domaine: "",
     status: "",
-    resume_simplifie: "",
     lieu_signature: "",
     signataires: "",
     fichier: null,
@@ -93,7 +92,6 @@ const EditDocument = () => {
     const formDataToSend = new FormData();
 
     // Ajoutez les champs
-    formDataToSend.append("type", formData.type);
     formDataToSend.append("objet", formData.objet);
     formDataToSend.append("numero", formData.numero);
     formDataToSend.append("date", formData.date);
@@ -114,8 +112,6 @@ const EditDocument = () => {
     // Statut juridique : modifiable directement depuis ce formulaire
     // (sans justification obligatoire).
     formDataToSend.append("status", formData.status || "en_vigueur");
-    // Chaîne vide = suppression du résumé côté backend
-    formDataToSend.append("resume_simplifie", formData.resume_simplifie ?? "");
     // Lieu de signature (optionnel)
     formDataToSend.append("lieu_signature", formData.lieu_signature || "");
     // Signataire(s) (optionnel)
@@ -194,25 +190,6 @@ const EditDocument = () => {
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             placeholder="Entrez l'objet du document"
           />
-        </div>
-
-        {/* Résumé en langage clair */}
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            Résumé en langage clair (optionnel)
-          </label>
-          <textarea
-            name="resume_simplifie"
-            value={formData.resume_simplifie || ""}
-            onChange={handleChange}
-            rows={4}
-            maxLength={1000}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-            placeholder="Expliquez ce texte en 2-3 phrases simples, sans jargon administratif"
-          />
-          <p className="text-xs text-gray-500 text-right mt-1">
-            {(formData.resume_simplifie || "").length}/1000 caractères
-          </p>
         </div>
 
         {/* Référence */}

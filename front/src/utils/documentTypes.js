@@ -2,7 +2,7 @@
  * P1 — Source UNIQUE de la liste contrôlée des types de documents.
  *
  * Utilisée par : SearchBar (filtre), AddDocs (saisie), EditDoc (saisie),
- * StatistiqueDocs (statistiques) — afin que filtres, formulaires, statistiques
+ * components/stats/TextesPanel & ConsultationsPanel — afin que filtres, formulaires, statistiques
  * et données portent les MÊMES valeurs, après migration `p1-migrate.ts`.
  *
  * La valeur stockée en base (`document.type`) est la forme canonique `value`.

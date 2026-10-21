@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "strapi_email_logs",
+  "info": {
+    "singularName": "email-log",
+    "pluralName": "email-logs",
+    "displayName": "Email Log",
+    "description": "Journal d'envoi des alertes de publication (visibilité administrateur uniquement)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "publication": {
+      "type": "enumeration",
+      "enum": ["document", "actualite"],
+      "required": true
+    },
+    "titre": {
+      "type": "string"
+    },
+    "lien": {
+      "type": "string"
+    },
+    "destinataires": {
+      "type": "integer",
+      "default": 0
+    },
+    "envoyes": {
+      "type": "integer",
+      "default": 0
+    },
+    "echecs": {
+      "type": "integer",
+      "default": 0
+    },
+    "duree_ms": {
+      "type": "integer"
+    },
+    "statut": {
+      "type": "enumeration",
+      "enum": ["ok", "partiel", "echec", "sans_destinataire", "ignore"],
+      "default": "ok"
+    },
+    "detail": {
+      "type": "text"
+    }
+  }
+}

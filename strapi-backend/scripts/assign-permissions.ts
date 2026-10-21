@@ -42,7 +42,13 @@ const PUBLIC_ACTIONS = [
   'api::app-rating.app-rating.find',
   'api::app-rating.app-rating.findOne',
   'api::app-rating.app-rating.create',
-  'api::subscriber.subscriber.create',
+  // ⛔ 'api::subscriber.subscriber.create' RETIRÉ (correction de faille) :
+  // la création publique passe par la route custom POST /api/subscribers/subscribe
+  // (auth: false, cf. routes/subscriber-custom.ts) qui ne demande AUCUNE
+  // permission core. Laisser `create` ouvert à Public/Authenticated permettait
+  // d'appeler le CRUD core POST /api/subscribers avec `is_confirmed: true` et
+  // des jetons choisis → contournement de la double confirmation.
+  // find/findOne/update/delete ne sont liés qu'au rôle Administrateur.
   'plugin::upload.content-api.find',
   'plugin::upload.content-api.findOne',
 ];

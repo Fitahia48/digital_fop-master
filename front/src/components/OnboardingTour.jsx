@@ -23,15 +23,32 @@ export const hasCompletedOnboarding = () => {
   }
 };
 
-/** Consomme (une seule fois) la demande de relance issue de « Revoir le guide ». */
-const consumeRestartRequest = () => {
+/** La demande de relance est-elle en attente ? (lecture sans consommation) */
+const isRestartRequested = () => {
   try {
-    const requested = sessionStorage.getItem(RESTART_KEY) === "true";
-    if (requested) sessionStorage.removeItem(RESTART_KEY);
-    return requested;
+    return sessionStorage.getItem(RESTART_KEY) === "true";
   } catch {
     return false;
   }
+};
+
+/** Efface la demande de relance (une fois le tour réellement démarré). */
+const clearRestartRequest = () => {
+  try {
+    sessionStorage.removeItem(RESTART_KEY);
+  } catch {
+    // sessionStorage indisponible : rien à effacer
+  }
+};
+
+/**
+ * Consomme (une seule fois) la demande de relance issue de « Revoir le guide ».
+ * Réservé au clic traité sans remontage (on est déjà sur l'accueil).
+ */
+const consumeRestartRequest = () => {
+  const requested = isRestartRequested();
+  if (requested) clearRestartRequest();
+  return requested;
 };
 
 /**
@@ -114,12 +131,18 @@ const OnboardingTour = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       // Laisse le slider d’accueil se poser avant d’afficher l’overlay
       timerRef.current = setTimeout(() => {
+        // La demande n'est consommée qu'ici, quand le tour démarre vraiment :
+        // en développement, React.StrictMode monte l'effet deux fois (montage →
+        // nettoyage qui annule le minuteur → remontage). Consommer la demande
+        // au montage la perdait donc au premier passage et le guide ne se
+        // relançait jamais ; elle survit maintenant au premier nettoyage.
+        clearRestartRequest();
         if (!driverObj.isActive()) driverObj.drive(0);
       }, 600);
     };
 
-    // Première visite OU demande explicite de relance
-    if (!hasCompletedOnboarding() || consumeRestartRequest()) {
+    // Première visite OU demande explicite de relance (lue sans la consommer)
+    if (!hasCompletedOnboarding() || isRestartRequested()) {
       startTour();
     }
 

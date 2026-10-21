@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../components/AxiosConfig';
 
 const ConfirmSubscriptionPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [status, setStatus] = useState('loading'); // 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('');
 
@@ -40,7 +42,8 @@ const ConfirmSubscriptionPage = () => {
           <>
             <div className="text-green-500 text-5xl mb-4">✓</div>
             <h1 className="text-2xl font-semibold text-gray-800 mb-2">Abonnement confirmé !</h1>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <p className="text-gray-600 mb-2">{message}</p>
+            <p className="text-gray-400 text-xs mb-6">{t('abonnement.spam_hint')}</p>
             <button
               onClick={() => navigate('/')}
               className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-lg transition-colors"

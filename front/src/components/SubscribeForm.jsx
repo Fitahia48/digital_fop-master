@@ -1,10 +1,12 @@
 import React, { useState, useContext } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from './AxiosConfig';
 import { userContext } from './Context';
 
 const SubscribeForm = () => {
   const { isAdmin } = useContext(userContext);
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,10 +26,22 @@ const SubscribeForm = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.post('/api/subscribers/subscribe/', { email: trimmed });
-      toast.success(res.data.detail || 'Inscription prise en compte. Vérifiez votre boîte mail.');
+      const data = res.data || {};
+      // Ordre important : ALREADY_SUBSCRIBED a aussi email_sent=false
+      // (aucun mail envoyé) mais ce n'est PAS un échec → message « déjà abonné ».
+      if (data.code === 'ALREADY_SUBSCRIBED') {
+        toast.info(t('abonnement.deja_abonne'));
+      } else if (data.email_sent === false) {
+        // Honnêteté : l'inscription est sauvegardée mais le mail n'est PAS parti.
+        toast.warning(t('abonnement.echec_envoi'));
+      } else if (data.code === 'CONFIRMATION_RESENT') {
+        toast.success(`${t('abonnement.reenvoi_succes')} ${t('abonnement.spam_hint')}`);
+      } else {
+        toast.success(`${t('abonnement.succes')} ${t('abonnement.spam_hint')}`);
+      }
       setEmail('');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Une erreur est survenue. Veuillez réessayer.';
+      const msg = err.response?.data?.detail || t('abonnement.erreur');
       toast.error(msg);
     } finally {
       setLoading(false);

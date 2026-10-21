@@ -13,10 +13,15 @@
  *     même pour la période courante. Les bornes du mois / de l'année sont donc
  *     calculées côté serveur et comparées en SQL standard
  *     (`date BETWEEN ? AND ?`), valable sur les deux dialectes.
+ *  3. Le jour / le mois « par défaut » étaient calculés en **UTC** alors que
+ *     le métier est en fuseau Indian/Antananarivo (UTC+3) : corrige ici, avec
+ *     le helper unique `utils/dates.ts#dateJourMadagascar`.
  *
  * Aucune donnée n'est inventée : les compteurs sont lus tels quels dans les
  * tables legacy (aucune écriture ici).
  */
+
+import { dateJourMadagascar } from './dates';
 
 /** Périodes acceptées par les endpoints de statistiques. */
 export const PERIODES = ['daily', 'monthly', 'yearly'] as const;
@@ -48,17 +53,25 @@ export const rowsOf = (raw: any): any[] => {
 
 const isoDate = (d: Date) => d.toISOString().split('T')[0];
 
-/** Bornes [1er jour, dernier jour] du mois de `ref` (mois et année courants). */
-export const bornesMois = (ref = new Date()): [string, string] => [
-  isoDate(new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1))),
-  isoDate(new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 0))),
-];
+/**
+ * Bornes [1er jour, dernier jour] du MOIS courant **à Madagascar** (UTC+3).
+ * AVANT : calculées depuis `ref.getUTCMonth()` → entre 00h et 03h heure de
+ * Madagascar, le mois/année « UTC » était encore celui du mois précédent
+ * (jour, mois et année de période tombaient à côté).
+ */
+export const bornesMois = (ref = new Date()): [string, string] => {
+  const [annee, mois] = dateJourMadagascar(ref).split('-');
+  const numeroMois = parseInt(mois, 10) - 1;
+  const debut = isoDate(new Date(Date.UTC(Number(annee), numeroMois, 1)));
+  const fin = isoDate(new Date(Date.UTC(Number(annee), numeroMois + 1, 0)));
+  return [debut, fin];
+};
 
-/** Bornes [1er janvier, 31 décembre] de l'année de `ref`. */
-export const bornesAnnee = (ref = new Date()): [string, string] => [
-  isoDate(new Date(Date.UTC(ref.getUTCFullYear(), 0, 1))),
-  isoDate(new Date(Date.UTC(ref.getUTCFullYear(), 11, 31))),
-];
+/** Bornes [1er janvier, 31 décembre] de l'année **courante à Madagascar**. */
+export const bornesAnnee = (ref = new Date()): [string, string] => {
+  const annee = dateJourMadagascar(ref).slice(0, 4);
+  return [`${annee}-01-01`, `${annee}-12-31`];
+};
 
 /**
  * Fenêtre de présence « en ligne » (minutes) : un visiteur est compté comme en
@@ -115,7 +128,9 @@ export const sommeStatistiques = async (
     binds = [startDate, endDate];
   } else {
     where = 'date = ?';
-    binds = [isoDate(new Date())];
+    // Jour courant à MADAGASCAR (pas UTC) : entre minuit et 3h heure locale,
+    // le jour UTC est encore celui d'hier → comptes « daily » vides.
+    binds = [dateJourMadagascar(new Date())];
   }
 
   const raw = await strapi.db.connection.raw(

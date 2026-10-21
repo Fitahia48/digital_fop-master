@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import SearchBar from "./SearchBar";
 import WebSearchResult from "./WebSearchResult";
@@ -7,12 +7,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "./AxiosConfig";
 import { toast } from "react-toastify";
 import { userContext } from "./Context";
-import { resolveFileUrl, statusLabel } from "./Utils";
+import { resolveFileUrl, statusLabel, normalizeStatus } from "./Utils";
+import { documentTypeLabel } from "../utils/documentTypes";
 import downloadFile from "../utils/downloadFile";
 import { Link } from "react-router-dom";
 import { Oval } from "react-loader-spinner";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faPenToSquare, faTrash, faForward, faBackward, faSquarePlus, faCircleInfo, faFileContract, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
+import { faDownload, faPenToSquare, faTrash, faForward, faBackward, faSquarePlus, faCircleInfo, faLightbulb, faXmark, faUsers, faNewspaper, faFileLines, faVolumeHigh, faArrowUpRightFromSquare, faEye, faRotateRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import Modal from "./Modal";
 import PdfViewer from "./PdfViewer";
 import SearchResultsSkeleton from "./SearchResultsSkeleton";
@@ -27,7 +28,6 @@ const Documents = ({ isAdmin }) => {
   const [selectedModification, setSelectedModification] = useState(null);
   const [journaux, setJournaux] = useState([]);
   const [loading, setLoading] = useState(false);
-  // Modale de détail (résumé en langage clair / texte officiel)
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailDoc, setDetailDoc] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -39,9 +39,12 @@ const Documents = ({ isAdmin }) => {
   const [internalDocsHasMore, setInternalDocsHasMore] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
   const [lastCriteria, setLastCriteria] = useState(null);
+  // Erreur réseau sur le chargement des documents (état dédié + reprise)
+  const [fetchError, setFetchError] = useState(false);
+  const retryRef = useRef(null);
 
   const { selectedDomaine } = useContext(userContext);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,7 +64,43 @@ const Documents = ({ isAdmin }) => {
     setSelectedModification(null);
   };
 
-  // Ouvre la modale de détail : le résumé en langage clair est affiché en priorité
+  // Date affichable : libellé long dans la langue courante, repli sur la valeur brute
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return String(value);
+    try {
+      return new Intl.DateTimeFormat(i18n.language, {
+        dateStyle: 'long',
+        timeZone: 'Indian/Antananarivo',
+      }).format(parsed);
+    } catch {
+      return String(value);
+    }
+  };
+
+  // Surlignage discret des termes recherchés dans le titre (<mark>, contraste doux)
+  const highlightTerm = (text, term) => {
+    const value = text ?? "";
+    const query = (term || "").trim();
+    if (query.length < 2) return value;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = String(value).split(new RegExp(`(${escaped})`, "gi"));
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={index} className="bg-yellow-100 text-inherit rounded-sm px-0.5">{part}</mark>
+        : <React.Fragment key={index}>{part}</React.Fragment>
+    );
+  };
+
+  // Pastille de statut : couleur + libellé texte (jamais la couleur seule)
+  const statusClass = (status) => {
+    const key = normalizeStatus(status || "");
+    if (key === "en_vigueur") return "bg-emerald-100 text-emerald-800";
+    if (key === "abroge") return "bg-amber-100 text-amber-800";
+    return "bg-gray-100 text-gray-700";
+  };
+
   const openDetailModal = async (docId) => {
     setShowDetailModal(true);
     setDetailDoc(null);
@@ -99,6 +138,7 @@ const Documents = ({ isAdmin }) => {
 
   const fetchDocuments = async (url) => {
     setLoading(true);
+    setFetchError(false);
     try {
       const response = await axiosInstance.get(url);
       setDocuments(response.data.results || []);
@@ -106,6 +146,9 @@ const Documents = ({ isAdmin }) => {
       setPreviousPage(response.data.previous || false);
     } catch (error) {
       console.error("Erreur lors de la récupération des documents :", error);
+      setDocuments([]);
+      setFetchError(true);
+      retryRef.current = () => fetchDocuments(url);
     } finally {
       setLoading(false);
     }
@@ -113,6 +156,7 @@ const Documents = ({ isAdmin }) => {
   useEffect(() => {
     const fetchInitialDocuments = async () => {
       setLoading(true);
+      setFetchError(false);
       try {
         const params = selectedDomaine ? { domaine: selectedDomaine } : {};
         const response = await axiosInstance.get("/api/documents/", { params });
@@ -121,6 +165,9 @@ const Documents = ({ isAdmin }) => {
         setPreviousPage(response.data.previous || false);
       } catch (error) {
         console.error("Erreur lors du chargement des documents :", error);
+        setDocuments([]);
+        setFetchError(true);
+        retryRef.current = fetchInitialDocuments;
       } finally {
         setLoading(false);
       }
@@ -134,6 +181,8 @@ const Documents = ({ isAdmin }) => {
       console.error("Token non trouvé. Veuillez vous connecter.");
       return;
     }
+    // Confirmation avant suppression définitive
+    if (!window.confirm(t('documents.confirmer_suppression'))) return;
     try {
       await axiosInstance.delete(`/api/documents/${id}/`);
       toast.success("Document supprimé avec succès !");
@@ -187,6 +236,7 @@ const Documents = ({ isAdmin }) => {
 
   const fetchDocumentsWithParams = async (params) => {
     setLoading(true);
+    setFetchError(false);
     try {
       const response = await axiosInstance.get("/api/documents/", { params });
       setDocuments(response.data.results || []);
@@ -195,6 +245,8 @@ const Documents = ({ isAdmin }) => {
     } catch (error) {
       console.error("Erreur lors de la récupération des documents :", error);
       setDocuments([]);
+      setFetchError(true);
+      retryRef.current = () => fetchDocumentsWithParams(params);
     } finally {
       setLoading(false);
     }
@@ -231,6 +283,7 @@ const Documents = ({ isAdmin }) => {
     setInternalDocsHasMore(false);
     setSearchPage(1);
     setLastCriteria(null);
+    setFetchError(false);
     const params = selectedDomaine ? { domaine: selectedDomaine } : {};
     fetchDocumentsWithParams(params);
   };
@@ -276,6 +329,7 @@ const Documents = ({ isAdmin }) => {
 
     // Recherche unifiée : documents internes (pagés, triés par pertinence) + web + corps + actualités
     setWebLoading(true);
+    setFetchError(false);
     try {
       const response = await axiosInstance.post("/api/search", {
         query: term,
@@ -294,9 +348,12 @@ const Documents = ({ isAdmin }) => {
         setLastCriteria(criteria);
         await fetchRelatedResults(term);
       }
+      retryRef.current = () => handleSearch(criteria, options);
     } catch (error) {
       console.error("Erreur lors de la recherche :", error);
       setDocuments([]);
+      setFetchError(true);
+      retryRef.current = () => handleSearch(criteria, options);
       setWebResults({ webSearchAvailable: false, query: encodeURIComponent(term || "") });
     } finally {
       setWebLoading(false);
@@ -328,47 +385,211 @@ const Documents = ({ isAdmin }) => {
     }
   };
 
-  return (
-    <>
-      <div className="flex flex-col items-center justify-center bg-transparent mt-9 px-4 sm:px-6 md:px-8">
-        <div>
-          <SearchBar
-            onSearch={handleSearch}
-            loading={loading || webLoading}
-            resultatsCount={internalDocsCount}
-          />
-        </div>
-        <div className="mb-2 flex flex-wrap items-center justify-center gap-3">
-          <h1 className="text-2xl font-semibold text-gray-300 px-5 py-3">
-            {isSearchActive ? t('recherche.resultats') : t('recherche.liste_documents')}
-          </h1>
-          {isSearchActive && (
-            <button
-              onClick={resetSearch}
-              className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-3 py-1.5 text-sm text-white transition hover:bg-gray-600"
+  // ─── ACTIONS PAR DOCUMENT (partagées tableau / cartes) ────────────────────
+
+  const renderPublicActions = (doc) => {
+    const hasFile = Boolean(doc?.pdf_file || doc?.fichier);
+    const downloadable = doc?.telechargeable !== false;
+    return (
+      <div className="inline-flex items-start gap-2.5">
+        {/* Colonne 1 : Détails + consultations */}
+        <div className="flex flex-col items-center gap-1 min-w-[76px]">
+          <Link
+            to={`/documents/${doc.id}`}
+            state={{ from: 'liste', searchValue }}
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-900 bg-blue-900 px-3 py-1.5 text-xs font-medium text-yellow-300 shadow-sm transition-colors hover:bg-blue-800 hover:border-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap min-h-[32px]"
+          >
+            <FontAwesomeIcon icon={faFileLines} />
+            <span>{t('documents.details')}</span>
+          </Link>
+          {hasFile && (
+            <span
+              className="inline-flex items-center justify-center gap-1 text-[11px] font-medium text-gray-500"
+              title={t('documents.consultations')}
             >
-              <FontAwesomeIcon icon={faXmark} />
-              {t('recherche.reinitialiser_recherche')}
-            </button>
+              <FontAwesomeIcon icon={faEye} className="text-gray-400" aria-hidden="true" />
+              <span>{doc?.visits ?? 0}</span>
+              <span className="sr-only">{t('documents.consultations')}</span>
+            </span>
           )}
         </div>
+
+        {/* Colonne 2 : Télécharger + téléchargements */}
+        <div className="flex flex-col items-center gap-1 min-w-[105px]">
+          {hasFile && downloadable && (
+            <button
+              type="button"
+              onClick={() => handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)}
+              title={t('common.telecharger')}
+              aria-label={t('common.telecharger')}
+              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap min-h-[32px]"
+            >
+              <FontAwesomeIcon icon={faDownload} />
+              <span>{t('common.telecharger')}</span>
+            </button>
+          )}
+          {hasFile && !downloadable && (
+            <div className="w-full min-h-[32px] inline-flex items-center justify-center">
+              <span className="inline-flex items-center justify-center px-2 text-xs text-gray-500 whitespace-nowrap">
+                {t('telechargeable.option_non')}
+              </span>
+            </div>
+          )}
+          {!hasFile && (
+            <div className="w-full min-h-[32px] inline-flex items-center justify-center">
+              <span className="inline-flex items-center justify-center px-2 text-xs text-gray-400 whitespace-nowrap">
+                {t('documents.non_disponible')}
+              </span>
+            </div>
+          )}
+
+          {hasFile && downloadable && (
+            <span
+              className="inline-flex items-center justify-center gap-1 text-[11px] font-medium text-gray-500"
+              title={t('documents.telechargements')}
+            >
+              <FontAwesomeIcon icon={faDownload} className="text-gray-400" aria-hidden="true" />
+              <span>{doc?.telechargements ?? 0}</span>
+              <span className="sr-only">{t('documents.telechargements')}</span>
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Actions administrateur : séparées visuellement des actions publiques
+  const renderAdminActions = (doc) => (
+    <>
+      <button
+        type="button"
+        onClick={() => handleEdit(doc?.id)}
+        title={t('common.modifier')}
+        aria-label={t('common.modifier')}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      >
+        <FontAwesomeIcon icon={faPenToSquare} />
+        {t('common.modifier')}
+      </button>
+      <button
+        type="button"
+        onClick={() => handleDelete(doc?.id)}
+        title={t('common.supprimer')}
+        aria-label={t('common.supprimer')}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+      >
+        <FontAwesomeIcon icon={faTrash} />
+        {t('common.supprimer')}
+      </button>
+      {doc?.last_modified_by && (
+        <button
+          type="button"
+          onClick={() => handleShowInfo({
+            user: doc.last_modified_by,
+            date: doc.last_modified_at,
+            details: doc.modification_details,
+          })}
+          title={t('documents.details_modifications')}
+          aria-label={t('documents.details_modifications')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <FontAwesomeIcon icon={faCircleInfo} />
+          {t('documents.details_modifications')}
+        </button>
+      )}
+    </>
+  );
+
+  // Rappel des filtres actifs sous forme de pastilles supprimables
+  const renderActiveFilterPills = () => {
+    const active = Object.entries(lastCriteria?.filters || {}).filter(([, value]) => value !== "" && value != null);
+    if (active.length === 0) return null;
+    const labels = {
+      type: t('recherche.filtre_type'),
+      domaine: t('recherche.filtre_domaine'),
+      status: t('recherche.filtre_statut'),
+    };
+    return active.map(([key, value]) => {
+      let displayed = value;
+      if (key === "type") displayed = documentTypeLabel(value, t);
+      if (key === "status") displayed = t(`recherche.statut_${value}`);
+      // Les libellés de domaine ne sont pas rechargés ici (pas de requête supplémentaire)
+      const readable = key === "domaine" ? labels[key] : `${labels[key]} : ${displayed}`;
+      return (
+        <button
+          key={key}
+          type="button"
+          onClick={() => handleSearch({ ...lastCriteria, filters: { ...lastCriteria.filters, [key]: "" } })}
+          title={t('recherche.retirer_filtre')}
+          className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-900 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {readable}
+          <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
+          <span className="sr-only">{t('recherche.retirer_filtre')}</span>
+        </button>
+      );
+    });
+  };
+
+  return (
+    <>
+      <div className="w-full max-w-6xl mx-auto mt-9 px-4 sm:px-6 md:px-8">
+        <SearchBar
+          onSearch={handleSearch}
+          loading={loading || webLoading}
+          resultatsCount={internalDocsCount}
+        />
+
+        {/* En-tête des résultats */}
+        <div className="mt-7 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-100">
+              {isSearchActive ? t('recherche.resultats') : t('recherche.liste_documents')}
+            </h1>
+            <div className="flex items-center gap-3">
+              {isSearchActive && documents.length > 0 && !loading && !fetchError && (
+                <OfficialBadge />
+              )}
+              {isSearchActive && (
+                <button
+                  type="button"
+                  onClick={resetSearch}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <FontAwesomeIcon icon={faXmark} />
+                  {t('recherche.reinitialiser_recherche')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Nombre de résultats (aria-live) + rappel des filtres actifs */}
+          {isSearchActive && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-sm text-gray-300" aria-live="polite">
+                {!loading && !fetchError &&
+                  (internalDocsCount === 0
+                    ? t('recherche.aucun_resultat')
+                    : t('recherche.resultats_pour', {
+                        count: internalDocsCount ?? documents.length,
+                        terme: searchValue,
+                      }))}
+              </p>
+              {renderActiveFilterPills()}
+            </div>
+          )}
+        </div>
+
         {/* Groupe : Documents */}
-        {isSearchActive && !loading && (
-          <h2 className="mb-3 flex w-full max-w-6xl items-center gap-2 text-xl font-semibold text-gray-200">
-            <FontAwesomeIcon icon={faFileLines} />
-            Documents ({internalDocsCount ?? documents.length})
-          </h2>
-        )}
-        <div className="overflow-x-auto w-full max-w-6xl bg-white shadow-md rounded-lg">
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
           {showModal && selectedModification && (
-            <Modal onClose={closeModal}>                            <h2 className="text-lg font-bold mb-4">{t('documents.details_modifications')}</h2>
+            <Modal onClose={closeModal}>
+              <h2 className="text-lg font-bold mb-4">{t('documents.details_modifications')}</h2>
               <p><strong>{t('documents.modifie_par')}</strong> {selectedModification.user}</p>
               <p><strong>Date :</strong> {selectedModification.date}</p>
               <p><strong>{t('documents.modifications')}</strong> {selectedModification.details}</p>
             </Modal>
-          )}
-          {/* Modale de détail : résumé en langage clair / texte officiel */}
-          {showDetailModal && (
+          )}                  {showDetailModal && (
             <Modal onClose={closeDetailModal} panelClassName="md:w-11/12 max-w-4xl">
               {detailLoading ? (
                 <div className="flex justify-center py-10">
@@ -386,26 +607,24 @@ const Documents = ({ isAdmin }) => {
                 <>
                   {/* Status badge */}
                   <div className="flex items-center gap-3 mb-4">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold 
-                      ${detailDoc.status === "en_vigueur" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}
-                    `}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(detailDoc.status)}`}>
                       {statusLabel(detailDoc.status)}
                     </span>
                   </div>
-                  
+
                   {/* Title */}
                   <h1 className="text-3xl font-bold text-gray-900 mb-2 leading-snug">
-                    {detailDoc.type} {detailDoc.numero ? `n°${detailDoc.numero}` : ""} {detailDoc.objet}
+                    {documentTypeLabel(detailDoc.type, t)} {detailDoc.numero ? `n°${detailDoc.numero}` : ""} {detailDoc.objet}
                   </h1>
-                  
+
                   {/* Metadata line */}
                   <div className="text-sm text-gray-600 mb-4">
                     {/* Build metadata dynamically */}
-                    {[ 
+                    {[
                       detailDoc.inclus_journal && detailDoc.date_journal ? (
                         <>
                           <span>Journal officiel </span>
-                          <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(detailDoc.date_journal))}</span>
+                          <span>{formatDate(detailDoc.date_journal)}</span>
                           <span> • </span>
                         </>
                       ) : null,
@@ -440,7 +659,7 @@ const Documents = ({ isAdmin }) => {
                       detailDoc.date ? (
                         <>
                           <span>Date du texte : </span>
-                          <span>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long', timeZone: 'Indian/Antananarivo' }).format(new Date(detailDoc.date))}</span>
+                          <span>{formatDate(detailDoc.date)}</span>
                           <span> • </span>
                         </>
                       ) : null
@@ -448,10 +667,10 @@ const Documents = ({ isAdmin }) => {
                       <React.Fragment key={index}>{item}</React.Fragment>
                     ))}
                   </div>
-                  
+
                   {/* Detail bloc */}
                   <div className="mb-4">
-                    {[ 
+                    {[
                       detailDoc.numero_journal && detailDoc.page_journal ? (
                         <>
                           <div className="flex items-center gap-2 mb-1">
@@ -480,35 +699,15 @@ const Documents = ({ isAdmin }) => {
                       <React.Fragment key={index}>{item}</React.Fragment>
                     ))}
                   </div>
-                  
-                  {/* Resume card */}
-                  {detailDoc.resume_simplifie ? (
-                    <section className="bg-emerald-50 rounded-lg p-6 border-l-4 border-emerald-400">
-                      <div className="flex items-center gap-2 mb-4">
-                        <FontAwesomeIcon icon={faLightbulb} className="text-emerald-900" />
-                        <h2 className="text-xl font-semibold text-emerald-900">{t('documents.en_resume')}</h2>
-                      </div>
-                      <p className="text-gray-800 leading-relaxed whitespace-pre-line mb-4">
-                        {detailDoc.resume_simplifie}
-                      </p>
-                      <p className="text-xs text-emerald-700">
-                        {t('documents.le_resume_est_aide')}
-                      </p>
-                    </section>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic text-center py-6">
-                      {t('documents.aucun_resume_disponible', { defaultValue: 'Aucun résumé disponible pour ce texte' })}
-                    </p>
-                  )}
-                  
-                  {/* Action buttons : téléchargeable → « Télécharger » ; sinon → « Lire » (nouvel onglet) */}
-                  <div className="flex flex-wrap items-center justify-end gap-3 pt-6">
-                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false && (
+
+                  {/* Bloc actions : téléchargement / lecture */}
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    {((detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false) && (
                       <span className="text-xs font-medium text-gray-500">{t('telechargeable.option_non')}</span>
                     )}
-                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable !== false ? (
+                    {((detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable !== false) ? (
                       <button
-                        onClick={() => 
+                        onClick={() =>
                           handleDownload(
                             detailDoc.pdf_file || detailDoc.fichier,
                             `document-${detailDoc.id}.pdf`,
@@ -522,7 +721,7 @@ const Documents = ({ isAdmin }) => {
                         <span>{t('common.telecharger')}</span>
                       </button>
                     ) : null}
-                    {(detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false ? (
+                    {((detailDoc.pdf_file || detailDoc.fichier) && detailDoc.telechargeable === false) ? (
                       <a
                         href={resolveFileUrl(detailDoc.pdf_file || detailDoc.fichier)}
                         target="_blank"
@@ -535,199 +734,211 @@ const Documents = ({ isAdmin }) => {
                         <span className="text-xs opacity-80">({t('documents.ouvrir_nouvel_onglet')})</span>
                       </a>
                     ) : null}
-                    <button
+                  </div>
+                  <button
                       onClick={closeDetailModal}
                       className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                     >
                       <span>{t('common.fermer')}</span>
                     </button>
-                  </div>
-                </>
+                  </>
               ) : null}
             </Modal>
           )}
+
           {loading ? (
             <SearchResultsSkeleton rows={6} />
-          ) : (
-            <>
-          <table className="table-auto w-full text-left border-collapse">
-            <caption className="sr-only">{t('documents.caption')}</caption>
-            <thead className="bg-blue-900 text-yellow-300">
-              <tr>
-                <th className="py-3 px-2 sm:px-4">{t('documents.colonne_dates')}</th>
-                <th className="py-3 px-2 sm:px-4">{t('documents.colonne_types')}</th>
-                <th className="py-3 px-2 sm:px-4">{t('documents.colonne_objets')}</th>
-                <th className="py-3 px-2 sm:px-4">{t('documents.colonne_status')}</th>
-                <th className="py-3 px-2 sm:px-4">{t('documents.colonne_action')}</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-900">
-              {documents.length > 0 ? (
-                documents.map((doc) => (
-                  <tr key={doc?.id} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="py-3 px-2 sm:px-4">{doc?.date}</td>
-                    <td className="py-3 px-2 sm:px-4">{doc?.type}</td>
-                    <td className="py-3 px-2 sm:px-4">
-                      <span className="inline-flex items-center gap-2">
-                        {/* P1 : l'objet est un lien vers la fiche à URL stable.
-                            Le state conserve la recherche → « retour » fidèle. */}
-                        <Link
-                          to={`/documents/${doc.id}`}
-                          state={{ from: 'liste', searchValue }}
-                          title={t('documents.voir_detail')}
-                          className="max-w-xs md:max-w-md truncate text-blue-800 hover:underline"
-                        >
-                          {doc?.objet}
-                        </Link>
-                        <OfficialBadge />
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          /* « Non vérifié » affiché sans ambiguïté (neutre/gris) */
-                          doc?.status === "en_vigueur"
-                            ? "bg-green-100 text-green-600"
-                            : doc?.status === "abroge"
-                              ? "bg-yellow-100 text-yellow-600"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                      >
-                        {statusLabel(doc?.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4">
-                      {isAdmin ? (
-                        <div className="flex space-x-2 sm:space-x-4">
-                          {doc.pdf_file || doc.fichier ? (
-                            <div className="flex-row">
-                              <p title={t('documents.consultations')}>{doc.visits}</p>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">{t('documents.non_disponible')}</span>
-                          )}                          <div className="flex-row">
-                            {doc.telechargeable === false ? (
-                              // Non téléchargeable : pas de bouton, mention sobre à la place
-                              <span className="text-xs text-gray-500">{t('telechargeable.option_non')}</span>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
-                                }
-                                title={t('common.telecharger')}
-                                aria-label={t('common.telecharger')}
-                                className="text-gray-700 hover:underline"
-                              >
-                                <FontAwesomeIcon icon={faDownload} />
-                              </button>
-                            )}
-                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
-                          </div>
-                          <button
-                            onClick={() => handleEdit(doc?.id)}
-                            title={t('common.modifier')}
-                            aria-label={t('common.modifier')}
-                            className="text-green-500 hover:underline"
-                          >
-                            <FontAwesomeIcon icon={faPenToSquare} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(doc?.id)}
-                            title={t('common.supprimer')}
-                            aria-label={t('common.supprimer')}
-                            className="text-red-500 hover:underline"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                          {doc.last_modified_by && (
-                            <button
-                              onClick={() => handleShowInfo({
-                                user: doc.last_modified_by,
-                                date: doc.last_modified_at,
-                                details: doc.modification_details,
-                              })}
-                              title={t('documents.details_modifications')}
-                              aria-label={t('documents.details_modifications')}
-                              className="text-red-500 hover:underline"
-                            >
-                              <FontAwesomeIcon icon={faCircleInfo} />
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex space-x-2 sm:space-x-4">
-                          {doc.pdf_file || doc.fichier ? (
-                            <div className="flex-row">
-                              <p title={t('documents.consultations')}>{doc.visits}</p>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">{t('documents.non_disponible')}</span>
-                          )}                          <div className="flex-row">
-                            {doc.telechargeable === false ? (
-                              // Non téléchargeable : pas de bouton, mention sobre à la place
-                              <span className="text-xs text-gray-500">{t('telechargeable.option_non')}</span>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleDownload(doc.pdf_file || doc.fichier, `document-${doc.id}.pdf`, doc.id)
-                                }
-                                title={t('common.telecharger')}
-                                aria-label={t('common.telecharger')}
-                                className="text-gray-700 hover:underline"
-                              >
-                                <FontAwesomeIcon icon={faDownload} />
-                              </button>
-                            )}
-                              <p title={t('documents.telechargements')}>{doc.telechargements}</p>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="py-4 text-center text-gray-500">
-                    {t('recherche.aucun_resultat')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <div className="flex justify-between mt-4 px-4 sm:px-6">
-            <button
-              onClick={() => previousPage && fetchDocuments(previousPage)}
-              disabled={!previousPage}
-              className={`px-2 sm:px-4 py-2 rounded-md text-sm sm:text-base ${previousPage ? "bg-blue-900 text-white" : "bg-gray-300 text-gray-500"}`}
-            >
-              <FontAwesomeIcon icon={faBackward} className="mr-1 sm:mr-2" />{t('recherche.precedente')}
-            </button>
-            <button
-              onClick={() => nextPage && fetchDocuments(nextPage)}
-              disabled={!nextPage}
-              className={`px-2 sm:px-4 py-2 rounded-md text-sm sm:text-base ${nextPage ? "bg-blue-900 text-white" : "bg-gray-300 text-gray-500"}`}
-            >
-              {t('recherche.suivante')}<FontAwesomeIcon icon={faForward} className="ml-1 sm:ml-2" />
-            </button>
-          </div>
-
-          {internalDocsHasMore && (
-            <div className="flex justify-center px-4 pb-4">
+          ) : fetchError ? (
+            /* ── Erreur réseau : message + reprise ─────────────────────────── */
+            <div role="alert" className="text-center py-14 px-4">
+              <FontAwesomeIcon icon={faTriangleExclamation} className="text-4xl text-amber-500" />
+              <p className="mt-3 text-lg font-semibold text-gray-900">{t('recherche.erreur_reseau')}</p>
+              <p className="mt-1 text-sm text-gray-600">{t('recherche.erreur_reseau_aide')}</p>
               <button
-                onClick={handleLoadMoreDocuments}
-                className="rounded-md bg-blue-900 px-4 py-2 text-sm text-white hover:bg-blue-600"
+                type="button"
+                onClick={() => retryRef.current && retryRef.current()}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-yellow-300 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {t('recherche.charger_plus')}
+                <FontAwesomeIcon icon={faRotateRight} />
+                {t('documents.reessayer')}
               </button>
             </div>
-          )}
+          ) : documents.length === 0 ? (
+            /* ── Aucun résultat : conseils + reprise ───────────────────────── */
+            <div className="text-center py-14 px-4">
+              <FontAwesomeIcon icon={faFileLines} className="text-4xl text-gray-300" />
+              <p className="mt-3 text-lg font-semibold text-gray-900">{t('recherche.aucun_resultat')}</p>
+              <p className="mt-1 text-sm text-gray-600">{t('recherche.aucun_resultat_conseil')}</p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                {isSearchActive && (
+                  <button
+                    type="button"
+                    onClick={resetSearch}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-yellow-300 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <FontAwesomeIcon icon={faXmark} />
+                    {t('recherche.reinitialiser_recherche')}
+                  </button>
+                )}
+                <Link
+                  to="/aide"
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <FontAwesomeIcon icon={faCircleInfo} />
+                  {t('recherche.lien_aide')}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ── Mobile : cartes de résultat ─────────────────────────────── */}
+              <ul className="md:hidden divide-y divide-gray-100">
+                {documents.map((doc) => (
+                  <li key={doc?.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">
+                        {documentTypeLabel(doc?.type, t)}
+                        {doc?.numero ? ` n° ${doc.numero}` : ""}
+                      </p>
+                      <span className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${statusClass(doc?.status)}`}>
+                        {statusLabel(doc?.status)}
+                      </span>
+                    </div>
+                    <Link
+                      to={`/documents/${doc.id}`}
+                      state={{ from: 'liste', searchValue }}
+                      title={t('documents.voir_detail')}
+                      className="mt-1 block text-base font-medium text-blue-900 hover:underline line-clamp-2"
+                    >
+                      {highlightTerm(doc?.objet, isSearchActive ? searchValue : "")}
+                    </Link>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {formatDate(doc?.date)}
+                      {doc?.domaine_nom ? ` · ${doc.domaine_nom}` : ""}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {renderPublicActions(doc)}
+                    </div>
+                    {isAdmin && (
+                      <div className="mt-3 pt-3 border-t border-dashed border-gray-200 flex flex-wrap items-center gap-2">
+                        <span className="sr-only">{t('documents.admin_actions')}</span>
+                        {renderAdminActions(doc)}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {/* ── Desktop : tableau ───────────────────────────────────────── */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <caption className="sr-only">{t('documents.caption')}</caption>
+                  <thead className="bg-blue-900 text-yellow-300">
+                    <tr>
+                      <th scope="col" className="py-3 px-4">{t('documents.colonne_dates')}</th>
+                      <th scope="col" className="py-3 px-4">{t('documents.colonne_types')}</th>
+                      <th scope="col" className="py-3 px-4">{t('documents.colonne_objets')}</th>
+                      <th scope="col" className="py-3 px-4">{t('documents.colonne_status')}</th>
+                      <th scope="col" className="py-3 px-4 whitespace-nowrap">{t('documents.colonne_action')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-900">
+                    {documents.map((doc, index) => (
+                      <tr
+                        key={doc?.id}
+                        className={`border-b border-gray-100 transition-colors hover:bg-blue-50/60 ${index % 2 === 1 ? "bg-gray-50/70" : "bg-white"}`}
+                      >
+                        <td className="py-3 px-4 align-top text-sm text-gray-600 whitespace-nowrap">
+                          {formatDate(doc?.date)}
+                        </td>
+                        <td className="py-3 px-4 align-top text-sm text-gray-600">
+                          {documentTypeLabel(doc?.type, t)}
+                        </td>
+                        <td className="py-3 px-4 align-top">
+                          {/* P1 : l'objet est un lien vers la fiche à URL stable.
+                              Le state conserve la recherche → « retour » fidèle. */}
+                          <Link
+                            to={`/documents/${doc.id}`}
+                            state={{ from: 'liste', searchValue }}
+                            title={doc?.objet}
+                            className="block font-medium text-blue-900 hover:underline line-clamp-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          >
+                            {highlightTerm(doc?.objet, isSearchActive ? searchValue : "")}
+                          </Link>
+                          {doc?.domaine_nom && (
+                            <p className="mt-0.5 text-xs text-gray-500">{doc.domaine_nom}</p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 align-top">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusClass(doc?.status)}`}>
+                            {statusLabel(doc?.status)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 align-top whitespace-nowrap">
+                          <div className="flex flex-col gap-2">
+                            {renderPublicActions(doc)}
+                            {isAdmin && (
+                              <>
+                                <span className="w-full border-t border-gray-100 my-0.5" aria-hidden="true" />
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {renderAdminActions(doc)}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination (liste classique paginée par l'API) */}
+              {(nextPage || previousPage) && (
+                <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => previousPage && fetchDocuments(previousPage)}
+                    disabled={!previousPage}
+                    aria-label={t('recherche.precedente')}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <FontAwesomeIcon icon={faBackward} />
+                    {t('recherche.precedente')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => nextPage && fetchDocuments(nextPage)}
+                    disabled={!nextPage}
+                    aria-label={t('recherche.suivante')}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {t('recherche.suivante')}
+                    <FontAwesomeIcon icon={faForward} />
+                  </button>
+                </div>
+              )}
+
+              {/* Recherche unifiée : « charger plus » */}
+              {internalDocsHasMore && (
+                <div className="flex justify-center border-t border-gray-100 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={handleLoadMoreDocuments}
+                    className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-yellow-300 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {t('recherche.charger_plus')}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
 
         {/* Groupe : Corps professionnels */}
         {isSearchActive && corpsResults.length > 0 && (
-          <section className="mt-8 w-full max-w-6xl">              <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-gray-200">
+          <section className="mt-8 w-full">
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-gray-100">
               <FontAwesomeIcon icon={faUsers} />
               {t('recherche.corps_professionnels')} ({corpsResults.length})
             </h2>
@@ -758,7 +969,8 @@ const Documents = ({ isAdmin }) => {
 
         {/* Groupe : Actualités */}
         {isSearchActive && actualitesResults.length > 0 && (
-          <section className="mt-8 w-full max-w-6xl">              <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-gray-200">
+          <section className="mt-8 w-full">
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold text-gray-100">
               <FontAwesomeIcon icon={faNewspaper} />
               {t('recherche.annonces')} ({actualitesResults.length})
             </h2>
@@ -800,29 +1012,29 @@ const Documents = ({ isAdmin }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] flex flex-col animate__animated animate__fadeIn">
             <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="font-bold text-lg text-gray-800">Lecture du document</h3>
+              <h3 className="font-bold text-lg text-gray-800">{t('documents.visionneuse_pdf')}</h3>
               <div className="flex items-center gap-2">
                 {pdfViewerTelechargeable ? (
-                <button 
-                  onClick={() =>
-                    handleDownload(pdfViewerUrl, `document-${pdfViewerDoc}.pdf`, pdfViewerDoc)
-                  }
-                  className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition flex items-center gap-2"
-                >
-                  <FontAwesomeIcon icon={faDownload} />
-                  Télécharger
-                </button>
+                  <button
+                    onClick={() =>
+                      handleDownload(pdfViewerUrl, `document-${pdfViewerDoc}.pdf`, pdfViewerDoc)
+                    }
+                    className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm transition flex items-center gap-2"
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
+                    {t('common.telecharger')}
+                  </button>
                 ) : (
                   <span className="text-xs font-medium text-gray-500">{t('telechargeable.option_non')}</span>
                 )}
-                <button 
+                <button
                   onClick={() => {
                     setPdfViewerUrl(null);
                     setPdfViewerDoc(null);
                   }}
                   className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm transition"
                 >
-                  Fermer
+                  {t('common.fermer')}
                 </button>
               </div>
             </div>

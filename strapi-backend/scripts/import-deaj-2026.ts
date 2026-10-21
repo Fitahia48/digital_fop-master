@@ -151,6 +151,9 @@ async function main() {
   }
   const { access } = (await loginRes.json()) as { access: string };
   const auth = { Authorization: `Bearer ${access}` };
+  // En-tête d'opt-out : les créations envoyées par ce script de import ne
+  // doivent JAMAIS déclencher d'e-mail aux abonnés (décision produit).
+  const noNotify = { ...auth, 'x-no-notify': '1' };
 
   // Idempotence : (type, numero) déjà en base → sauté.
   const listeRes = await fetch(`${BASE}/api/documents/?page_size=100`, { headers: auth });
@@ -187,7 +190,7 @@ async function main() {
 
       const res = await fetch(`${BASE}/api/documents/`, {
         method: 'POST',
-        headers: auth,
+        headers: noNotify,
         body: fd,
       });
       if (res.ok) {

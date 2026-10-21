@@ -1,42 +1,31 @@
 /**
- * Middleware global de comptage des visites (portage de `trackVisit`
- * de backend/src/controllers/visits.controller.js).
+ * Middleware « présence en ligne » (temps réel, tableau de bord admin).
  *
- * La table `visits` reste HORS Strapi (D7 : tables analytiques hors
- * content-types) → insertion SQL directe via `strapi.db.connection`.
+ * HISTORIQUE : ce middleware comptait les visites sur CHAQUE GET public
+ * (`daily_stats.total_visits` + `visitor_daily`). Ce comptage a été déplacé :
  *
- * Comme dans le legacy : seules les requêtes GET sont comptées, et on exclut
- * les endpoints de statistiques/suggestions/notes ainsi que les fichiers
- * statiques. Une erreur de tracking ne bloque JAMAIS la requête.
+ *  - visites de l'application → **POST /api/visites/ping** (1 appel au montage
+ *    de l'app) — un visiteur n'est compté qu'UNE fois par jour, voir
+ *    src/api/visites + src/utils/comptage.ts ;
+ *  - consultations de textes/corps → POST /api/documents/:id/visit et
+ *    POST /api/corps/:id/visit (1 par visiteur, par texte, par jour).
  *
- * Trois écritures pour un visiteur compté :
- *  - `daily_stats`     : totaux du jour (visites + visiteurs uniques) ;
- *  - `visitor_daily`   : unicité du visiteur pour la journée ;
- *  - `visitor_presence`: dernier passage (présence « en ligne », temps réel).
+ * Il ne reste ici que la présence « en ligne » (upsert de
+ * `visitor_presence.last_seen_at`), sans aucune IP en clair : l'identifiant est
+ * l'empreinte anonyme du jour (utils/visitor-id.ts, HMAC + jour malgache).
+ * Une erreur de tracking ne bloque JAMAIS la requête.
  */
 import { resolveUserFromCtx } from '../api/auth-compat/utils/legacy';
 import { PRESENCE_RETENTION_SECONDES } from '../utils/analytics';
-import { dateJourMadagascar } from '../utils/dates';
 import { isAdminUser } from '../utils/roles';
+import { estCheminSante, estRobot, jourCourant, visiteurHash } from '../utils/visitor-id';
 
-// Fragments de chemin exclus du comptage (identiques au legacy)
+// Fragments de chemin exclus (statistiques/notifications/médias : ce ne sont
+// pas des pages vues par un visiteur).
 const EXCLUDED_FRAGMENTS = ['visit-statistics', 'suggestions', 'app-ratings', '/media'];
 
-// Extensions de fichiers statiques exclues
-const EXCLUDED_EXTENSIONS = ['.ico', '.png', '.jpg', '.css', '.js'];
-
-// Liste des user-agents de bots à exclure (non exhaustive)
-const BOT_USER_AGENTS = [
-  'googlebot',
-  'bingbot',
-  'slurp',
-  'duckduckgo',
-  'baiduspider',
-  'yandex',
-  'facebookexternalhit',
-  'twitterbot',
-  'developers.google.com/+https://developers.google.com/+/web/snippet/',
-];
+// Extensions de fichiers statiques exclus
+const EXCLUDED_EXTENSIONS = ['.ico', '.png', '.jpg', '.jpeg', '.css', '.js', '.svg', '.webp'];
 
 export default (_config: unknown, { strapi }: { strapi: any }) => {
   return async (ctx: any, next: () => Promise<void>) => {
@@ -47,86 +36,30 @@ export default (_config: unknown, { strapi }: { strapi: any }) => {
           EXCLUDED_FRAGMENTS.some((fragment) => path.includes(fragment)) ||
           EXCLUDED_EXTENSIONS.some((ext) => path.endsWith(ext));
 
-        // Exclure les bots en vérifiant le user-agent
-        const userAgent = ctx.request.headers['user-agent'] || '';
-        const isBot = BOT_USER_AGENTS.some((bot) => userAgent.toLowerCase().includes(bot));
-
-        // Vérifier si l'utilisateur est un administrateur.
-        // NB : un middleware global s'exécute AVANT la stratégie d'auth de la
-        // route → `ctx.state.user` n'est pas encore peuplé ici. On résout donc
-        // l'usager depuis son Bearer (même helper que le module auth-compat) :
-        // sinon les requêtes d'un admin étaient comptées comme des visites.
+        // Un middleware global s'exécute AVANT la stratégie d'auth de la
+        // route → l'admin est résolu depuis son Bearer (même helper que le
+        // module auth-compat) : ses requêtes ne font pas « présence ».
         const isAdmin = isAdminUser(await resolveUserFromCtx(ctx));
 
-        if (!excluded && !isBot && !isAdmin) {
-          // Récupérer l'adresse IP
-          const ip = ctx.request.ip || ctx.request.socket?.remoteAddress || '0.0.0.0';
+        if (!excluded && !isAdmin && !estCheminSante(path) && !estRobot(ctx)) {
+          const hash = visiteurHash(ctx, jourCourant());
 
-          // Jour courant à Madagascar — helper partagé avec les statistiques
-          // (utils/dates.ts) : le comptage et la lecture doivent viser le même jour.
-          const today = dateJourMadagascar();
-
-          // Toujours incrémenter le compteur de visites totales pour aujourd'hui
-          await strapi.db.connection.raw(
-            `
-            INSERT INTO daily_stats (visit_date, total_visits)
-            VALUES (?, 1)
-            ON CONFLICT (visit_date) DO UPDATE SET
-              total_visits = total_visits + 1;
-            `,
-            [today]
-          );
-
-          // Créer un hash du visiteur (IP + user-agent + date + secret)
-          // Le secret doit être défini dans les variables d'environnement
-          const secret = process.env.VISITOR_SECRET || 'default_secret_should_be_changed';
-          const hash = require('crypto')
-            .createHash('sha256')
-            .update(ip + userAgent + today + secret)
-            .digest('hex');
-
-          // Vérifier si ce hash a déjà été vu aujourd'hui
-          const existing = await strapi.db.connection.raw(
-            'SELECT id FROM visitor_daily WHERE hash = ? AND date = ?',
-            [hash, today]
-          );
-
-          if (existing.length === 0) {
-            // Insérer le hash dans la table visitor_daily
-            await strapi.db.connection.raw(
-              'INSERT INTO visitor_daily (hash, date) VALUES (?, ?)',
-              [hash, today]
-            );
-
-            // Mettre à jour les statistiques quotidiennes (visiteurs uniques)
+          if (hash) {
+            // Présence « en ligne » : une ligne par empreinte (table bornée) ;
+            // les lignes trop vieilles sont purgées au passage.
+            const maintenant = Math.floor(Date.now() / 1000);
             await strapi.db.connection.raw(
               `
-              INSERT INTO daily_stats (visit_date, unique_visitors)
-              VALUES (?, 1)
-              ON CONFLICT (visit_date) DO UPDATE SET
-                unique_visitors = unique_visitors + 1;
+              INSERT INTO visitor_presence (hash, last_seen_at)
+              VALUES (?, ?)
+              ON CONFLICT (hash) DO UPDATE SET last_seen_at = excluded.last_seen_at;
               `,
-              [today]
+              [hash, maintenant]
             );
+            await strapi.db.connection.raw('DELETE FROM visitor_presence WHERE last_seen_at < ?', [
+              maintenant - PRESENCE_RETENTION_SECONDES,
+            ]);
           }
-
-          // Présence « en ligne » (temps réel) : ce visiteur vient d'être vu.
-          // Une seule ligne par visiteur (hash) → la table reste bornée ; les
-          // lignes plus vieilles que la rétention sont purgées au passage.
-          const maintenant = Math.floor(Date.now() / 1000);
-          await strapi.db.connection.raw(
-            `
-            INSERT INTO visitor_presence (hash, last_seen_at)
-            VALUES (?, ?)
-            ON CONFLICT (hash) DO UPDATE SET
-              last_seen_at = excluded.last_seen_at;
-            `,
-            [hash, maintenant]
-          );
-          await strapi.db.connection.raw(
-            'DELETE FROM visitor_presence WHERE last_seen_at < ?',
-            [maintenant - PRESENCE_RETENTION_SECONDES]
-          );
         }
       }
     } catch (err) {

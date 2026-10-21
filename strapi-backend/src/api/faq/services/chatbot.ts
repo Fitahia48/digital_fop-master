@@ -47,7 +47,6 @@ interface DocCtx {
   date: string | null;
   status: string | null;
   domaine_nom: string | null;
-  resume_simplifie: string | null;
 }
 
 export interface ChatbotResult {
@@ -122,9 +121,7 @@ export const collectDocContext = async (
     date: d.date ?? null,
     status: d.status ?? null,
     domaine_nom: d.domaine_nom ?? null,
-    resume_simplifie: d.resume_simplifie
-      ? String(d.resume_simplifie).slice(0, 600)
-      : null,
+
   }));
 };
 
@@ -150,9 +147,7 @@ export const buildContextBlock = (faq: FaqCtx[], docs: DocCtx[]): string => {
         ]
           .filter(Boolean)
           .join(', ');
-        return `- [DOC${i + 1}] ${bits}\n  Objet : ${d.objet ?? '(sans objet)'}${
-          d.resume_simplifie ? `\n  Résumé : ${d.resume_simplifie}` : ''
-        }`;
+        return `- [DOC${i + 1}] ${bits}\n  Objet : ${d.objet ?? '(sans objet)'}`;
       })
       .join('\n');
     parts.push(`Notices documentaires pertinentes (validées, publiquement accessibles) :\n${docLines}`);

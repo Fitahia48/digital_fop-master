@@ -11,6 +11,7 @@
 import { factories } from '@strapi/strapi';
 import { findOneByRef } from '../../../utils/by-ref';
 import { estPeriodeValide, sommeStatistiques } from '../../../utils/analytics';
+import { enregistrerConsultation } from '../../../utils/comptage';
 
 // Le front historique appelle ces routes avec l'id numérique du corps.
 const findCorpsByDocumentId = (ref: string) => findOneByRef('api::corps.corps', ref);
@@ -69,17 +70,23 @@ export default factories.createCoreController('api::corps.corps', () => ({
   },
 
   // POST /api/corps/:documentId/visit
+  // Règle métier : 1 visiteur (empreinte anonyme) = 1 comptage par corps et
+  // par jour (jour à Madagascar), unicité garantie par la base
+  // (utils/comptage.ts) — les appels répétés ne comptent qu'une fois.
   async incrementVisit(ctx: any) {
     try {
       const corps = await findCorpsByDocumentId(ctx.params.documentId);
       if (!corps) return ctx.notFound('Corps non trouvé');
-      await strapi.documents('api::corps.corps').update({
-        documentId: corps.documentId,
-        data: { visits: (corps.visits || 0) + 1 },
-      });
-      ctx.body = { message: 'Visite enregistrée' };
+
+      const counted = await enregistrerConsultation(ctx, 'corps', Number(corps.id));
+      ctx.body = {
+        counted,
+        message: counted ? 'Visite enregistrée' : 'Visite déjà comptée pour aujourd’hui',
+      };
     } catch (err) {
-      return ctx.internalServerError((err as Error).message);
+      console.error('incrementCorpsVisit error:', err);
+      // Pas d'erreur bloquante pour l'usager côté comptage.
+      ctx.body = { counted: false, message: 'Visite non comptée' };
     }
   },
 

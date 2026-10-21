@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import img1 from "/1.jpg";
 import img2 from "/3.jpg";
 import img3 from "/9.jpg";
+import img4 from '../assets/Images/Image1.png';
+import img5 from '../assets/Images/Image2.png';
 import Documents from './AfficherDocs';
 import AfficheActus from './AfficheActus';
 import AnimatedCard from './AnimatedCard';
@@ -12,9 +14,11 @@ import SubscribeForm from './SubscribeForm';
 import OnboardingTour from './OnboardingTour';
 import { motion } from "framer-motion";
 import { userContext } from './Context';
+// Formats des statistiques SANS Chart.js (le compteur reste léger).
+import { formatNombre } from './stats/formats';
 
 const Accueil = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAdmin } = useContext(userContext);
   const [active, setActive] = useState(0);
   const [prev, setPrev] = useState(0);
@@ -46,15 +50,19 @@ const Accueil = () => {
       Text: t('accueil.slide3_texte'),
       textKey: 'accueil.slide3_texte',
     },
+    {
+      img: img4,
+      name: t('accueil.slide4_titre'),
+      Text: t('accueil.slide4_texte'),
+      textKey: 'accueil.slide4_texte',
+    },
+    {
+      img: img5,
+      name: t('accueil.slide5_titre'),
+      Text: t('accueil.slide5_texte'),
+      textKey: 'accueil.slide5_texte',
+    },
   ], [t]);
-  const formatNumber = (num) => {
-    if (num >= 1_000_000) {
-      return (num / 1_000_000).toFixed(1) + "M";
-    } else if (num >= 1_000) {
-      return (num / 1_000).toFixed(1) + "k";
-    }
-    return num;
-  };
   const Slide = (type) => {
     let local;
     if (type === 'next') {
@@ -142,26 +150,26 @@ const Accueil = () => {
             </>
           ))}
         </div>
-        {/* Visitor counter - only visible to admins */}
+        {/* Compteur de visiteurs du jour — visible des administrateurs uniquement.
+            Libellé explicite + indicateur « en direct » discret ; pulsation
+            respectant prefers-reduced-motion (motion-reduce:animate-none). */}
         {isAdmin && (
-          <motion.div
-            className="fixed-visits text-white"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, repeat: Infinity, repeatType: "mirror" }}
-            layout
-          >
-            <p>
-              {t('accueil.visitors_today')} :{" "}
-              <motion.span
-                className="font-bold text-3xl"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1, repeat: Infinity, repeatType: "mirror" }}
-              >
-                {formatNumber(data.visitsToday)}
-              </motion.span>
+          <div className="fixed-visits text-white" role="status">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-300">
+              {t('accueil.visitors_today')}
             </p>
-          </motion.div>
+            <p className="text-3xl font-bold tabular-nums leading-tight">
+              {formatNombre(i18n.language, data.visitsToday)}
+            </p>
+            <p className="text-[11px] text-gray-300 mt-0.5">{t('stats.compteur_aide')}</p>
+            <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-green-300">
+              <span
+                className="h-2 w-2 rounded-full bg-green-400 animate-pulse motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+              {t('stats.en_direct')}
+            </span>
+          </div>
         )}
         {/* Navigation Buttons */}
         <div>

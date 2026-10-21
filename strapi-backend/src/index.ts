@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { purgerEmpreintes, retentionEmpreintesJours } from './utils/comptage';
 
 /**
  * Seeds idempotents (exécutés à chaque boot, n'écrivent que si absent).
@@ -301,10 +302,52 @@ export default {
   },
 
   /**
-   * bootstrap() : seeds idempotents.
+   * bootstrap() : seeds idempotents + planification de la purge des
+   * empreintes de visiteurs (rétention, voir utils/comptage.ts).
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
     await seedAPropos(strapi);
     await seedFaq(strapi);
+    planifierPurgeEmpreintes(strapi);
   },
+};
+
+/**
+ * Purge quotidienne des empreintes de visiteurs (> rétention, 35 jours par
+ * défaut, variable VISITOR_RETENTION_DAYS).
+ *
+ * - exécutée une fois au démarrage puis toutes les 24 h (intervalle non
+ *   bloquant : `unref()`) ;
+ * - `totaux_jour` n'est jamais purgé (historique des totaux) ;
+ * - le journal ne contient QUE des compteurs et une date limite — jamais
+ *   d'empreinte, jamais d'IP.
+ */
+const PURGE_DEJA_PLANIFIEE = { faite: false };
+
+const planifierPurgeEmpreintes = (strapi: Core.Strapi) => {
+  if (PURGE_DEJA_PLANIFIEE.faite) return;
+  PURGE_DEJA_PLANIFIEE.faite = true;
+
+  const executer = async () => {
+    try {
+      const r = await purgerEmpreintes();
+      const total = r.visites + r.consultations;
+      if (total > 0) {
+        strapi.log.info(
+          `[retention] purge des empreintes > ${r.jours} jours : ` +
+            `${r.visites} visites + ${r.consultations} consultations supprimées ` +
+            `(jour < ${r.limite}) — totaux_jour préservés`
+        );
+      }
+    } catch (err) {
+      strapi.log.warn(`[retention] purge impossible : ${(err as Error).message}`);
+    }
+  };
+
+  strapi.log.info(
+    `[retention] empreintes de visiteurs conservées ${retentionEmpreintesJours()} jours (totaux_jour : sans limite)`
+  );
+  void executer();
+  const intervalle = setInterval(executer, 24 * 3600 * 1000);
+  intervalle.unref?.();
 };

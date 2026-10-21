@@ -82,6 +82,14 @@ const DocumentFiche = () => {
     };
   }, [t]);
 
+  // « Consulter » doit afficher la fiche directement depuis le haut, comme la
+  // maquette : le navigateur conserve le défilement de la liste, ce qui laissait
+  // le titre et le badge masqués derrière l'en-tête fixe (et le bouton de retour
+  // hors écran). On réinitialise le scroll à chaque fiche ouverte.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [id]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -114,7 +122,7 @@ const DocumentFiche = () => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 mt-40 pb-16 text-center text-gray-500">
+      <div className="max-w-4xl mx-auto px-4 mt-48 pb-16 text-center text-gray-500">
         {t('common.chargement')}
       </div>
     );
@@ -122,7 +130,7 @@ const DocumentFiche = () => {
 
   if (notFound || !doc) {
     return (
-      <div className="max-w-2xl mx-auto px-4 mt-40 pb-16 text-center">
+      <div className="max-w-2xl mx-auto px-4 mt-48 pb-16 text-center">
         <div className="bg-white rounded-lg shadow-md p-8">
           <p className="text-4xl mb-4" aria-hidden>🔍</p>
           <h1 className="text-xl font-bold text-gray-800 mb-2">{t('fiche.introuvable_titre')}</h1>
@@ -171,11 +179,11 @@ const DocumentFiche = () => {
     d ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(d)) : '—';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 mt-40 pb-16">
+    <div className="max-w-4xl mx-auto px-4 mt-48 pb-16">
       <button
         type="button"
         onClick={() => (backTarget === -1 ? navigate(-1) : navigate(backTarget))}
-        className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-white hover:underline mb-4"
+        className="mb-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-blue-900 shadow-md ring-1 ring-gray-200 hover:bg-blue-50 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         <FontAwesomeIcon icon={faArrowLeft} />
         {t('fiche.retour_resultats')}
@@ -272,24 +280,7 @@ const DocumentFiche = () => {
           ))}
         </div>
 
-        {doc.resume_simplifie ? (
-          <section className="bg-emerald-50 rounded-lg p-6 border-l-4 border-emerald-400">
-            <div className="flex items-center gap-2 mb-4">
-              <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-900" />
-              <h2 className="text-xl font-semibold text-emerald-900">{t('documents.en_resume')}</h2>
-            </div>
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line mb-4">
-              {doc.resume_simplifie}
-            </p>
-            <p className="text-xs text-emerald-700">
-              {t('documents.le_resume_est_aide')}
-            </p>
-          </section>
-        ) : (
-          <p className="text-sm text-gray-500 italic text-center py-6">
-            {t('documents.aucun_resume_disponible', { defaultValue: 'Aucun résumé disponible pour ce texte' })}
-          </p>
-        )}
+
 
         {/* Action buttons : téléchargeable → « Télécharger » ; sinon → « Lire » (nouvel onglet) */}
         <div className="flex flex-wrap items-center justify-end gap-3 pt-6">
@@ -323,7 +314,7 @@ const DocumentFiche = () => {
             onClick={() => (backTarget === -1 ? navigate(-1) : navigate(backTarget))}
             className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
           >
-            <span>{t('common.retour')}</span>
+            <span>{t('common.fermer')}</span>
           </button>
         </div>
 

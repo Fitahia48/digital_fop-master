@@ -1,26 +1,30 @@
 /**
  * Statistiques de visites (portage de backend/src/controllers/visits.controller.js).
  *
- * La table `visits` reste HORS Strapi (D7 : tables analytiques hors
- * content-types) → accès SQL direct via strapi.db.connection, décision validée en MIGRATION.md §2.
+ * Tables analytiques HORS content-types (D7) → accès SQL direct via
+ * strapi.db.connection (décision validée en MIGRATION.md §2).
+ *
+ * Sémantique « 1 visiteur = 1 par jour » (fuseau Indian/Antananarivo) :
+ *  - `visits_today`          → nombre de VISITEURS DIFFÉRENTS aujourd'hui
+ *    (COUNT des empreintes dans `visites_visiteurs`) ;
+ *  - `unique_visitors`       → somme des visiteurs distincts par jour
+ *    (`totaux_jour.visiteurs`) sur la période demandée ;
+ *  - `total_visits`          → ouvertures de l'application (`daily_stats`,
+ *    alimenté par POST /api/visites/ping : un ping par montage d'app) ;
+ *  - les séries par jour     → `totaux_jour` (visiteurs) + `daily_stats`
+ *    (visites/ouvertures).
+ *
+ * Les noms de champs de réponse sont INCHANGÉS (front : VisiteursPanel,
+ * RealTimeVisitors, Accueil). Le détail reste réservé à l'administrateur.
  *
  * GET /api/statistics/visit-statistics — admin
  */
 import { PRESENCE_FENETRE_MINUTES, visiteursEnLigne } from '../../../utils/analytics';
-import { dateJourMadagascar } from '../../../utils/dates';
 import { isAdminCtx } from '../../../utils/roles';
-/**
- * `knex.raw()` renvoie un tableau de lignes sous sqlite/better-sqlite3 mais
- * `{ rows }` sous postgres : on normalise pour rester multi-dialectes
- * (la base locale est en sqlite, le legacy en postgres).
- */
-const rowsOf = (raw: any): any[] => {
-  if (Array.isArray(raw)) return raw;
-  if (raw && Array.isArray(raw.rows)) return raw.rows;
-  return [];
-};
-
-const countOf = (raw: any): number => parseInt(rowsOf(raw)[0]?.count ?? 0, 10) || 0;
+import { countOf, rowsOf, visiteursDuJour } from '../../../utils/comptage';
+// Même « jour courant » que le comptage (jourCourant = dateJourMadagascar,
+// avec l'injection de test VISITOR_JOUR_FIXE) : lire et compter le même jour.
+import { jourCourant } from '../../../utils/visitor-id';
 
 export const getVisitStatistics = async (ctx: any) => {
   // Vérification du rôle admin (helper partagé : src/utils/roles.ts)
@@ -34,51 +38,48 @@ export const getVisitStatistics = async (ctx: any) => {
     const { start_date, end_date } = ctx.query || {};
 
     const params: string[] = [];
-    let where = '';
+    let whereDaily = '';
+    let whereTotaux = '';
     if (start_date && end_date) {
-      where = ' WHERE visit_date BETWEEN ? AND ?';
+      whereDaily = ' WHERE visit_date BETWEEN ? AND ?';
+      whereTotaux = ' WHERE jour BETWEEN ? AND ?';
       params.push(start_date, end_date);
     }
 
-    // Total des visites (cumulatif) = somme des total_visits par jour
+    // Ouvertures de l'application (cumul période) — courbe grise « Visites ».
     const totalResult = await strapi.db.connection.raw(
-      `SELECT SUM(total_visits) AS count FROM daily_stats${where}`,
+      `SELECT SUM(total_visits) AS count FROM daily_stats${whereDaily}`,
       params
     );
     const total_visits = countOf(totalResult);
 
-    // Total des visiteurs uniques (cumulatif sur la période) = somme des unique_visitors par jour
-    // Note : cela compte un visiteur plusieurs fois s'il a visité plusieurs jours pendant la période.
-    // Si vous voulez le nombre de visiteurs distincts sur la période, il faudrait une autre approche.
-    // Nous conservons le même comportement que l'original (somme des unique_visitors par jour).
+    // Visiteurs DISTINCTS (cumul journalier sur la période) : un visiteur qui
+    // revient deux jours compte deux fois — même comportement qu'avant.
     const uniqueResult = await strapi.db.connection.raw(
-      `SELECT SUM(unique_visitors) AS count FROM daily_stats${where}`,
+      `SELECT SUM(visiteurs) AS count FROM totaux_jour${whereTotaux}`,
       params
     );
     const unique_visitors = countOf(uniqueResult);
 
-    // Visites totales par jour
+    // Ouvertures par jour (daily_stats — historique préservé, sans purge).
     const perDayResult = await strapi.db.connection.raw(
-      `SELECT visit_date, total_visits AS count FROM daily_stats${where} ORDER BY visit_date`,
+      `SELECT visit_date, total_visits AS count FROM daily_stats${whereDaily} ORDER BY visit_date`,
       params
     );
 
-    // Visiteurs uniques par jour
+    // Visiteurs distincts par jour (totaux_jour — agrégat conservé après
+    // purge des empreintes détaillées).
     const uniquePerDayResult = await strapi.db.connection.raw(
-      `SELECT visit_date, unique_visitors AS count FROM daily_stats${where} ORDER BY visit_date`,
+      `SELECT jour AS visit_date, visiteurs AS count FROM totaux_jour${whereTotaux} ORDER BY jour`,
       params
     );
 
-    // Visites d'aujourd'hui (visiteurs uniques du jour) — même jour que le
-    // comptage (utils/dates.ts), sinon aucune ligne ne correspond.
-    const today = dateJourMadagascar();
-    const todayResult = await strapi.db.connection.raw(
-      'SELECT unique_visitors AS count FROM daily_stats WHERE visit_date = ?',
-      [today]
-    );
-    const visits_today = countOf(todayResult);
+    // Visiteurs d'aujourd'hui — même jour que le comptage (jourCourant()),
+    // sinon aucune ligne ne correspond.
+    const today = jourCourant();
+    const visits_today = await visiteursDuJour(today);
 
-    // Présence temps réel : visiteurs distincts vus dans la fenêtre courante
+    // Présence temps réel : empreintes vues dans la fenêtre courante
     // (table visitor_presence alimentée par le middleware track-visit).
     const visitors_online = await visiteursEnLigne();
 

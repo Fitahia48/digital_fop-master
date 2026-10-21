@@ -13,7 +13,7 @@ function Login() {
         "email": "",
         "password": "",
     })
-    const { setUser } = useContext(userContext)
+    const { setUser, setIsAdmin } = useContext(userContext)
 
     const [token] = useState(JSON.parse(localStorage.getItem('user')))
 
@@ -58,6 +58,11 @@ function Login() {
                         // localStorage et le renouvelle au besoin.
                         const res = await axiosInstance.get('/api/v1/auth/users/me/');
                         const isAdminUser = Boolean(res.data.is_staff || res.data.is_superuser);
+                        // Alimenter aussi le contexte : sans cela, un login « à chaud »
+                        // laisse isAdmin=false (App ne recharge le profil qu'au montage
+                        // si un token existait déjà) et les entrées de menu adminOnly
+                        // (ex. « Abonnés ») resteraient invisibles jusqu'au rechargement.
+                        setIsAdmin(isAdminUser);
                         if (isAdminUser) {
                             navigate("/dashboard");
                             toast.success(t('auth.bienvenue_dashboard'));

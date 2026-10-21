@@ -6,14 +6,11 @@ import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faCircl
 import { FaStar } from "react-icons/fa";
 import { userContext } from './Context';
 import { Link } from 'react-router-dom';
-import TransparencePage from './TransparencePage';
 import RealTimeVisitors from './RealTimeVisitors';
 
 import Documents from './AfficherDocs';
 import AfficheActus from './AfficheActus';
 import AdminRemarks from './AdminRemarks';
-import VisitStatistics from './VisitStatistics';
-import DocumentStatsDropdown from './StatistiqueDocs';
 import CorpsFilteredList from './CorpsFilteredList';
 
 const Dashboard = () => {
@@ -27,9 +24,10 @@ const Dashboard = () => {
     status: useRef(null),
     actus: useRef(null),
     remarques: useRef(null),
-    statistiques: useRef(null),
     etoiles: useRef(null),
-    transparence: useRef(null), // NEW
+    // Les anciennes sections « statistiques » et « transparence » ont été
+    // remplacées par des raccourcis vers /admin/statistiques et /transparence
+    // (page unique à onglets, composants communs).
   };
 
   const scrollTo = (sectionName) => {
@@ -59,9 +57,7 @@ const Dashboard = () => {
     { label: "Status", icon: faUsers, section: "status" },
     { label: "Actualités", icon: faNewspaper, section: "actus" },
     { label: "Remarques", icon: faComment, section: "remarques" },
-    { label: "Statistiques", icon: faChartBar, section: "statistiques" },
     { label: "Étoiles", icon: faStar, section: "etoiles" },
-    { label: "Transparence", icon: faScaleBalanced, section: "transparence" },
   ];
 
   return (
@@ -94,13 +90,16 @@ const Dashboard = () => {
             </motion.div>
           ))}
 
-          {/* Cartes d'ajout + gestion FAQ */}
+          {/* Raccourcis vers la page unique de statistiques + transparence,
+              et cartes d'ajout + gestion FAQ */}
           {[
-            { label: "Ajouter un document", to: "/AjoutDoc" },
-            { label: "Ajouter un corps", to: "/AjoutCorps" },
-            { label: "Ajouter une actualité", to: "/AjoutActus" },
-            { label: "Gérer la FAQ (chat)", to: "/admin/faq" }
-          ].map(({ label, to }, index) => (
+            { label: "Statistiques", to: "/admin/statistiques", icon: faChartBar },
+            { label: "Transparence", to: "/transparence", icon: faScaleBalanced },
+            { label: "Ajouter un document", to: "/AjoutDoc", icon: faSquarePlus },
+            { label: "Ajouter un corps", to: "/AjoutCorps", icon: faSquarePlus },
+            { label: "Ajouter une actualité", to: "/AjoutActus", icon: faSquarePlus },
+            { label: "Gérer la FAQ (chat)", to: "/admin/faq", icon: faCircleQuestion }
+          ].map(({ label, to, icon }, index) => (
             <motion.div
               key={`ajout-${index}`}
               whileHover={{ scale: 1.05 }}
@@ -110,7 +109,7 @@ const Dashboard = () => {
               <Link to={to} className="flex items-center space-x-3 ml-2">
                 <div className="w-10 flex justify-center">
                   <FontAwesomeIcon
-                    icon={to === "/admin/faq" ? faCircleQuestion : faSquarePlus}
+                    icon={icon}
                     className="text-blue-600 text-2xl"
                   />
                 </div>
@@ -148,20 +147,6 @@ const Dashboard = () => {
           </button>
         </div>
         {showRemarks && <AdminRemarks />}
-      </section>
-
-      <section ref={sections.statistiques} className="mt-10">
-        <h2 className="text-center text-gray-300 text-3xl font-bold mb-4">Reporting</h2>
-        <VisitStatistics />
-      </section>
-
-      <section ref={sections.transparence} className="mt-10">
-        <h2 className="text-center text-gray-300 text-3xl font-bold mb-4">Transparence</h2>
-        <TransparencePage />
-      </section>
-
-      <section className="mt-6">
-        <DocumentStatsDropdown />
       </section>
 
       <section ref={sections.etoiles} className="rounded-xl bg-white shadow-lg mt-8 w-full max-w-xl mx-auto p-6">

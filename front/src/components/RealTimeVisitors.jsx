@@ -1,57 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import axiosInstance from "./AxiosConfig";
+/**
+ * Compteur de visiteurs du jour (tableau de bord administrateur).
+ *
+ * - Même donnée, même API, même intervalle de 5 s qu'avant
+ *   (GET /api/visit-statistics/ → visits_today).
+ * - Libellé explicite (« remis à zéro chaque nuit ») + indicateur « en
+ *   direct » discret (point vert + texte, jamais la couleur seule).
+ * - Animations calmes : pulsation du point uniquement, désactivée sous
+ *   `prefers-reduced-motion` (classe Tailwind motion-reduce:animate-none).
+ * - Format « 1 234 » selon la langue (source unique stats/formats.js).
+ */
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import axiosInstance from './AxiosConfig';
+import { formatNombre } from './stats/formats';
 
 const RealTimeVisitors = () => {
-  const { t } = useTranslation();
-  const [visitors, setVisitors] = useState(0);
-
-  const formatNumber = (num) => {
-    if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
-    if (num >= 1_000) return (num / 1_000).toFixed(1) + "k";
-    return num;
-  };
+  const { t, i18n } = useTranslation();
+  // null = pas encore de donnée chargée (jamais de « NaN » à l'écran).
+  const [visiteurs, setVisiteurs] = useState(null);
+  const [erreur, setErreur] = useState(false);
 
   useEffect(() => {
+    let actif = true;
+
     const fetchVisitors = async () => {
       try {
-        const res = await axiosInstance.get("/api/visit-statistics/");
-        // Visiteurs (uniques) du jour — fuseau Madagascar. L'API expose aussi
-        // `visitors_online` (présence sur 5 min), non affiché ici.
-        setVisitors(res.data.visits_today ?? 0);
+        const res = await axiosInstance.get('/api/visit-statistics/');
+        if (!actif) return;
+        setVisiteurs(res.data.visits_today ?? 0);
+        setErreur(false);
       } catch (error) {
-        console.error("Erreur lors de la récupération des visiteurs en temps réel :", error);
+        console.error('Erreur lors de la récupération des visiteurs en temps réel :', error);
+        // On conserve la dernière valeur connue (pas de clignotement d'erreur).
+        if (actif) setErreur(true);
       }
     };
 
-    // Fetch immediately
+    // Chargement immédiat puis rafraîchissement à l'intervalle EXISTANT (5 s).
     fetchVisitors();
-
-    // Poll every 5 seconds
     const interval = setInterval(fetchVisitors, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      actif = false;
+      clearInterval(interval);
+    };
   }, []);
 
+  const affiche =
+    visiteurs !== null ? formatNombre(i18n.language, visiteurs) : erreur ? '—' : '0';
+
   return (
-    <motion.div
-      className="realtime-visitors text-white"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, repeat: Infinity, repeatType: "mirror" }}
-      layout
-    >
-      <p>
-        {t('accueil.visitors_today')} :{" "}
-        <motion.span
-          className="font-bold text-3xl"
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 1, repeat: Infinity, repeatType: "mirror" }}
-        >
-          {formatNumber(visitors)}
-        </motion.span>
-      </p>
-    </motion.div>
+    <div className="inline-flex items-center gap-4 bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {t('accueil.visitors_today')}
+        </p>
+        <p className="text-2xl font-bold text-gray-900 tabular-nums leading-tight">{affiche}</p>
+        <p className="text-[11px] text-gray-500 mt-0.5">{t('stats.compteur_aide')}</p>
+      </div>
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1 whitespace-nowrap">
+        <span
+          className="h-2 w-2 rounded-full bg-green-500 animate-pulse motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+        {t('stats.en_direct')}
+      </span>
+    </div>
   );
 };
 

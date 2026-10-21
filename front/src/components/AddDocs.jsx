@@ -20,7 +20,6 @@ const AjouterDocument = () => {
     // Statut juridique choisi directement à la création (deux choix proposés
     // au formulaire), pré-sélectionné sur « En vigueur ».
     status: "en_vigueur",
-    resume_simplifie: "",
     fichier: null,
     inclusJournal: false,
     dateJournal: "",
@@ -83,8 +82,7 @@ const AjouterDocument = () => {
         }
       });
 
-    // Multipart envoie des chaînes : « true » / « false » interprétés côté serveur
-    data.append("telechargeable", formData.telechargeable ? "true" : "false");
+        data.append("telechargeable", formData.telechargeable ? "true" : "false");
 
     setLoading(true);
     try {
@@ -172,25 +170,6 @@ const AjouterDocument = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="Entrez l'objet du document"
               />
-            </div>
-
-            {/* Résumé en langage clair */}
-            <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Résumé en langage clair (optionnel)
-              </label>
-              <textarea
-                name="resume_simplifie"
-                value={formData.resume_simplifie}
-                onChange={handleChange}
-                rows={4}
-                maxLength={1000}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                placeholder="Expliquez ce texte en 2-3 phrases simples, sans jargon administratif"
-              />
-              <p className="text-xs text-gray-500 text-right mt-1">
-                {formData.resume_simplifie.length}/1000 caractères
-              </p>
             </div>
 
             {/* Référence */}
