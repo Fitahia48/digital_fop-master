@@ -44,6 +44,9 @@ export default {
       });
       if (!user) throw new UnauthorizedError('Identifiants incorrects.');
       if (user.blocked) throw new UnauthorizedError('Compte désactivé.');
+      if (user.confirmed === false) {
+        throw new UnauthorizedError('Compte non activé. Veuillez vérifier vos e-mails pour activer votre compte.');
+      }
 
       const userService = strapi.plugin('users-permissions').service('user');
       const passwordOk = await userService.validatePassword(password, user.password);
@@ -176,32 +179,130 @@ export default {
     }
   },
 
-  // ─── POST /api/v1/auth/users — inscription DÉSACTIVÉE ─────────────────────
-  // L'inscription publique est coupée : les comptes sont créés uniquement par
-  // un administrateur (voir IMPLEMENTATION.md). Endpoint conservé pour renvoyer
-  // une réponse explicite aux anciens formulaires.
+  // ─── POST /api/v1/auth/users — inscription administrateur (inactif + email) ──
   async register(ctx: any) {
-    ctx.status = 403;
-    ctx.body = { detail: 'Inscription désactivée. Contactez un administrateur.' };
-  },
+    try {
+      const { nom, prenom, email, password, re_password, langue_preferee } = ctx.request.body || {};
+      if (!email || !password) {
+        throw new ValidationError('Email et mot de passe requis.');
+      }
+      if (re_password && password !== re_password) {
+        ctx.status = 400;
+        ctx.body = { detail: 'Les mots de passe ne correspondent pas.', password: ['Les mots de passe ne correspondent pas.'] };
+        return;
+      }
+      if (String(password).length < 8) {
+        ctx.status = 400;
+        ctx.body = { detail: 'Le mot de passe doit contenir au moins 8 caractères.', password: ['Le mot de passe doit contenir au moins 8 caractères.'] };
+        return;
+      }
 
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const existing = await strapi.db.query(UP_USER_UID).count({ where: { email: normalizedEmail } });
+      if (existing > 0) {
+        ctx.status = 400;
+        ctx.body = { detail: 'Un utilisateur avec cet email existe déjà.', email: ['Un utilisateur avec cet email existe déjà.'] };
+        return;
+      }
+
+      // Rôle Administrateur (ou repli sur Authenticated)
+      let role = await strapi.db.query('plugin::users-permissions.role').findOne({
+        where: { type: 'administrateur' },
+      });
+      if (!role) {
+        role = await strapi.db.query('plugin::users-permissions.role').findOne({
+          where: { name: 'Administrateur' },
+        });
+      }
+      if (!role) {
+        role = await strapi.db.query('plugin::users-permissions.role').findOne({
+          where: { type: 'authenticated' },
+        });
+      }
+
+      const userService = strapi.plugin('users-permissions').service('user');
+      const created = await userService.add({
+        username: normalizedEmail,
+        email: normalizedEmail,
+        provider: 'local',
+        password,
+        confirmed: false, // inactif jusqu'à la confirmation par email
+        blocked: false,
+        role: role?.id,
+        nom: nom || '',
+        prenom: prenom || '',
+        is_staff: true,
+        is_superuser: false,
+      });
+
+      // Émission du jeton d'activation
+      const token = strapi.plugin('users-permissions').service('jwt').issue({
+        id: created.id,
+        email: normalizedEmail,
+      });
+
+      // Envoi de l'email d'activation
+      const { sendActivationEmail } = await import('../../../utils/mailer');
+      const uidBase64 = Buffer.from(String(created.id)).toString('base64');
+      const emailSent = await sendActivationEmail(
+        normalizedEmail,
+        uidBase64,
+        token,
+        langue_preferee || 'fr'
+      ).catch((err: any) => {
+        console.warn("Erreur envoi email d'activation:", err.message);
+        return false;
+      });
+
+      ctx.status = 201;
+      ctx.body = {
+        id: created.id,
+        nom,
+        prenom,
+        email: normalizedEmail,
+        is_active: false,
+        email_sent: emailSent,
+        detail: 'Compte administrateur créé avec succès ! Un e-mail de confirmation vous a été envoyé pour activer votre compte.',
+      };
+    } catch (err: any) {
+      if (err instanceof ValidationError || err instanceof ApplicationError) {
+        ctx.status = 400;
+        ctx.body = { detail: err.message };
+        return;
+      }
+      console.error('[auth-compat] register error:', err.message);
+      ctx.status = 500;
+      ctx.body = { detail: 'Erreur serveur.' };
+    }
+  },
 
   // ─── POST /api/v1/auth/users/activation — activer le compte ─────────────────
   async activate(ctx: any) {
     try {
-      const { token } = ctx.request.body || {};
-      if (!token) throw new ValidationError('Token manquant.');
+      const { uid, token } = ctx.request.body || {};
+      if (!token && !uid) throw new ValidationError('Token manquant.');
 
-      const payload: any = await new Promise((resolve, reject) => {
-        strapi
-          .plugin('users-permissions')
-          .service('jwt')
-          .verify(token)
-          .then(resolve)
-          .catch(reject);
-      });
-      const userId = Number(payload?.id);
-      if (!userId) throw new ValidationError("Token d'activation invalide.");
+      let userId: number | null = null;
+      if (token) {
+        try {
+          const payload: any = await strapi
+            .plugin('users-permissions')
+            .service('jwt')
+            .verify(token);
+          userId = Number(payload?.id);
+        } catch {
+          // Token expiré ou non JWT
+        }
+      }
+
+      if (!userId && uid) {
+        const decoded = isNaN(Number(uid)) ? Buffer.from(uid, 'base64').toString('ascii') : uid;
+        if (Number(decoded)) {
+          userId = Number(decoded);
+        }
+      }
+
+      if (!userId) throw new ValidationError("Token d'activation invalide ou expiré.");
 
       const user = await strapi.db.query(UP_USER_UID).findOne({ where: { id: userId } });
       if (!user) {

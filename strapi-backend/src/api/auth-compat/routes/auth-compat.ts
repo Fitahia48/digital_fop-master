@@ -38,7 +38,19 @@ export default {
     },
     {
       method: 'POST',
+      path: '/v1/auth/users/',
+      handler: 'auth-compat.register',
+      config: { auth: false, policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
       path: '/v1/auth/users/activation',
+      handler: 'auth-compat.activate',
+      config: { auth: false, policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
+      path: '/v1/auth/users/activation/',
       handler: 'auth-compat.activate',
       config: { auth: false, policies: [], middlewares: [] },
     },

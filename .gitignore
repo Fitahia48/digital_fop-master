@@ -1,4 +1,5 @@
 .env
+.claude/
 .freebuff/
 front/node-modules
 front/media
