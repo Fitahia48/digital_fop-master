@@ -87,9 +87,9 @@ const Menu = ({ onSelectDomaine }) => {
       type: 'link'
     },
     {
-      id: 'organigramme',
-      labelKey: 'menu.organigramme',
-      route: '/organigramme',
+      id: 'ministere',
+      labelKey: 'menu.ministere',
+      route: '/ministere',
       authOnly: false,
       type: 'link'
     },

@@ -29,6 +29,7 @@
     "status_particuliers": "Special Statuses",
     "recherche": "Search",
     "organigramme": "Organisation chart",
+    "ministere": "Ministry",
     "dashboard": "Dashboard",
     "abonnes_admin": "Subscribers",
     "themes_admin": "Themes",
@@ -80,7 +81,8 @@
     "deja_abonne": "This email is already subscribed. You will receive the next publications.",
     "echec_envoi": "Subscription saved, but the confirmation email could not be sent. Please try again later.",
     "spam_hint": "If you do not see the email, please check your spam/junk folder.",
-    "erreur": "An error occurred. Please try again."
+    "erreur": "An error occurred. Please try again.",
+    "info_langue": "You will receive alerts by email, in French."
   },
   "abonnes": {
     "titre": "Alert subscribers",
@@ -88,7 +90,6 @@
     "total": "Total",
     "confirmes": "Confirmed",
     "en_attente": "Pending",
-    "par_langue": "By language",
     "recherche_label": "Search by email",
     "recherche_placeholder": "Search an email…",
     "effacer": "Clear",
@@ -96,8 +97,6 @@
     "statut_tous": "All",
     "statut_confirmes": "Confirmed",
     "statut_en_attente": "Pending",
-    "filtre_langue": "Language",
-    "langue_toutes": "All languages",
     "tri": "Sort",
     "tri_date_desc": "Date: newest → oldest",
     "tri_date_asc": "Date: oldest → newest",
@@ -108,7 +107,6 @@
     "resultats": "{{count}} subscriber(s)",
     "col_email": "Email",
     "col_statut": "Status",
-    "col_langue": "Language",
     "col_date": "Subscription date",
     "col_actions": "Actions",
     "badge_confirme": "Confirmed",
@@ -339,6 +337,12 @@
   },
   "auth": {
     "se_connecter": "Log in",
+    "connexion_sous_titre": "Sign in to your digital library management space.",
+    "brand_sous_titre": "Madagascar's legal and regulatory texts, gathered in a digital library open to everyone.",
+    "afficher_mot_de_passe": "Show password",
+    "masquer_mot_de_passe": "Hide password",
+    "connexion_en_cours": "Signing in…",
+    "acces_reserve": "Access restricted to authorised users.",
     "email": "Email",
     "mot_de_passe": "Password",
     "mot_de_passe_oublie": "Forgot your password?",
@@ -680,6 +684,9 @@
   },
   "apropos": {
     "titre_page": "About Us",
+    "sous_titre": "Institution, mission and legal framework of the digital library of the Ministry of Labour, Employment and Public Service.",
+    "cta_titre": "Explore the library",
+    "cta_texte": "Find regulatory texts, the organisational chart and the ministry's services.",
     "page_titre": "Digital Library of the Ministry of Labour, Employment and Public Service",
     "page_titre_base": "Digital Library",
     "article2_source": "Decree No. 2024-055 of 20 January 2024, Article 2",
@@ -695,5 +702,34 @@
     "aucune_donnee": "No information available.",
     "anonymat_titre": "Anonymous visit counting",
     "anonymat_visites": "We count visits anonymously: your IP address is not stored; only an irreversible fingerprint valid for one day is used."
+  },
+  "organigramme": {
+    "titre_officiel": "Ministry Organizational Chart",
+    "voir_officiel": "View official organizational chart",
+    "lien_texte": "https://mtefpls.gov.mg/ministere/organigramme",
+    "nouvel_onglet": "(opens in a new tab)",
+    "site_officiel": "(official ministry website)",
+    "redirection_notice": "You will be redirected to the official ministry website.",
+    "page_en_francais": "The official page is in French.",
+    "erreur_chargement": "Unable to load local organizational chart. Please consult the official organizational chart directly via the link above.",
+    "mobile_rappel": "After reading, close the tab to return here."
+  },
+  "ministere": {
+    "titre_page": "Ministry",
+    "intro": "Find the organisational chart and latest news on the official website of the Ministry of Labour, Employment and Public Service.",
+    "choix_organigramme": "Organisational Chart",
+    "choix_actualites": "News",
+    "desc_organigramme": "Ministry organisational structure",
+    "desc_actualites": "Latest information and announcements",
+    "actualites": {
+      "voir_officiel": "View official news",
+      "lien_texte": "https://mtefpls.gov.mg/actualites",
+      "nouvel_onglet": "(opens in a new tab)",
+      "site_officiel": "(official ministry website)",
+      "redirection_notice": "You will be redirected to the official ministry website. To return to the library, close the tab or go back to the previous tab.",
+      "page_en_francais": "This page on the official website is in French.",
+      "erreur_chargement": "If the page does not open, please try again later.",
+      "mobile_rappel": "After reading, close the tab to return here."
+    }
   }
 }

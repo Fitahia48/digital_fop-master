@@ -221,7 +221,14 @@ const seedAPropos = async (strapi: Core.Strapi) => {
   let documentLegal: string | undefined;
   try {
     const docs = (await strapi.documents('api::document.document').findMany({
-      filters: { numero: '2024-055' },
+      filters: {
+        $or: [
+          { numero: '2024-055' },
+          { numero: '2024 -055' },
+          { numero: { $containsi: '2024-055' } },
+          { objet: { $containsi: '2024-055' } },
+        ],
+      } as any,
       limit: 1,
     })) as any[];
     documentLegal = docs[0]?.documentId;

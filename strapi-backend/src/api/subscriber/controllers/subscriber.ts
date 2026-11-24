@@ -12,7 +12,6 @@ import {
   sendUnsubscribeConfirmationEmail,
   MAILER_ENABLED,
 } from '../../../utils/mailer';
-import { resolveRequestLang, resolveLang } from '../../../utils/email-templates';
 import { ValidationError } from '../../../utils/errors';
 import { isAdminCtx } from '../../../utils/roles';
 import { maskEmail } from '../../../utils/mailer';
@@ -29,12 +28,10 @@ const SORTS: Record<string, { field: 'createdAt' | 'email'; order: 'asc' | 'desc
   email_asc: { field: 'email', order: 'asc' },
 };
 const STATUTS = ['tous', 'confirmes', 'en_attente'] as const;
-const LANGUES = ['fr', 'en', 'mg'] as const;
 
 type ListQuery = {
   search?: string;
   statut?: string;
-  langue?: string;
   sort?: string;
   page?: string;
   page_size?: string;
@@ -61,24 +58,17 @@ const requireAdmin = async (ctx: any): Promise<boolean> => {
   return true;
 };
 
-/** Filtres communs liste/export — validés (statut/langue/ttri) + recherche email. */
+/** Filtres communs liste/export — validés (statut/tri) + recherche email. */
 const buildListFilters = (query: ListQuery) => {
   const filters: Record<string, any> = {};
   const search = String(query.search || '').trim();
   if (search) filters.email = { $containsi: search };
   const statut = String(query.statut || 'tous');
   if (!STATUTS.includes(statut as any)) {
-    throw new ValidationError('Paramètre « statut» invalide (tous | confirmes | en_attente).');
+    throw new ValidationError('Paramètre « statut » invalide (tous | confirmes | en_attente).');
   }
   if (statut === 'confirmes') filters.is_confirmed = { $eq: true };
   if (statut === 'en_attente') filters.is_confirmed = { $eq: false };
-  const langue = String(query.langue || '');
-  if (langue) {
-    if (!LANGUES.includes(langue as any)) {
-      throw new ValidationError('Paramètre « langue » invalide (fr | en | mg).');
-    }
-    filters.langue_preferee = { $eq: langue };
-  }
   const sortKey = String(query.sort || 'date_desc');
   if (!SORTS[sortKey]) throw new ValidationError('Paramètre « sort » invalide (date_desc | date_asc | email_asc).');
   return { filters, sort: SORTS[sortKey] };
@@ -89,7 +79,6 @@ const toListItem = (row: any) => ({
   id: row.documentId,
   email: row.email,
   is_confirmed: Boolean(row.is_confirmed),
-  langue_preferee: row.langue_preferee || 'fr',
   createdAt: row.createdAt,
 });
 
@@ -112,11 +101,12 @@ const MAIL_FAILED_DETAIL =
 /**
  * Envoie le mail de confirmation et renvoie un booléen de succès.
  * N'échoue jamais (le mailer ne rejette pas) : log + ok=false sinon.
+ * Emails abonnés TOUJOURS en français (règle métier).
  */
 const trySendConfirmation = async (
   email: string,
   token: string,
-  lang: string
+  _lang?: string
 ): Promise<boolean> => {
   if (!MAILER_ENABLED) {
     console.warn(
@@ -125,7 +115,7 @@ const trySendConfirmation = async (
     return false;
   }
   try {
-    return await sendConfirmationEmail(email, token, lang);
+    return await sendConfirmationEmail(email, token);
   } catch (err) {
     console.error('Mailer confirm error:', (err as Error).message);
     return false;
@@ -143,7 +133,7 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
       const pageSize = Math.min(100, Math.max(1, parseInt(String(query.page_size || '20'), 10) || 20));
 
       const doc = strapi.documents('api::subscriber.subscriber');
-      const [rows, total, cTotal, cConfirmes, cFr, cEn, cMg] = await Promise.all([
+      const [rows, total, cTotal, cConfirmes] = await Promise.all([
         doc.findMany({
           filters,
           sort: [{ [sort.field]: sort.order }],
@@ -153,9 +143,6 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
         doc.count({ filters }),
         doc.count({}),
         doc.count({ filters: { is_confirmed: { $eq: true } } }),
-        doc.count({ filters: { langue_preferee: { $eq: 'fr' } } }),
-        doc.count({ filters: { langue_preferee: { $eq: 'en' } } }),
-        doc.count({ filters: { langue_preferee: { $eq: 'mg' } } }),
       ]);
 
       ctx.body = {
@@ -170,7 +157,6 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
           total: cTotal,
           confirmes: cConfirmes,
           en_attente: cTotal - cConfirmes,
-          par_langue: { fr: cFr, en: cEn, mg: cMg },
         },
       };
     } catch (err) {
@@ -192,12 +178,11 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
         limit: 1000, // garde-fou : export borné, pas d'extraction illimitée
       })) as any[];
 
-      const header = ['Email', 'Statut', 'Langue', "Date d'inscription"];
+      const header = ['Email', 'Statut', "Date d'inscription"];
       const lines = rows.map((r) =>
         [
           csvCell(r.email),
           csvCell(r.is_confirmed ? 'Confirmé' : 'En attente'),
-          csvCell(r.langue_preferee || 'fr'),
           csvCell(new Date(r.createdAt).toISOString().slice(0, 10)),
         ].join(';')
       );
@@ -243,12 +228,12 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
   // POST /api/subscribers/subscribe
   async subscribe(ctx: any) {
     try {
-      const { email, langue_preferee } = ctx.request.body || {};
+      const { email } = ctx.request.body || {};
       if (!email || !isValidEmail(email)) {
         throw new ValidationError('Adresse email invalide.');
       }
       const normalized = String(email).trim().toLowerCase();
-      const langue = resolveRequestLang(ctx, langue_preferee);
+      // Emails abonnés TOUJOURS en français (règle métier) — on ignore langue_preferee du body
 
       const existing = (await strapi.documents('api::subscriber.subscriber').findMany({
         filters: { email: { $eqi: normalized } },
@@ -267,11 +252,12 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
           return;
         }
         const confirm_token = crypto.randomUUID();
+        // Ne pas écraser langue_preferee existante (données conservées)
         await strapi.documents('api::subscriber.subscriber').update({
           documentId: sub.documentId,
-          data: { confirm_token, langue_preferee: langue },
+          data: { confirm_token },
         });
-        const sent = await trySendConfirmation(normalized, confirm_token, langue);
+        const sent = await trySendConfirmation(normalized, confirm_token);
         ctx.status = 200;
         ctx.body = sent
           ? {
@@ -292,14 +278,14 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
       await strapi.documents('api::subscriber.subscriber').create({
         data: {
           email: normalized,
-          langue_preferee: langue,
+          // langue_preferee: valeur par défaut du schéma (données existantes conservées)
           is_confirmed: false,
           confirm_token,
           unsubscribe_token,
         },
       });
 
-      const sent = await trySendConfirmation(normalized, confirm_token, langue);
+      const sent = await trySendConfirmation(normalized, confirm_token);
       if (!sent) {
         // Honnêteté : l'abonné EST conservé (non confirmé) — un nouvel essai
         // régénère le jeton et renvoie le mail, comme avant.
@@ -362,12 +348,13 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
         return ctx.notFound('Lien de désabonnement invalide.');
       }
 
-      const { email, langue_preferee } = rows[0];
+      const { email } = rows[0];
       await strapi.documents('api::subscriber.subscriber').delete({
         documentId: rows[0].documentId,
       });
 
-      sendUnsubscribeConfirmationEmail(email, resolveLang(langue_preferee)).catch((err) =>
+      // Emails abonnés TOUJOURS en français (règle métier)
+      sendUnsubscribeConfirmationEmail(email).catch((err) =>
         console.error('Mailer unsubscribe error:', (err as Error).message)
       );
 

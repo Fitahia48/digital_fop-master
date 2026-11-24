@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="dist/assets/index.css" />
+<script>
+  (function () {
+    const states = ['visitant', 'admin'];
+    const langs = ['fr', 'en', 'mg'];
+    const widths = [1024, 1280, 1536, 1920];
+
+    function setLanguage(lang, root) {
+      const maps = {
+        fr: { accueil: 'Accueil', 'acces_par_theme': 'Accès par thème', 'acces_par_theme_label': 'Choisissez un thème', status_particuliers: 'Statuts particuliers', recherche: 'Recherche', organigramme: 'Organigramme', dashboard: 'Tableau de bord', revoir_guide: 'Revoir le guide', revoir_guide_title: 'Revoir le guide', a_propos: 'À propos', deconnecter: 'Déconnexion', bibliotheque: 'Bibliothèque numérique', ouvrir_menu: 'Ouvrir le menu', fermer_menu: 'Fermer le menu', theme0: 'Droit', theme1: 'Administratif', theme2: 'Social', theme3: 'Juridique' },
+        en: { accueil: 'Home', 'acces_par_theme': 'Browse by theme', 'acces_par_theme_label': 'Choose a theme', status_particuliers: 'Special Statuses', recherche: 'Search', organigramme: 'Organisation chart', dashboard: 'Dashboard', revoir_guide: 'Replay the tour', revoir_guide_title: 'Replay the tour', a_propos: 'About', deconnecter: 'Log out', bibliotheque: 'Digital Library', ouvrir_menu: 'Open menu', fermer_menu: 'Close menu', theme0: 'Justice', theme1: 'Administration', theme2: 'Social', theme3: 'Law' },
+        mg: { accueil: 'Fandraisana', 'acces_par_theme': 'Fidirana amin\'ny lohahevitra', 'acces_par_theme_label': 'Hahita antontan-taratasy', status_particuliers: 'Sata manokana', recherche: 'Fikarohana', organigramme: 'Fandaminana', dashboard: 'Tabilao fanaraha-maso', revoir_guide: 'Haverina ny torolalana', revoir_guide_title: 'Hamerina ny torolalana', a_propos: 'Mombamomba', deconnecter: 'Hivoaka', bibliotheque: 'Trano tranomboky', ouvrir_menu: 'Hanokatra ny menio', fermer_menu: 'Hanidy ny menio', theme0: 'Droit', theme1: 'Administratif', theme2: 'Social', theme3: 'Juridique' }
+      };
+      root.querySelectorAll('select option').forEach((opt, i) => opt.textContent = maps[lang]['theme' + i]);
+      root.querySelectorAll('[data-locale]').forEach(el => {
+        const key = el.dataset.locale;
+        el.textContent = maps[lang][key] || el.dataset.en || el.dataset.mg || el.textContent;
+      });
+    }
+
+    let tests = 0;
+    let failures = 0;
+
+    function check(name, ok, detail) {
+      tests++;
+      const status = ok ? 'PASS' : 'FAIL';
+      if (!ok) failures++;
+      const row = document.getElementById('results');
+      row.innerHTML += `<tr><td>${name}</td><td class="${ok ? 'ok' : 'ko'}">${status}</td><td>${detail || ''}</td></tr>`;
+      if (!ok) console.warn('FAIL:', name, detail);
+    }
+
+    function runTest(width, lang, state) {
+      const root = document.getElementById('nav');
+      root.style.width = '94%';
+      root.style.maxWidth = '1600px';
+      root.style.setProperty('--i18n-lang', lang);
+      setLanguage(lang, root);
+
+      const btn = root.querySelector('.mobile-toggle');
+      const isAdmin = state === 'admin';
+      const items = root.querySelectorAll('.menu-item');
+      const userRefresh = isAdmin;
+      const langPack = { fr: 'Fr', en: 'En', mg: 'Mg' };
+
+      // simulate auth filter
+      root.querySelectorAll('.menu-item').forEach(el => {
+        const item = el.dataset.item;
+        const authOnly = item && item.startsWith('admin') ? (isAdmin ? true : false) : false;
+        el.style.display = authOnly && !userRefresh ? 'none' : '';
+      });
+
+      const nav = root.querySelector('nav');
+      const ul = root.querySelector('.menu-list');
+      const brand = root.querySelector('.brand');
+      const select = root.querySelector('select');
+      const mobileBtn = root.querySelector('.mobile-toggle');
+
+      const navW = nav.getBoundingClientRect().width;
+      const innerW = ul.getBoundingClientRect().width;
+      const navScroll = ul.scrollWidth;
+
+      const overflow = navScroll > innerW + 1;
+      const navOverflow = navScroll > navW + 1;
+
+      check(`${langPack[lang]} / ${state} / ${width}px`, !overflow, `ul=${innerW} scrollWidth=${navScroll} navW=${Math.round(navW)}`);
+      check(`${langPack[lang]}-overflow / no wrap / ${width}px`, !overflow);
+      check(`hamburger visible / ${width}px`, mobileBtn ? mobileBtn.getBoundingClientRect().width > 0 : false);
+
+      // content area simulation: pages use mt-40 (160px)
+      const navBottom = nav.getBoundingClientRect().bottom;
+      check(`no overlap with mt-40 content / ${width}px`, navBottom <= 158, `navBottom=${Math.round(navBottom)}px`);
+      check(`no overlap with header / ${width}px`, nav.getBoundingClientRect().top >= 96, `navTop=${Math.round(nav.getBoundingClientRect().top)}px`);
+
+      // mobile state check (hamburger open)
+      mobileBtn.click();
+      const mobileList = root.querySelector('#menu-principal-mobile');
+      check(`mobile menu open / ${width}px`, mobileList && getComputedStyle(mobileList).display !== 'none');
+      document.querySelector('.mobile-toggle').click();
+    }
+
+    widths.forEach(w => {
+      document.body.style.width = w + 'px';
+      document.body.style.margin = '0';
+      const header = document.createElement('div');
+      header.style.height = '80px';
+      header.style.background = '#111';
+      document.body.appendChild(header);
+      states.forEach(state => {
+        langs.forEach(lang => {
+          const nav = document.createElement('nav');
+          nav.className = 'fixed left-0 right-0 top-28 z-50 mx-auto w-[94%] max-w-[1600px] rounded-xl border border-gray-100 bg-white p-1 shadow-md';
+          nav.id = 'nav';
+          nav.innerHTML = `
+            <div class="flex items-center justify-between gap-3 px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-2">
+              <div class="flex shrink-0 items-center gap-2.5 whitespace-nowrap brand">
+                <div class="shrink-0"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E" class="size-6" />
+              </div>
+              <div class="md:hidden mobile-toggle"><button type="button" aria-label="Ouvrir le menu"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+              <ul class="menu-list hidden items-center gap-x-1 gap-y-1.5 whitespace-nowrap md:flex lg:gap-x-2 xl:gap-x-2.5" data-item="list">
+                <li class="menu-item" data-item="home"><a href="/" class="menu-link">Accueil</a></li>
+                <li class="menu-item" data-item="theme-selector"><select><option>Droit</option><option>Administratif</option><option>Social</option><option>Juridique</option></select></li>
+                <li class="menu-item" data-item="status"><a href="/status" class="menu-link">Statuts particuliers</a></li>
+                <li class="menu-item" data-item="search"><a href="/AfficherDoc" class="menu-link">Recherche</a></li>
+                <li class="menu-item" data-item="organigramme"><a href="/organigramme" class="menu-link">Organigramme</a></li>
+                <li class="menu-item admin" data-item="admin-dashboard"><a href="/dashboard" class="menu-link">Tableau de bord</a></li>
+                <li class="menu-item" data-item="revoir-guide"><button class="menu-link" type="button">Revoir le guide</button></li>
+                <li class="menu-item" data-item="a-propos"><a href="/a-propos" class="menu-link">À propos</a></li>
+                <li class="menu-item admin" data-item="logout"><button class="menu-link logout" type="button">Déconnexion</button></li>
+              </ul>
+            </div>
+          `;
+          document.body.appendChild(nav);
+          runTest(w, lang, state);
+          document.body.removeChild(nav);
+        });
+      });
+      document.body.removeChild(header);
+    });
+
+    setTimeout(() => {
+      const row = document.getElementById('summary');
+      row.textContent = `Tests : ${tests} — ${failures === 0 ? 'TOUT VALIDÉ' : failures + ' échecs'}`;
+      row.className = failures === 0 ? 'ok' : 'ko';
+    }, 100);
+  })();
+</script>
+<style>
+  body { background: #111; color: #fff; margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; }
+  #results { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #results td { padding: 3px 6px; border-bottom: 1px solid #444; }
+  .ok { color: #0a0; }
+  .ko { color: #f60; font-weight: bold; }
+  img { display: block; }
+  select { font: inherit; }
+  .menu-list { display: flex; }
+  .menu-link { display: inline-flex; align-items: center; gap: 0.375rem; white-space: nowrap; border-radius: 0.375rem; padding: 0.4rem 0.625rem; font-size: 0.875rem; font-weight: 500; color: #374151; background: #fff; text-decoration: none; }
+  .menu-link:hover { background: #eff6ff; color: #1d4ed8; }
+  .menu-link:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+  .menu-item[data-item="logout"] .menu-link { border: 1px solid #e5e7eb; background: #f9fafb; color: #4b5563; }
+  .menu-item[data-item="logout"] .menu-link:hover { border-color: #fca5a5; background: #fef2f2; color: #b91c1c; }
+  .menu-item.admin .menu-link { display: none; }
+  .menu-item[data-item="admin-dashboard"] .menu-link { display: inline-flex; }
+  a { display: flex; }
+</style>
+</head>
+<body>
+<table id="results"><tr><th>Test</th><th>Résultat</th><th>Détail</th></tr></table>
+<div id="summary"></div>
+</body>
+</html>

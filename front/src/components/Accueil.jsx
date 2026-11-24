@@ -6,8 +6,6 @@ import img3 from "/9.jpg";
 import img4 from '../assets/Images/Image1.png';
 import img5 from '../assets/Images/Image2.png';
 import Documents from './AfficherDocs';
-import AfficheActus from './AfficheActus';
-import AnimatedCard from './AnimatedCard';
 import axiosInstance from './AxiosConfig';
 import AppRating from './AppRating';
 import SubscribeForm from './SubscribeForm';
@@ -209,10 +207,6 @@ const Accueil = () => {
 
       {/* Other Components */}
       <Documents />
-      <div>
-        <h1 id="onboarding-news" className="text-2xl font-semibold text-gray-400 px-5 py-5 flex flex-col items-center justify-center">{t('accueil.actualites')}</h1>
-        <AfficheActus />
-      </div>
       {/* Alertes de publication (abonnement email) */}
       <section
         id="subscribe-section"
@@ -223,10 +217,7 @@ const Accueil = () => {
           <SubscribeForm />
         </div>
       </section>
-      <div className='bg-gradient-to-br from-primary/70 grid place-items-center'>
-        <AnimatedCard />
-      </div>
-      <div className='apprating'>
+<div className='apprating'>
         <AppRating />
       </div>
     </>

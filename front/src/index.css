@@ -166,3 +166,25 @@ h1{
     border-radius: 0.5rem; /* Optionnel: Arrondissez les coins */
     color: white;
 }
+
+/* Animation pour les panneaux de la page Ministère */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Assurer une zone tactile minimale de 44px pour les cibles tactiles */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

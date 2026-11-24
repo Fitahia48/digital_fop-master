@@ -335,10 +335,11 @@ const sendTemplatedMail = async (
 export const sendConfirmationEmail = async (
   email: string,
   confirmToken: string,
-  lang = 'fr'
+  _lang?: string
 ): Promise<boolean> => {
   const confirmUrl = `${SITE_URL}/subscribe/confirm/${confirmToken}`;
-  return sendTemplatedMail(email, lang, 'confirmation', { confirmUrl, siteUrl: SITE_URL });
+  // Emails abonnés TOUJOURS en français (règle métier)
+  return sendTemplatedMail(email, 'fr', 'confirmation', { confirmUrl, siteUrl: SITE_URL });
 };
 
 // ─── Activation de compte (module auth-compat) ──────────────────────────────
@@ -389,14 +390,14 @@ export interface PublicationSendSummary {
 }
 
 /** Ligne de lien cliquable : conservée telle quelle dans le HTML, lisible dans le texte. */
-const linkLine = (lang: string, labelKey: string, url: string): string =>
-  `${label(lang, labelKey)} <a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`;
+const linkLine = (labelKey: string, url: string): string =>
+  `${label('fr', labelKey)} <a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`;
 
 /**
  * Notifie les abonnés confirmés d'une nouvelle publication.
  *
  * Chaque abonné reçoit un mail individuel (afin qu'il dispose de SON lien de
- * désabonnement personnel), dans SA langue préférée (repli sur `lang`).
+ * désabonnement personnel), TOUJOURS en français (règle métier).
  * Lots de MAIL_BATCH_SIZE en parallèle, pause MAIL_BATCH_PAUSE_MS entre les
  * lots, nouvel essai limité sur erreur temporaire, résumé renvoyé à l'appelant.
  * Ne rejette JAMAIS : l'échec d'envoi ne doit pas empêcher la publication.
@@ -406,7 +407,7 @@ export const sendNewPublicationEmail = async (
   titre: string,
   lien: string | null,
   recipients: (SubscriberRecipient | string)[],
-  lang = 'fr'
+  _lang?: string
 ): Promise<PublicationSendSummary> => {
   const startedAt = Date.now();
   const summary: PublicationSendSummary = {
@@ -436,21 +437,21 @@ export const sendNewPublicationEmail = async (
     const batch = normalized.slice(i, i + BATCH_SIZE);
     const results = await Promise.all(
       batch.map(async (sub): Promise<{ ok: boolean; error?: string }> => {
-        const subLang = resolveLang(sub.langue_preferee || lang);
+        // Emails abonnés TOUJOURS en français (règle métier)
         const typeLabel = label(
-          subLang,
+          'fr',
           type === 'document' ? 'publication_document' : 'publication_actualite'
         );
         const detailLine = lien
-          ? linkLine(subLang, 'consulter_ici', lien)
-          : linkLine(subLang, 'visiter_bibliotheque', SITE_URL);
+          ? linkLine('consulter_ici', lien)
+          : linkLine('visiter_bibliotheque', SITE_URL);
         // Lien de désabonnement personnel (jeton) ; à défaut de jeton : accueil
         // (honnête — l'URL /unsubscribe sans jeton n'existe pas côté front).
         const unsubscribeUrl = sub.unsubscribe_token
           ? `${SITE_URL}/unsubscribe/${sub.unsubscribe_token}`
           : SITE_URL;
 
-        const tpl = render(subLang, 'publication', {
+        const tpl = render('fr', 'publication', {
           typeLabel,
           typeLabelUpper: upperFirst(typeLabel),
           titre: titreHtml,
@@ -462,7 +463,7 @@ export const sendNewPublicationEmail = async (
 
         return sendMailOnce({
           to: sub.email,
-          lang: subLang,
+          lang: 'fr',
           subject: tpl.subject,
           text: tpl.text,
           html: tpl.html,
@@ -504,8 +505,8 @@ export const sendNewPublicationEmail = async (
 
 export const sendUnsubscribeConfirmationEmail = async (
   email: string,
-  lang = 'fr'
-): Promise<boolean> => sendTemplatedMail(email, lang, 'unsubscribe', { siteUrl: SITE_URL });
+  _lang?: string
+): Promise<boolean> => sendTemplatedMail(email, 'fr', 'unsubscribe', { siteUrl: SITE_URL });
 
 // ─── Réponse de l'administration à une remarque ──────────────────────────────
 // (endpoint /api/send-response/ appelé par le front AdminRemarks.jsx — absent

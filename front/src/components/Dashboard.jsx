@@ -2,14 +2,13 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import axiosInstance from './AxiosConfig';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faFileAlt, faNewspaper, faChartBar, faStar, faUsers, faCircleQuestion, faSquarePlus, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faFileAlt, faChartBar, faStar, faUsers, faCircleQuestion, faSquarePlus, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 import { FaStar } from "react-icons/fa";
 import { userContext } from './Context';
 import { Link } from 'react-router-dom';
 import RealTimeVisitors from './RealTimeVisitors';
 
 import Documents from './AfficherDocs';
-import AfficheActus from './AfficheActus';
 import AdminRemarks from './AdminRemarks';
 import CorpsFilteredList from './CorpsFilteredList';
 
@@ -22,7 +21,6 @@ const Dashboard = () => {
   const sections = {
     documents: useRef(null),
     status: useRef(null),
-    actus: useRef(null),
     remarques: useRef(null),
     etoiles: useRef(null),
     // Les anciennes sections « statistiques » et « transparence » ont été
@@ -55,68 +53,80 @@ const Dashboard = () => {
   const cards = [
     { label: "Documents", icon: faFileAlt, section: "documents" },
     { label: "Status", icon: faUsers, section: "status" },
-    { label: "Actualités", icon: faNewspaper, section: "actus" },
     { label: "Remarques", icon: faComment, section: "remarques" },
     { label: "Étoiles", icon: faStar, section: "etoiles" },
   ];
 
   return (
     <>
-      {/* Section principale de navigation + actions */}
-      <section className="pt-10 pb-6 shadow-sm">
-        {/* Compteur de visiteurs — en haut à gauche du tableau de bord */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex justify-start mb-4">
-          <RealTimeVisitors />
-        </div>
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-300">Tableau de bord administrateur</h1>
-          <p className="text-gray-500 mt-1">Accès rapide aux fonctionnalités principales</p>
-        </div>
+      {/* Section principale de navigation + actions - Design amélioré et centré */}
+      <section className="pt-10 pb-10 shadow-sm">
+        {/* En-tête de bienvenue centré avec design amélioré */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          {/* Compteur de visiteurs — centré au-dessus du titre */}
+          <div className="flex justify-center mb-6">
+            <RealTimeVisitors />
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 px-4 sm:px-6 max-w-6xl mx-auto">
-          {/* Liens vers sections (scrollTo) */}
-          {cards.map(({ label, icon, section }) => (
-            <motion.div
-              key={section}
-              className="bg-white shadow-md rounded-xl p-5 flex items-center space-x-4 cursor-pointer hover:bg-blue-50 transition"
-              onClick={() => scrollTo(section)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <div className="w-10 flex justify-center ml-2">
-                <FontAwesomeIcon icon={icon} className="text-blue-600 text-2xl" />
-              </div>
-              <span className="text-lg font-medium text-gray-800">{label}</span>
-            </motion.div>
-          ))}
+          {/* Bloc de bienvenue centralisé avec design moderne */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-blue-50 border border-blue-200 rounded-full mb-6">
+              <FontAwesomeIcon icon={faScaleBalanced} className="text-blue-700 text-2xl" aria-hidden="true" />
+              <span className="text-xl font-bold text-blue-900">Espace Administrateur</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
+              Tableau de bord
+            </h1>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Gérez les documents, corps professionnels, remarques et consultez les statistiques
+            </p>
+          </div>
 
-          {/* Raccourcis vers la page unique de statistiques + transparence,
-              et cartes d'ajout + gestion FAQ */}
-          {[
-            { label: "Statistiques", to: "/admin/statistiques", icon: faChartBar },
-            { label: "Transparence", to: "/transparence", icon: faScaleBalanced },
-            { label: "Ajouter un document", to: "/AjoutDoc", icon: faSquarePlus },
-            { label: "Ajouter un corps", to: "/AjoutCorps", icon: faSquarePlus },
-            { label: "Ajouter une actualité", to: "/AjoutActus", icon: faSquarePlus },
-            { label: "Gérer la FAQ (chat)", to: "/admin/faq", icon: faCircleQuestion }
-          ].map(({ label, to, icon }, index) => (
-            <motion.div
-              key={`ajout-${index}`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white shadow-md rounded-xl p-5 flex items-center space-x-4 cursor-pointer hover:bg-blue-50 transition"
-            >
-              <Link to={to} className="flex items-center space-x-3 ml-2">
-                <div className="w-10 flex justify-center">
-                  <FontAwesomeIcon
-                    icon={icon}
-                    className="text-blue-600 text-2xl"
-                  />
+          {/* Grille de navigation centrée */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Liens vers sections (scrollTo) */}
+            {cards.map(({ label, icon, section }) => (
+              <motion.div
+                key={section}
+                className="bg-white shadow-md rounded-xl p-6 flex items-center space-x-4 cursor-pointer hover:bg-blue-50 hover:shadow-lg transition-all duration-200 border border-gray-100"
+                onClick={() => scrollTo(section)}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-xl">
+                  <FontAwesomeIcon icon={icon} className="text-blue-700 text-2xl" aria-hidden="true" />
                 </div>
-                <span className="text-md font-medium text-gray-800">{label}</span>
-              </Link>
-            </motion.div>
-          ))}
+                <span className="text-lg font-semibold text-gray-800">{label}</span>
+              </motion.div>
+            ))}
+
+            {/* Raccourcis vers la page unique de statistiques + transparence,
+                et cartes d'ajout + gestion FAQ */}
+            {[
+              { label: "Statistiques", to: "/admin/statistiques", icon: faChartBar, color: "bg-purple-100 text-purple-700" },
+              { label: "Transparence", to: "/transparence", icon: faScaleBalanced, color: "bg-amber-100 text-amber-700" },
+              { label: "Ajouter un document", to: "/AjoutDoc", icon: faSquarePlus, color: "bg-emerald-100 text-emerald-700" },
+              { label: "Ajouter un corps", to: "/AjoutCorps", icon: faSquarePlus, color: "bg-indigo-100 text-indigo-700" },
+              { label: "Gérer la FAQ (chat)", to: "/admin/faq", icon: faCircleQuestion, color: "bg-rose-100 text-rose-700" }
+            ].map(({ label, to, icon, color }, index) => (
+              <motion.div
+                key={`ajout-${index}`}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-white shadow-md rounded-xl p-6 flex items-center space-x-4 cursor-pointer hover:shadow-lg transition-all duration-200 border border-gray-100"
+              >
+                <Link to={to} className="flex items-center space-x-4 w-full">
+                  <div className={`w-12 h-12 flex items-center justify-center rounded-xl ${color}`}>
+                    <FontAwesomeIcon
+                      icon={icon}
+                      className="text-2xl"
+                    />
+                  </div>
+                  <span className="text-md font-medium text-gray-800">{label}</span>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -128,11 +138,6 @@ const Dashboard = () => {
       <section ref={sections.status} className="mt-10">
         <h2 className="text-2xl font-semibold text-gray-300 text-center p-10">Status Particulier</h2>
         <CorpsFilteredList isAdmin={true} />
-      </section>
-
-      <section ref={sections.actus} className="mt-10">
-        <h2 className="text-2xl font-semibold text-gray-300 text-center">Actualités</h2>
-        <AfficheActus isAdminE={true} />
       </section>
 
       <section ref={sections.remarques} className="flex flex-col items-center justify-center mt-10">

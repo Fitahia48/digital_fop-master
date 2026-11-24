@@ -29,6 +29,7 @@
     "status_particuliers": "Status Particuliers",
     "recherche": "Recherche",
     "organigramme": "Organigramme",
+    "ministere": "Ministère",
     "dashboard": "Dashboard",
     "abonnes_admin": "Abonnés",
     "themes_admin": "Thèmes",
@@ -80,7 +81,8 @@
     "deja_abonne": "Cet email est déjà abonné. Vous recevrez les prochaines publications.",
     "echec_envoi": "Inscription enregistrée mais l'e-mail de confirmation n'a pas pu être envoyé. Réessayez plus tard.",
     "spam_hint": "Si vous ne voyez pas le mail, vérifiez vos courriers indésirables (spam).",
-    "erreur": "Une erreur est survenue. Veuillez réessayer."
+    "erreur": "Une erreur est survenue. Veuillez réessayer.",
+    "info_langue": "Vous recevrez les alertes par e-mail, en français."
   },
   "abonnes": {
     "titre": "Abonnés aux alertes",
@@ -88,7 +90,6 @@
     "total": "Total",
     "confirmes": "Confirmés",
     "en_attente": "En attente",
-    "par_langue": "Par langue",
     "recherche_label": "Recherche par e-mail",
     "recherche_placeholder": "Rechercher un e-mail…",
     "effacer": "Effacer",
@@ -96,8 +97,6 @@
     "statut_tous": "Tous",
     "statut_confirmes": "Confirmés",
     "statut_en_attente": "En attente",
-    "filtre_langue": "Langue",
-    "langue_toutes": "Toutes les langues",
     "tri": "Tri",
     "tri_date_desc": "Date : récent → ancien",
     "tri_date_asc": "Date : ancien → récent",
@@ -108,7 +107,6 @@
     "resultats": "{{count}} abonné(s)",
     "col_email": "E-mail",
     "col_statut": "Statut",
-    "col_langue": "Langue",
     "col_date": "Date d'inscription",
     "col_actions": "Actions",
     "badge_confirme": "Confirmé",
@@ -340,6 +338,12 @@
   },
   "auth": {
     "se_connecter": "Se connecter",
+    "connexion_sous_titre": "Accédez à votre espace de gestion de la bibliothèque numérique.",
+    "brand_sous_titre": "Les textes juridiques et réglementaires de Madagascar, réunis dans une bibliothèque numérique accessible à tous.",
+    "afficher_mot_de_passe": "Afficher le mot de passe",
+    "masquer_mot_de_passe": "Masquer le mot de passe",
+    "connexion_en_cours": "Connexion…",
+    "acces_reserve": "Accès réservé aux utilisateurs habilités.",
     "email": "Email",
     "mot_de_passe": "Mot de passe",
     "mot_de_passe_oublie": "Mot de passe oublié ?",
@@ -681,6 +685,9 @@
   },
   "apropos": {
     "titre_page": "À propos",
+    "sous_titre": "Institution, mission et cadre légal de la bibliothèque numérique du Ministère du Travail, de l'Emploi et de la Fonction Publique.",
+    "cta_titre": "Explorer la bibliothèque",
+    "cta_texte": "Retrouvez les textes réglementaires, l'organigramme et les services du ministère.",
     "page_titre": "Bibliothèque numérique du Ministère du Travail, de l'Emploi et de la Fonction Publique",
     "page_titre_base": "Bibliothèque numérique",
     "article2_source": "Décret n°2024-055 du 20 janvier 2024, article 2",
@@ -696,5 +703,34 @@
     "aucune_donnee": "Aucune information disponible.",
     "anonymat_titre": "Visites comptées de façon anonyme",
     "anonymat_visites": "Nous comptons les visites de façon anonyme : votre adresse IP n'est pas conservée, seule une empreinte irréversible valable un jour est utilisée."
+  },
+  "organigramme": {
+    "titre_officiel": "Organigramme du ministère",
+    "voir_officiel": "Voir l'organigramme officiel",
+    "lien_texte": "https://mtefpls.gov.mg/ministere/organigramme",
+    "nouvel_onglet": "(s'ouvre dans un nouvel onglet)",
+    "site_officiel": "(site officiel du ministère)",
+    "redirection_notice": "Vous allez être redirigé vers le site officiel du ministère.",
+    "page_en_francais": "La page officielle est en français.",
+    "erreur_chargement": "Impossible de charger l'organigramme local. Veuillez consulter directement l'organigramme officiel via le lien ci-dessus.",
+    "mobile_rappel": "Après lecture, fermez l'onglet pour revenir ici."
+  },
+  "ministere": {
+    "titre_page": "Ministère",
+    "intro": "Retrouvez l'organigramme et les actualités sur le site officiel du Ministère du Travail, de l'Emploi et de la Fonction Publique.",
+    "choix_organigramme": "Organigramme",
+    "choix_actualites": "Actualités",
+    "desc_organigramme": "Structure organisationnelle du ministère",
+    "desc_actualites": "Dernières informations et communiqués",
+    "actualites": {
+      "voir_officiel": "Voir les actualités officielles",
+      "lien_texte": "https://mtefpls.gov.mg/actualites",
+      "nouvel_onglet": "(s'ouvre dans un nouvel onglet)",
+      "site_officiel": "(site officiel du ministère)",
+      "redirection_notice": "Vous serez redirigé(e) vers le site officiel du ministère. Pour revenir à la bibliothèque, fermez l'onglet ou revenez à l'onglet précédent.",
+      "page_en_francais": "Cette page du site officiel est en français.",
+      "erreur_chargement": "Si la page ne s'ouvre pas, réessayez plus tard.",
+      "mobile_rappel": "Après lecture, fermez l'onglet pour revenir ici."
+    }
   }
 }

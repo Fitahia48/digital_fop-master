@@ -534,6 +534,7 @@ export interface ApiActualiteActualite extends Struct.CollectionTypeSchema {
       'api::actualite.actualite'
     > &
       Schema.Attribute.Private;
+    notifie_le: Schema.Attribute.DateTime;
     publishedAt: Schema.Attribute.DateTime;
     texte: Schema.Attribute.Text & Schema.Attribute.Required;
     titre: Schema.Attribute.String & Schema.Attribute.Required;
@@ -703,6 +704,7 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     modification_details: Schema.Attribute.Text;
     mots_cles: Schema.Attribute.JSON;
+    notifie_le: Schema.Attribute.DateTime;
     numero: Schema.Attribute.String;
     numero_journal: Schema.Attribute.String;
     objet: Schema.Attribute.Text & Schema.Attribute.Required;
@@ -718,7 +720,6 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::document-relation.document-relation'
     >;
-    resume_simplifie: Schema.Attribute.Text;
     signataires: Schema.Attribute.Text;
     status: Schema.Attribute.Enumeration<
       ['en_vigueur', 'abroge', 'modifie', 'non_verifie']
@@ -729,6 +730,7 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
+    telechargeable: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     telechargements: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     type: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -764,6 +766,47 @@ export interface ApiDomaineDomaine extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiEmailLogEmailLog extends Struct.CollectionTypeSchema {
+  collectionName: 'strapi_email_logs';
+  info: {
+    description: "Journal d'envoi des alertes de publication (visibilit\u00E9 administrateur uniquement).";
+    displayName: 'Email Log';
+    pluralName: 'email-logs';
+    singularName: 'email-log';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    destinataires: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    detail: Schema.Attribute.Text;
+    duree_ms: Schema.Attribute.Integer;
+    echecs: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    envoyes: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    lien: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::email-log.email-log'
+    > &
+      Schema.Attribute.Private;
+    publication: Schema.Attribute.Enumeration<['document', 'actualite']> &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    statut: Schema.Attribute.Enumeration<
+      ['ok', 'partiel', 'echec', 'sans_destinataire', 'ignore']
+    > &
+      Schema.Attribute.DefaultTo<'ok'>;
+    titre: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -978,7 +1021,7 @@ export interface ApiRemarkRemark extends Struct.CollectionTypeSchema {
 export interface ApiStatutAuditStatutAudit extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_statut_audits';
   info: {
-    description: 'Journal append-only des changements de statut juridique des documents : auteur, date, ancienne valeur, nouvelle valeur, justification obligatoire. Aucune route content-API expos\u00E9e : \u00E9criture/lecture par le code serveur uniquement.';
+    description: 'Journal append-only des changements de statut juridique des documents : auteur, date, ancienne valeur, nouvelle valeur, justification optionnelle. Aucune route content-API expos\u00E9e : \u00E9criture/lecture par le code serveur uniquement.';
     displayName: 'Audit de statut juridique';
     pluralName: 'statuts-audit';
     singularName: 'statut-audit';
@@ -994,7 +1037,7 @@ export interface ApiStatutAuditStatutAudit extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     document: Schema.Attribute.Relation<'manyToOne', 'api::document.document'>;
-    justification: Schema.Attribute.Text & Schema.Attribute.Required;
+    justification: Schema.Attribute.Text;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1608,6 +1651,7 @@ declare module '@strapi/strapi' {
       'api::document-relation.document-relation': ApiDocumentRelationDocumentRelation;
       'api::document.document': ApiDocumentDocument;
       'api::domaine.domaine': ApiDomaineDomaine;
+      'api::email-log.email-log': ApiEmailLogEmailLog;
       'api::faq.faq': ApiFaqFaq;
       'api::fichier-prive.fichier-prive': ApiFichierPriveFichierPrive;
       'api::historique-recherche.historique-recherche': ApiHistoriqueRechercheHistoriqueRecherche;

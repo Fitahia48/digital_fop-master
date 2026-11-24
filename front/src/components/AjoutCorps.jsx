@@ -62,7 +62,7 @@ const CorpsForm = () => {
             <div className="flex flex-wrap bg-white rounded-lg shadow-lg overflow-hidden md:w-1/2 w-full lg:w-3/4 animate__animated animate__pulse">
                 <div className="hidden md:block w-1/2 bg-cover bg-center"
                     style={{
-                        backgroundImage: "url('../../public/ajout2.png')", width: "50%",
+                        backgroundImage: "url('/ajout2.png')", width: "50%",
                         height: "auto", backgroundSize: "cover",
                         backgroundPosition: "center",
                     }}>

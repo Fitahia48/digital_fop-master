@@ -64,7 +64,13 @@ const EditCorpsForm = () => {
 
         const data = new FormData();
         for (const key in formData) {
-            data.append(key, formData[key]);
+            if (key === "fichier") {
+                if (formData.fichier instanceof File) {
+                    data.append("fichier", formData.fichier);
+                }
+            } else if (formData[key] !== null && formData[key] !== undefined) {
+                data.append(key, formData[key]);
+            }
         }
 
         try {

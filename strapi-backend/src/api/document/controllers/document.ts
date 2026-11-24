@@ -268,7 +268,7 @@ export default factories.createCoreController(UID, () => ({
   async create(ctx: any) {
     try {
       const b = ctx.request.body || {};
-      const required = ['type', 'objet', 'numero', 'date'];
+      const required = ['type', 'objet'];
       const missing = required.filter((k) => !b[k]);
       if (missing.length) {
         throw new ValidationError(`Champs requis manquants : ${missing.join(', ')}`);
@@ -291,8 +291,8 @@ export default factories.createCoreController(UID, () => ({
       const data: Record<string, any> = {
         type: b.type,
         objet: b.objet,
-        numero: b.numero,
-        date: b.date,
+        numero: b.numero ? String(b.numero).trim() : null,
+        date: b.date ? String(b.date).trim() : null,
         conseil: b.conseil || 'Autre',
         status,
         etat_notice: etatNotice,
@@ -361,8 +361,8 @@ export default factories.createCoreController(UID, () => ({
       const data: Record<string, any> = {
         type: b.type || doc.type,
         objet: b.objet || doc.objet,
-        numero: b.numero || doc.numero,
-        date: b.date || doc.date,
+        numero: b.numero !== undefined ? (b.numero ? String(b.numero).trim() : null) : doc.numero,
+        date: b.date !== undefined ? (b.date ? String(b.date).trim() : null) : doc.date,
         conseil: b.conseil || doc.conseil,
         // Simplification : l'admin modifie le statut directement depuis le
         // formulaire d'édition (route réservée à l'admin). La valeur reçue est
@@ -373,9 +373,9 @@ export default factories.createCoreController(UID, () => ({
             ? normalizeStatus(b.status, doc.status ?? 'en_vigueur')
             : doc.status ?? 'en_vigueur',
         inclus_journal: inclus,
-        date_journal: b.date_journal || b.dateJournal || doc.date_journal,
-        numero_journal: b.numero_journal || b.numeroJournal || doc.numero_journal,
-        page_journal: b.page_journal || b.pageJournal || doc.page_journal,
+        date_journal: inclus ? (b.date_journal || b.dateJournal || doc.date_journal) : null,
+        numero_journal: inclus ? (b.numero_journal || b.numeroJournal || doc.numero_journal) : null,
+        page_journal: inclus ? (b.page_journal || b.pageJournal || doc.page_journal) : null,
         modification_details:
           b.modification_details !== undefined ? b.modification_details : doc.modification_details,
         date_entree_vigueur:

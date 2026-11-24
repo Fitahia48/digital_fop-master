@@ -35,7 +35,6 @@ const AdminSubscribers = () => {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statut, setStatut] = useState('tous');
-  const [langue, setLangue] = useState('');
   const [sort, setSort] = useState('date_desc');
   const [page, setPage] = useState(1);
 
@@ -70,7 +69,6 @@ const AdminSubscribers = () => {
         params: {
           search: search || undefined,
           statut,
-          langue: langue || undefined,
           sort,
           page,
           page_size: PAGE_SIZE,
@@ -84,7 +82,7 @@ const AdminSubscribers = () => {
       setErrorMsg(err.response?.data?.error?.message || t('abonnes.erreur'));
       setStatus('error');
     }
-  }, [search, statut, langue, sort, page, t]);
+  }, [search, statut, sort, page, t]);
 
   useEffect(() => {
     if (access === 'allowed') load();
@@ -133,7 +131,6 @@ const AdminSubscribers = () => {
         params: {
           search: search || undefined,
           statut,
-          langue: langue || undefined,
           sort,
         },
         responseType: 'blob',
@@ -190,7 +187,6 @@ const AdminSubscribers = () => {
     setSearchInput('');
     setSearch('');
     setStatut('tous');
-    setLangue('');
     setSort('date_desc');
     setPage(1);
   };
@@ -232,7 +228,7 @@ const AdminSubscribers = () => {
         <p className="text-sm text-gray-500 mb-6">{t('abonnes.sous_titre')}</p>
 
         {/* ─── Compteurs ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('abonnes.total')}</p>
             <p className="text-2xl font-bold text-gray-800">{counters ? counters.total : '—'}</p>
@@ -244,16 +240,6 @@ const AdminSubscribers = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('abonnes.en_attente')}</p>
             <p className="text-2xl font-bold text-amber-600">{counters ? counters.en_attente : '—'}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
-              {t('abonnes.par_langue')}
-            </p>
-            <p className="text-sm text-gray-700">
-              {counters
-                ? `FR ${counters.par_langue.fr} · EN ${counters.par_langue.en} · MG ${counters.par_langue.mg}`
-                : '—'}
-            </p>
           </div>
         </div>
 
@@ -299,26 +285,6 @@ const AdminSubscribers = () => {
                 <option value="tous">{t('abonnes.statut_tous')}</option>
                 <option value="confirmes">{t('abonnes.statut_confirmes')}</option>
                 <option value="en_attente">{t('abonnes.statut_en_attente')}</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="abonnes-langue" className="block text-xs font-semibold text-gray-600 mb-1">
-                {t('abonnes.filtre_langue')}
-              </label>
-              <select
-                id="abonnes-langue"
-                value={langue}
-                onChange={(e) => {
-                  setLangue(e.target.value);
-                  setPage(1);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">{t('abonnes.langue_toutes')}</option>
-                <option value="fr">FR</option>
-                <option value="en">EN</option>
-                <option value="mg">MG</option>
               </select>
             </div>
 
@@ -402,7 +368,6 @@ const AdminSubscribers = () => {
                   <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     <th scope="col" className="px-4 py-3">{t('abonnes.col_email')}</th>
                     <th scope="col" className="px-4 py-3">{t('abonnes.col_statut')}</th>
-                    <th scope="col" className="px-4 py-3">{t('abonnes.col_langue')}</th>
                     <th scope="col" className="px-4 py-3">{t('abonnes.col_date')}</th>
                     <th scope="col" className="px-4 py-3 text-right">{t('abonnes.col_actions')}</th>
                   </tr>
@@ -421,7 +386,6 @@ const AdminSubscribers = () => {
                           {statutLabel(row.is_confirmed)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 uppercase text-gray-700">{row.langue_preferee || 'fr'}</td>
                       <td className="px-4 py-3 text-gray-700">{formatDate(row.createdAt)}</td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -452,10 +416,6 @@ const AdminSubscribers = () => {
                     >
                       {statutLabel(row.is_confirmed)}
                     </span>
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    <span className="font-semibold">{t('abonnes.col_langue')} :</span>{' '}
-                    <span className="uppercase">{row.langue_preferee || 'fr'}</span>
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     <span className="font-semibold">{t('abonnes.col_date')} :</span> {formatDate(row.createdAt)}

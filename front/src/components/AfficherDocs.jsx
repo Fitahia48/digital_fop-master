@@ -43,6 +43,10 @@ const Documents = ({ isAdmin }) => {
   const [fetchError, setFetchError] = useState(false);
   const retryRef = useRef(null);
 
+  // États pour les modales de confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, docId: null, docTitle: '' });
+  const [editConfirm, setEditConfirm] = useState({ open: false, docId: null, docTitle: '' });
+
   const { selectedDomaine } = useContext(userContext);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -175,22 +179,33 @@ const Documents = ({ isAdmin }) => {
     fetchInitialDocuments();
   }, [selectedDomaine]);
   const handleDelete = async (id) => {
+    const doc = documents.find(d => d.id === id);
+    const docTitle = doc?.objet || `Document n°${id}`;
+    setDeleteConfirm({ open: true, docId: id, docTitle });
+  };
+
+  const confirmDelete = async () => {
+    const { docId } = deleteConfirm;
+    if (!docId) return;
+
     const user = JSON.parse(localStorage.getItem("user"));
     const token = user?.access;
     if (!token) {
       console.error("Token non trouvé. Veuillez vous connecter.");
+      setDeleteConfirm({ open: false, docId: null, docTitle: '' });
       return;
     }
-    // Confirmation avant suppression définitive
-    if (!window.confirm(t('documents.confirmer_suppression'))) return;
+
     try {
-      await axiosInstance.delete(`/api/documents/${id}/`);
+      await axiosInstance.delete(`/api/documents/${docId}/`);
       toast.success("Document supprimé avec succès !");
       // Retire immédiatement le document de la liste sans rechargement de page
-      setDocuments((prev) => prev.filter((d) => d.id !== id));
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
     } catch (error) {
       console.error("Erreur lors de la suppression :", error.response || error);
       toast.error("Erreur lors de la suppression du document.");
+    } finally {
+      setDeleteConfirm({ open: false, docId: null, docTitle: '' });
     }
   };
 
@@ -198,7 +213,17 @@ const Documents = ({ isAdmin }) => {
   // d'édition (EditDoc), sans justification obligatoire.
 
   const handleEdit = (id) => {
-    navigate(`/edit/${id}`);
+    const doc = documents.find(d => d.id === id);
+    const docTitle = doc?.objet || `Document n°${id}`;
+    setEditConfirm({ open: true, docId: id, docTitle });
+  };
+
+  const confirmEdit = () => {
+    const { docId } = editConfirm;
+    if (docId) {
+      navigate(`/edit/${docId}`);
+    }
+    setEditConfirm({ open: false, docId: null, docTitle: '' });
   };
 
   const handleView = async (fileUrl, fileType, documentId, telechargeable = true) => {
@@ -743,6 +768,66 @@ const Documents = ({ isAdmin }) => {
                     </button>
                   </>
               ) : null}
+            </Modal>
+          )}
+
+          {/* Modale de confirmation de suppression */}
+          {deleteConfirm.open && (
+            <Modal onClose={() => setDeleteConfirm({ open: false, docId: null, docTitle: '' })}>
+              <div className="text-center">
+                <FontAwesomeIcon icon={faTriangleExclamation} className="text-4xl text-red-500 mx-auto mb-4" aria-hidden="true" />
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Confirmer la suppression</h2>
+                <p className="text-gray-600 mb-4">
+                  Êtes-vous sûr de vouloir supprimer définitivement ce document ?
+                </p>
+                <p className="font-medium text-gray-800 mb-6 text-blue-700">« {deleteConfirm.docTitle} »</p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm({ open: false, docId: null, docTitle: '' })}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDelete}
+                    className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    Supprimer définitivement
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
+          {/* Modale de confirmation de modification */}
+          {editConfirm.open && (
+            <Modal onClose={() => setEditConfirm({ open: false, docId: null, docTitle: '' })}>
+              <div className="text-center">
+                <FontAwesomeIcon icon={faPenToSquare} className="text-4xl text-blue-500 mx-auto mb-4" aria-hidden="true" />
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Confirmer la modification</h2>
+                <p className="text-gray-600 mb-4">
+                  Voulez-vous modifier ce document ? Vous serez redirigé vers le formulaire d'édition.
+                </p>
+                <p className="font-medium text-gray-800 mb-6 text-blue-700">« {editConfirm.docTitle} »</p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditConfirm({ open: false, docId: null, docTitle: '' })}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmEdit}
+                    className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Modifier
+                  </button>
+                </div>
+              </div>
             </Modal>
           )}
 

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify'
 import Login from './components/Login';
 import Dashboard from './components/Dashboard'
@@ -18,7 +18,6 @@ import ResetPasswordConfirmPage from './components/ResetPasswordConfirmPage';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
-import AddActus from './components/AddActus';
 import RemarkForm from "./components/RemarkForm";
 import AdminRemarks from "./components/AdminRemarks";
 import AdminSubscribers from "./components/AdminSubscribers";
@@ -26,6 +25,7 @@ import AdminThemes from "./components/AdminThemes";
 import Documents from './components/AfficherDocs';
 import AnimatedCard from './components/AnimatedCard';
 import OrganigrammePage from './components/OrganigrammePage';
+import MinisterePage from './components/MinisterePage';
 import CorpsFilteredList from './components/CorpsFilteredList';
 import EditCorpsForm from './components/EditCorpsForm';
 import ConfirmSubscriptionPage from './pages/ConfirmSubscriptionPage';
@@ -45,6 +45,37 @@ import AProposPage from './components/AProposPage';
 const AdminStats = lazy(() => import('./components/AdminStats'));
 axios.defaults.withCredentials = true;
 
+// Page de connexion : écran autonome, sans en-tête ni menu au-dessus.
+const LOGIN_PATH = '/portail-gestion/connexion';
+
+// En-tête et menu publics, masqués sur la page de connexion.
+// (Le pied de page et la colonne droite le font déjà de leur côté.)
+const HeaderHorsConnexion = () => {
+    const { pathname } = useLocation();
+    return pathname === LOGIN_PATH ? null : <Header />;
+};
+
+// Consomme le contexte ici : pas de props à valider, et le menu reçoit
+// exactement les mêmes valeurs qu'avant (utilisateur + sélection de thème).
+const MenuHorsConnexion = () => {
+    const { pathname } = useLocation();
+    const { user, setSelectedDomaine } = useContext(userContext);
+    return pathname === LOGIN_PATH
+        ? null
+        : <Menu user={user} onSelectDomaine={setSelectedDomaine} />;
+};
+
+// `body` porte `mt-40` (index.html) pour dégager l'en-tête fixe. Sur la page de
+// connexion, l'en-tête n'existe plus : on retire cette marge pour que l'écran
+// occupe vraiment tout le viewport (et se recentre sans barre de défilement).
+const MargeEnteteHorsConnexion = () => {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        document.body.classList.toggle('mt-40', pathname !== LOGIN_PATH);
+    }, [pathname]);
+    return null;
+};
+
 // Comptage anonyme des visites : UN SEUL ping par session de navigateur au
 // montage de l'application (et non à chaque changement de page). Le serveur
 // ne compte ce visiteur qu'une seule fois par jour (fuseau Madagascar) ; les
@@ -54,7 +85,7 @@ axios.defaults.withCredentials = true;
 let visiteurPingue = false;
 
 const App = () => {
-    const { user, setUser, isAdmin, setIsAdmin, setSelectedDomaine } = useContext(userContext)
+    const { user, setUser, isAdmin, setIsAdmin } = useContext(userContext)
     const [token] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('user') || 'null')
@@ -115,9 +146,12 @@ const App = () => {
     return (
         <>
             <div className='bg-gray-900'>
-                <Header />
                 <ToastContainer />
                 <Router>
+                    {/* En-tête déplacé DANS le Router : il doit connaître la route
+                        pour disparaître sur la page de connexion. */}
+                    <HeaderHorsConnexion />
+                    <MargeEnteteHorsConnexion />
                     {/* Remet la page en haut à chaque navigation : les liens du
                         pied de page ouvrent sinon la nouvelle page à la même
                         hauteur de défilement (on restait sur le bas de page). */}
@@ -125,7 +159,7 @@ const App = () => {
                     <SearchShortcut />
                     {/* Bandeau hors-ligne (F10) : visible uniquement sans connexion */}
                     <OfflineBanner />
-                    <Menu user={user} onSelectDomaine={setSelectedDomaine} />
+                    <MenuHorsConnexion />
                     {/* Cible du lien d'évitement « Aller au contenu principal » (Header) */}
                     <main id="contenu-principal">
                     <Routes>
@@ -142,7 +176,6 @@ const App = () => {
                         <Route path="/edit/:id" element={<ProtectedRoute isAuthenticated={user.refresh}><EditDocument /></ProtectedRoute>} />
                         <Route path="/editCorps/:id" element={<ProtectedRoute isAuthenticated={user.refresh}><EditCorpsForm /></ProtectedRoute>} />
                         <Route path='/AjoutCorps' element={<ProtectedRoute isAuthenticated={user.refresh}><CorpsForm /></ProtectedRoute>} />
-                        <Route path='/AjoutActus' element={<ProtectedRoute isAuthenticated={user.refresh}><AddActus /></ProtectedRoute>} />
                         <Route path="/remarks" element={<RemarkForm />} />
                         <Route path='/AfficherDoc' element={<Documents isAdmin={isAdmin} />} />
                         {/* Fiche documentaire à URL stable (P1) — publique, le serveur
@@ -178,7 +211,12 @@ const App = () => {
                             }
                         />
                         <Route path="/animated" element={<AnimatedCard />} />
-                        <Route path="/organigramme" element={<OrganigrammePage />} />
+                        {/* Redirection de l'ancienne route /organigramme vers la nouvelle structure */}
+                        <Route path="/organigramme" element={<Navigate to="/ministere/organigramme" replace />} />
+                        {/* Nouvelle page Ministère avec onglets Organigramme / Actualités */}
+                        <Route path="/ministere" element={<MinisterePage />} />
+                        <Route path="/ministere/organigramme" element={<MinisterePage />} />
+                        <Route path="/ministere/actualites" element={<MinisterePage />} />
                         <Route path="/aide" element={<HelpPage />} />
                         {/* Page transparence désormais réservée aux admins */}
                         <Route path="/transparence" element={<ProtectedRoute isAuthenticated={user.refresh}><TransparencePage /></ProtectedRoute>} />

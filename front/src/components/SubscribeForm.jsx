@@ -56,6 +56,7 @@ const SubscribeForm = () => {
       <p className="text-gray-300 text-sm mb-3">
         Recevez une alerte par email à chaque publication d'un document ou d'une actualité.
       </p>
+      <p className="text-gray-300 text-sm mb-3">{t('abonnement.info_langue')}</p>
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
         <input
           type="email"

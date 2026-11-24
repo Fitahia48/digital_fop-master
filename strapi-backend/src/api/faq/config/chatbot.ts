@@ -85,7 +85,9 @@ Ton objectif est d'être utile et accueillant, tout en restant fidèle aux infor
  */
 export const GEMINI_MODEL_CHAIN = [
   'gemini-3.8-flash',
+  'gemini-3.5-flash',
   'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
   'gemini-3-flash-preview',
 ];
 

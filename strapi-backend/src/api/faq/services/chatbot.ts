@@ -171,9 +171,10 @@ export const callGemini = async (
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY manquante');
 
-  const chain = process.env.GEMINI_MODEL
-    ? [process.env.GEMINI_MODEL]
-    : GEMINI_MODEL_CHAIN;
+  const chain = [
+    ...(process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []),
+    ...GEMINI_MODEL_CHAIN.filter((m) => m !== process.env.GEMINI_MODEL),
+  ];
 
   const langName = { fr: 'français', en: 'anglais', mg: 'malgache' }[lang] || 'français';
 

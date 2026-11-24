@@ -29,6 +29,7 @@
     "status_particuliers": "Sata manokana",
     "recherche": "Fikarohana",
     "organigramme": "Fandaminana",
+    "ministere": "Ministera",
     "dashboard": "Tabilao fanaraha-maso",
     "themes_admin": "Lohahevitra",
     "revoir_guide": "Haverina ny torolalana",
@@ -73,14 +74,16 @@
     "slide5_texte": "Amin'ny fanamorana ny fidirana amin'ny fahalalana sy ny antontan-taratasin'ny ministera, dia manomana ny fahaizana ho an'ny rahampitso ny Ministera.",
     "visitors_today": "Mpitsidika androany"
   },
-  "telechargeable": {
-    "label": "TODO: à valider par un locuteur natif",
-    "option_oui": "TODO: à valider par un locuteur natif",
-    "option_non": "TODO: à valider par un locuteur natif",
-    "lire": "TODO: à valider par un locuteur natif",
-    "lire_aria": "TODO: à valider par un locuteur natif",
-    "aide": "TODO: à valider par un locuteur natif"
+  "abonnement": {
+    "succes": "Voatahiry ny fisoratana. Jereo ny mailakao hamafisina ny fanandrihana.",
+    "reenvoi_succes": "Nalefa indray ny mailaka fanamarinana amin'ny adiresy.",
+    "deja_abonne": "Efa misoratra anarana io mailaka io. Hahazo ny vaovao manaraka ianao.",
+    "echec_envoi": "Voatahiry ny fisoratana nefa tsy nisy mailaka fanamarinana nalefa. Andramo indray azafady.",
+    "spam_hint": "Raha tsy hitanao ny mailaka, jereo ny mailaka fadiana (spam).",
+    "erreur": "Nisy olana. Andramo indray azafady.",
+    "info_langue": "Hahazo fampandrenesana amin'ny mailaka ianao, amin'ny teny frantsay."
   },
+  "telechargeable": {},
   "recherche": {
     "titre_accueil": "Mitady taratasy ara-pitondrana",
     "champ_saisie": "Tenon-kevitra fikarohana",
@@ -98,7 +101,7 @@
     "erreur_reseau_aide": "Jereo ny fifandraisana ary averino azafady.",
     "aucun_resultat_conseil": "Jereo ny teny, ampitsoro ny fotoana na esorino ny sivana sasany.",
     "retirer_filtre": "Esorino io sivana io",
-    "chargement_resultats": "Eo am-pakana ny vokatra… // TODO: à valider par un locuteur natif",
+    "chargement_resultats": "Eo am-pakana ny vokatra…",
     "titre": "Endrika fikarohana",
     "critere": "Marika fikarohana",
     "objet": "Lahateny",
@@ -140,17 +143,14 @@
     "suivante": "Manaraka",
     "corps_professionnels": "Mpiasa matihanina",
     "annonces": "Vaovao",
-    "web_manuelle_titre": "Fikarohana amin'ny tranonkala — TODO: à valider par un locuteur natif",
+    "web_manuelle_titre": "Fikarohana amin'ny tranonkala",
     "web_google_livres": "Fikarohana amin'ny Google Livres",
-    "web_quota": "TODO: à valider par un locuteur natif",
-    "web_lien_google_livres": "TODO: à valider par un locuteur natif",
-    "web_aide_ouverture": "TODO: à valider par un locuteur natif",
     "visitors_today": "Fijerena tao an-dianina",
     "aide": "Ampidiro teny fototra, laharana na safidy marika iray. Ampy ny mampiasa ny sivana (karazana, sehatra, toe-javatra).",
     "lien_aide": "Hijery ny fanampiana"
   },
   "documents": {
-    "admin_actions": "Asa fitantanana // TODO: à valider par un locuteur natif",
+    "admin_actions": "Asa fitantanana",
     "caption": "Antontan-taratasy ofisialin'ny MTeFOP",
     "colonne_dates": "Daty",
     "colonne_types": "Karazana",
@@ -162,7 +162,6 @@
     "en_resume": "Famintinana",
     "texte_pdf_intro": "Ny lahatsoratra ofisialy dia misy amin'ny endrika PDF.",
     "lire_texte": "Hamaky ny lahatsoratra ofisialy",
-
     "date_signature": "Daty sonia/famenoana:",
     "entree_vigueur": "Fidiran'ny hery:",
     "non_renseignee": "Tsy voafaritra",
@@ -275,6 +274,12 @@
   },
   "auth": {
     "se_connecter": "Hiditra",
+    "connexion_sous_titre": "Midira ao amin'ny sehatra fitantanana ny tranomboky nomerika.",
+    "brand_sous_titre": "Ny lalàna sy fitsipika eto Madagasikara, voaangona ao amin'ny tranomboky nomerika misokatra ho an'ny rehetra.",
+    "afficher_mot_de_passe": "Asehoy ny teny miafina",
+    "masquer_mot_de_passe": "Afeno ny teny miafina",
+    "connexion_en_cours": "Eo am-pidirana…",
+    "acces_reserve": "Ho an'ny mpampiasa manana alalana ihany.",
     "email": "Mailaka",
     "mot_de_passe": "Teny miafina",
     "mot_de_passe_oublie": "Hadino ny teny miafina?",
@@ -517,7 +522,7 @@
     "col_visites": "Visites",
     "consultations_aide_titre": "Comment lire cette page ?",
     "consultations_aide_1": "Ces chiffres sont cumulés depuis la mise en ligne : ils ne repartent jamais de zéro.",
-    "consultations_aide_2": "Ny fijerena iray = mpamiratra tsy fantena anarana, hita ihany isaky ny andro sy isaky ny lahatsoratra (fotoana eto Madagasikara) // TODO: à valider par un locuteur natif",
+    "consultations_aide_2": "Ny fijerena iray = mpamiratra tsy fantena anarana, hita ihany isaky ny andro sy isaky ny lahatsoratra (fotoana eto Madagasikara)",
     "consultations_aide_3": "Cliquez sur un en-tête de colonne pour trier ; « Voir plus » affiche la suite du classement.",
     "consultations_carte_aide": "ouvertures de textes, cumulées",
     "telechargements_carte_aide": "fichiers enregistrés, cumulés",
@@ -553,7 +558,7 @@
     "maj_le": "Nohavaozina ny antontan'isa tamin'ny {{date}}.",
     "anonymat": "Ireo antontan'isa ireo dia mitambatra: tsy misy angona manokana (adiresy IP, famantarana session) avoaka.",
     "engagement_titre": "Ny fanoloran-tenanay amin'ny fahamarinana",
-    "engagement_texte": "Manolo-tena mampahafantatra ny antontan'isa fampiasana ny angatan-dalàna ny Ministeran'ny Mpiasa, ny Asa sy ny Fanompoam-panjakana. Tsotra ny fikajiana: isaky ny andro sy isaky ny lahatsoratra, iray ihany ny mpamiratra, tsy misy famangiana angona manokana — tsy tehirizina ny adiresy IP // TODO: à valider par un locuteur natif.",
+    "engagement_texte": "Manolo-tena mampahafantatra ny antontan'isa fampiasana ny angatan-dalàna ny Ministeran'ny Mpiasa, ny Asa sy ny Fanompoam-panjakana. Tsotra ny fikajiana: isaky ny andro sy isaky ny lahatsoratra, iray ihany ny mpamiratra, tsy misy famangiana angona manokana — tsy tehirizina ny adiresy IP",
     "chargement": "Eo am-panantenana ny antontan'isa…",
     "erreur": "Tsy azo entina ny antontan'isa amin'izao."
   },
@@ -616,6 +621,9 @@
   },
   "apropos": {
     "titre_page": "Mombamomba",
+    "sous_titre": "Ny andrim-panjakana, ny iraka ary ny rafitra ara-dalàna ao amin'ny tranomboky nomerika an'ny Ministeran'ny Asa, ny Fampiasana sy ny Fanompoam-panjakana.",
+    "cta_titre": "Hizaha ny tranomboky",
+    "cta_texte": "Ireo lalàna sy fitsipika, ny fandaminana ary ny sampan'ny ministera no hita eto.",
     "page_titre": "Mombamomba — Tranomboky nomerika",
     "page_titre_base": "Tranomboky nomerika",
     "article2_source": "Didim-panjakana laharana faha 2024-055 tamin'ny 20 janoary 2024, andininy faha-2",
@@ -629,7 +637,36 @@
     "chargement": "Eo am-pikarakarana...",
     "erreur": "Tsy mety misokatra",
     "aucune_donnee": "Tsy misy angon-drakitra.",
-    "anonymat_titre": "Fikajiana ny fampidirana tsy fantena anarana // TODO: à valider par un locuteur natif",
-    "anonymat_visites": "Mikajy tsotra ny fampidirana: tsy tehirizina ny adiresy IP-nao, fa fampiasana takelaka tsy ahafahana alaina mandeha andro iray ihany // TODO: à valider par un locuteur natif."
+    "anonymat_titre": "Fikajiana ny fampidirana tsy fantena anarana",
+    "anonymat_visites": "Mikajy tsotra ny fampidirana: tsy tehirizina ny adiresy IP-nao, fa fampiasana takelaka tsy ahafahana alaina mandeha andro iray ihany"
+  },
+  "organigramme": {
+    "titre_officiel": "Fandaminan'ny Ministera",
+    "voir_officiel": "Jereo ny fandaminana ofisialy",
+    "lien_texte": "https://mtefpls.gov.mg/ministere/organigramme",
+    "nouvel_onglet": "(midina amin'ny onglet vaovao)",
+    "site_officiel": "(toeran'ny ministera ofisialy)",
+    "redirection_notice": "Hidina anao amin'ny toeran'ny ministera ofisialy.",
+    "page_en_francais": "Ny pejy ofisialy dia teny frantsay.",
+    "erreur_chargement": "Tsy azo ampidirina ny fandaminana an-toerana. Ampitaho ny fandaminana ofisialy amin'ny rohy eo ambany.",
+    "mobile_rappel": "Rehefa vita ny fomban'asa, eny ny onglet mba hiverina eto."
+  },
+  "ministere": {
+    "titre_page": "Ministera",
+    "intro": "Hitady ny fandaminana sy ny vaovao ao amin'ny toeran'ny Ministeran'ny Asa, ny Fampiasana sy ny Fitsarana Sozialy ofisialy.",
+    "choix_organigramme": "Fandaminana",
+    "choix_actualites": "Vaovao",
+    "desc_organigramme": "Rakibin'ny ministera",
+    "desc_actualites": "Vaovao farany sy filazam-bazaha",
+    "actualites": {
+      "voir_officiel": "Jereo ny vaovao ofisialy",
+      "lien_texte": "https://mtefpls.gov.mg/actualites",
+      "nouvel_onglet": "(midina amin'ny onglet vaovao)",
+      "site_officiel": "(toeran'ny ministera ofisialy)",
+      "redirection_notice": "Hidina anao amin'ny toeran'ny ministera ofisialy. Mba hiverina amin'ny tranomboky, eny ny onglet na miverena amin'ny onglet teo aloha.",
+      "page_en_francais": "Ity pejy ofisialy ity dia teny frantsay.",
+      "erreur_chargement": "Raha tsy misokatra ny pejy, andrao indray.",
+      "mobile_rappel": "Rehefa vita ny fomban'asa, eny ny onglet mba hiverina eto."
+    }
   }
 }

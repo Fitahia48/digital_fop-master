@@ -57,7 +57,7 @@ const ResetPassword = () => {
                 <div className='flex bg-white rounded-lg shadow-lg overflow-hidden w-1/2'>
                     <div className="hidden md:block w-1/2 bg-cover bg-center animate__animated animate__flipInY"
                         style={{
-                            backgroundImage: "url('../../public/forget.png')", width: "50%",
+                            backgroundImage: "url('/forget.png')", width: "50%",
                             height: "auto", backgroundSize: "cover",
                             backgroundPosition: "center",
                         }}>

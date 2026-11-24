@@ -66,9 +66,9 @@ export const requestOnboardingRestart = (navigate) => {
 };
 
 /**
- * Visite guidée d’accueil (driver.js) — 4 étapes courtes (~30 s) :
- * barre de recherche, filtres, actualités, notation de l’app.
- * Les 4 éléments cibles sont présents sur la page d’accueil (la barre de
+ * Visite guidée d’accueil (driver.js) — 3 étapes courtes (~25 s) :
+ * barre de recherche, filtres, notation de l’app.
+ * Les éléments cibles sont présents sur la page d’accueil (la barre de
  * recherche est rendue par <Documents />), aucune navigation n’est requise.
  * Lancement automatique à la première visite uniquement (flag localStorage),
  * puis sur demande explicite via « Revoir le guide ».
@@ -107,16 +107,7 @@ const OnboardingTour = () => {
             description:
               "Combinez type de document, domaine et statut juridique (en vigueur, abrogé, modifié) pour affiner vos résultats.",
           },
-        },
-        {
-          element: "#onboarding-news",
-          popover: {
-            title: "Suivre les actualités",
-            description:
-              "Les dernières informations du ministère s’affichent ici. Abonnez-vous plus bas pour recevoir les alertes de publication par email.",
-          },
-        },
-        {
+        },        {
           element: ".apprating",
           popover: {
             title: "Noter l’application",
