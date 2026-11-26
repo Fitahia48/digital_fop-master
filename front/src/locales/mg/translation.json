@@ -288,6 +288,7 @@
     "bienvenue_dashboard": "Tongasoa eto amin'ny tabilao fanaraha-maso!",
     "bienvenue_usager": "Tongasoa! Azonao atao amin'ny menio ny fangatahana.",
     "identifiants_invalides": "Tsy mety ny teny miafina na tsy fantatra ny mpampiasa",
+    "mot_de_passe_incorrect": "Tsy manokana avy-izany",
     "mdp_differents": "Tsy mifanaraka ny teny miafina.",
     "activation_cours": "Eo am-pahavitrihana…",
     "activation_attente": "Andraso kely, amonoana ny kaontinao.",
@@ -312,7 +313,14 @@
     "inscription_title": "Miaraka ho an'ny fanajana",
     "inscription_subtitle": "Tsy hita ho avy any an-dutany ny super-administratitra. Ma hahita ema'il ho an'ny tsirairay ho an'ny compte itoky iray.",
     "inscription_success": "Mivantana ho an'ny fanajana. Mafy antsika ho an'ny super-administratitra mampionana. Ma hahita ema'il ho an'ny tsirairay ho an'ny compte itoky iray.",
-    "creer_compte": "Fanajana ho an'ny"
+    "creer_compte": "Fanajana ho an'ny",
+    "login_identifiants_incorrects": "Identifiant ou mot de passe incorrect",
+    "connexion_impossible": "Connexion impossible pour le moment. Réessayez plus tard.",
+    "trop_tentatives": "Trop de tentatives. Réessayez dans quelques minutes.",
+    "compte_en_attente_connexion": "Votre compte est en attente de confirmation par un super-administrateur.",
+    "compte_rejete_connexion": "Votre demande de création de compte a été rejetée.",
+    "compte_bloque": "Compte désactivé.",
+    "compte_non_active": "Compte non activé. Veuillez vérifier vos e-mails pour activer votre compte."
   },
   "validation": {
     "nom_requis": "Ilaina ny anarana.",

@@ -346,6 +346,7 @@
     "bienvenue_dashboard": "Bienvenue sur le tableau de bord !",
     "bienvenue_usager": "Bienvenue ! Vous pouvez accéder à vos démarches depuis le menu.",
     "identifiants_invalides": "Mot de passe incorrect ou l'utilisateur inconnu",
+    "mot_de_passe_incorrect": "Mot de passe incorrect",
     "mdp_differents": "Les mots de passe ne correspondent pas.",
     "activation_cours": "Activation en cours…",
     "activation_attente": "Veuillez patienter, nous activons votre compte.",
@@ -370,7 +371,14 @@
     "inscription_title": "Créer un compte",
     "inscription_subtitle": "Votre demande sera validée par le super administrateur. Vous recevrez un e-mail une fois votre compte confirmé.",
     "inscription_success": "Votre demande a été envoyée. Elle doit être confirmée par le super administrateur. Vous recevrez un e-mail dès que votre compte sera confirmé.",
-    "creer_compte": "Créer un compte"
+    "creer_compte": "Créer un compte",
+    "login_identifiants_incorrects": "Identifiant ou mot de passe incorrect",
+    "connexion_impossible": "Connexion impossible pour le moment. Réessayez plus tard.",
+    "trop_tentatives": "Trop de tentatives. Réessayez dans quelques minutes.",
+    "compte_en_attente_connexion": "Votre compte est en attente de confirmation par un super-administrateur.",
+    "compte_rejete_connexion": "Votre demande de création de compte a été rejetée.",
+    "compte_bloque": "Compte désactivé.",
+    "compte_non_active": "Compte non activé. Veuillez vérifier vos e-mails pour activer votre compte."
   },
   "validation": {
     "nom_requis": "Le nom est requis.",

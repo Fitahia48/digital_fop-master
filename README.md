@@ -1,6 +1,6 @@
-#  Bibliothèque Numérique — MTeFoP
+#  Bibliothèque Numérique — MTEFoP
 
-Application web de **bibliothèque numérique** du Ministère du Travail, de l'Emploi et de la Fonction Publique (MTeFoP) de Madagascar.
+Application web de **bibliothèque numérique** du Ministère du Travail, de l'Emploi et de la Fonction Publique (MTEFoP) de Madagascar.
 
 Elle permet de **consulter, rechercher, publier et gérer** des textes officiels (lois, décrets, ordonnances, arrêtés), avec un assistant IA intégré et une interface multilingue (Français, Anglais, Malagasy).
 
@@ -151,15 +151,11 @@ npm run develop
 
 ---
 
-### 3. Créer le compte administrateur Strapi
 
-```bash
-node scripts/create-admin.cjs
-```
 
 ---
 
-### 4. Installer et démarrer le Frontend
+### 3. Installer et démarrer le Frontend
 
 ```bash
 cd ../front

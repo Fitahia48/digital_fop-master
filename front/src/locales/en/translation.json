@@ -346,6 +346,7 @@
     "bienvenue_dashboard": "Welcome to the dashboard!",
     "bienvenue_usager": "Welcome! You can access your requests from the menu.",
     "identifiants_invalides": "Incorrect password or unknown user",
+    "mot_de_passe_incorrect": "Incorrect password",
     "mdp_differents": "Passwords do not match.",
     "activation_cours": "Activation in progress…",
     "activation_attente": "Please wait while we activate your account.",
@@ -370,7 +371,14 @@
     "inscription_title": "Create account",
     "inscription_subtitle": "Your request will be validated by the super administrator. You will receive an email once your account is confirmed.",
     "inscription_success": "Your request has been sent. It must be confirmed by the super administrator. You will receive an email as soon as your account is confirmed.",
-    "creer_compte": "Create account"
+    "creer_compte": "Create account",
+    "login_identifiants_incorrects": "Incorrect username or password",
+    "connexion_impossible": "Unable to connect right now. Please try again later.",
+    "trop_tentatives": "Too many attempts. Please try again in a few minutes.",
+    "compte_en_attente_connexion": "Your account is pending confirmation by a super administrator.",
+    "compte_rejete_connexion": "Your account creation request was rejected.",
+    "compte_bloque": "Account disabled.",
+    "compte_non_active": "Account not activated. Please check your emails to activate your account."
   },
   "validation": {
     "nom_requis": "Last name is required.",
