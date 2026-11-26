@@ -6,16 +6,17 @@
  *  - document  : envoi UNIQUEMENT à la publication — création en état
  *    « validée » OU passage vers « validée » (afterUpdate) ;
  *  - actualité : envoi à la création uniquement (pas de brouillon) ;
- *  - anti-doublon : attribut nullable `notifie_le` posé AVANT l'envoi et jamais
- *    réinitialisé → un seul envoi par publication, même si le document repasse
- *    en brouillon puis « validée » ;
+ *  - anti-doublon : attribut nullable `notifie_le` posé AVANT l'envoi, puis
+ *    libéré UNIQUEMENT si aucun abonné n'a été servi (échec total) ; il reste
+ *    posé après un succès, même partiel → un seul envoi réussi par publication,
+ *    même si le document repasse en brouillon puis « validée » ;
  *  - aucun envoi depuis un script : lifecycles désactivés (migrate-data.ts),
  *    script in-process (aucun contexte HTTP) ou en-tête `x-no-notify: 1`
  *    (import via API type import-deaj-2026.ts) ;
  *  - un échec d'envoi ne bloque ni ne fait échouer la création / la mise à jour ;
  *  - chaque envoi (ou non-voi) est tracé dans le content-type `email-log`.
  */
-import { sendNewPublicationEmail, SITE_URL } from './mailer';
+import { sendNewPublicationEmail, SITE_URL, MAILER_ENABLED } from './mailer';
 import { getCurrentCtx } from './request-actor';
 
 const NOTIFY_HEADER = 'x-no-notify';
@@ -42,14 +43,45 @@ const shouldNotify = (): boolean => {
   return !(normalized === '1' || normalized === 'true' || normalized === 'yes');
 };
 
-/** Abonnés confirmés (les désabonnés n'existent plus en base : ils sont supprimés). */
+const RECIPIENTS_PAGE_SIZE = 200;
+
+/**
+ * Abonnés confirmés (les désabonnés n'existent plus en base : ils sont supprimés).
+ *
+ * Pagination explicite par `start`/`limit` plutôt que `limit: -1` : le
+ * comportement de `-1` dépend de la configuration Strapi, alors qu'une boucle
+ * bornée garantit de lire TOUS les abonnés, même au-delà de 200. Les adresses
+ * sont dédupliquées (insensible à la casse) par sécurité.
+ */
 const loadRecipients = async (): Promise<any[]> => {
   try {
-    return (await strapi.documents('api::subscriber.subscriber').findMany({
-      filters: { is_confirmed: true },
-      fields: ['email', 'unsubscribe_token', 'langue_preferee'],
-      limit: -1,
-    })) as any[];
+    const subscribers = strapi.documents('api::subscriber.subscriber');
+    const seen = new Set<string>();
+    const recipients: any[] = [];
+    let start = 0;
+
+    // Garde-fou : 1000 pages × 200 = 200 000 abonnés, largement suffisant.
+    for (let page = 0; page < 1000; page++) {
+      const rows = (await subscribers.findMany({
+        filters: { is_confirmed: true },
+        fields: ['email', 'unsubscribe_token', 'langue_preferee'],
+        sort: [{ id: 'asc' }],
+        start,
+        limit: RECIPIENTS_PAGE_SIZE,
+      })) as any[];
+
+      for (const row of rows) {
+        const key = String(row?.email ?? '').trim().toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        recipients.push(row);
+      }
+
+      if (rows.length < RECIPIENTS_PAGE_SIZE) break;
+      start += RECIPIENTS_PAGE_SIZE;
+    }
+
+    return recipients;
   } catch (err) {
     console.error('[notify] lecture des abonnés impossible :', (err as Error).message);
     return [];
@@ -99,20 +131,19 @@ const dispatch = async (
 ): Promise<void> => {
   const now = new Date().toISOString();
 
-  // 1. Anti-doublon : la publication est « consommée » avant l'envoi.
-  try {
-    await strapi.documents(entity.uid).update({
-      documentId: entity.documentId,
-      data: { notifie_le: now } as any,
-    });
-  } catch (err) {
-    // Sans réserve fiable, on NE PAS ENVOIE (risque de doublon pire qu'un oubli).
-    console.error('[notify] réservation impossible (notifie_le) :', (err as Error).message);
-    return;
-  }
-
-  // 2. Silence demandé (script in-process ou en-tête x-no-notify) : tracé, zéro envoi.
+  // 1. Silence demandé (script in-process ou en-tête x-no-notify) : la
+  //    publication est consommée pour ne jamais alerter plus tard, et l'action
+  //    est tracée.
   if (!shouldNotify()) {
+    try {
+      await strapi.documents(entity.uid).update({
+        documentId: entity.documentId,
+        data: { notifie_le: now } as any,
+      });
+    } catch (err) {
+      console.error('[notify] réservation impossible (notifie_le) :', (err as Error).message);
+      return;
+    }
     console.log(
       `ℹ️  [notify] ${entity.type} #${entity.id} publié SANS notification (script / x-no-notify).`
     );
@@ -127,6 +158,41 @@ const dispatch = async (
       statut: 'ignore',
       detail: 'Script in-process ou en-tête x-no-notify : aucun envoi (décision produit).',
     });
+    return;
+  }
+
+  // 2. Sans SMTP configuré, aucun envoi n'est possible : on NE consomme PAS
+  //    `notifie_le`. L'alerte pourra donc partir si le SMTP est configuré et
+  //    que la publication est re-déclenchée (ex. nouvelle validation), au lieu
+  //    d'être perdue définitivement. L'échec est journalisé explicitement.
+  if (!MAILER_ENABLED) {
+    console.error(
+      `[notify] ${entity.type} #${entity.id} : SMTP non configuré — AUCUNE alerte envoyée. ` +
+        'Renseignez SMTP_USER/SMTP_PASS (ou EMAIL_USER/EMAIL_PASSWORD) puis redémarrez Strapi.'
+    );
+    await writeEmailLog({
+      publication: entity.type,
+      titre: trimForLog(entity.titre),
+      lien: entity.lien,
+      destinataires: 0,
+      envoyes: 0,
+      echecs: 0,
+      duree_ms: 0,
+      statut: 'echec',
+      detail: 'SMTP non configuré : aucune alerte envoyée (notifie_le non posé).',
+    });
+    return;
+  }
+
+  // 3. Anti-doublon : la publication est « consommée » avant l'envoi.
+  try {
+    await strapi.documents(entity.uid).update({
+      documentId: entity.documentId,
+      data: { notifie_le: now } as any,
+    });
+  } catch (err) {
+    // Sans réserve fiable, on NE PAS ENVOIE (risque de doublon pire qu'un oubli).
+    console.error('[notify] réservation impossible (notifie_le) :', (err as Error).message);
     return;
   }
 
@@ -153,6 +219,28 @@ const dispatch = async (
         statut: statutOf(summary.total, summary.sent, summary.failed),
         detail: summary.errors.length ? summary.errors.join(' | ') : null,
       });
+
+      // Échec TOTAL (aucun abonné servi) : on libère la réservation. Personne
+      // n'a reçu l'alerte, donc une nouvelle validation peut réessayer sans
+      // créer de doublon. En cas de succès partiel, la réservation reste
+      // posée pour ne pas renvoyer aux abonnés déjà servis.
+      if (summary.total > 0 && summary.sent === 0 && summary.failed > 0) {
+        try {
+          await strapi.documents(entity.uid).update({
+            documentId: entity.documentId,
+            data: { notifie_le: null } as any,
+          });
+          console.warn(
+            `[notify] ${entity.type} #${entity.id} : envoi totalement échoué — ` +
+              'notifie_le libéré (aucun abonné n’a reçu l’alerte).'
+          );
+        } catch (releaseErr) {
+          console.error(
+            '[notify] libération de notifie_le impossible :',
+            (releaseErr as Error).message
+          );
+        }
+      }
     } catch (err) {
       console.error(
         `[notify] erreur d'envoi ${entity.type} #${entity.id} :`,

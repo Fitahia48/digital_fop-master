@@ -110,7 +110,7 @@ const trySendConfirmation = async (
 ): Promise<boolean> => {
   if (!MAILER_ENABLED) {
     console.warn(
-      `Mailer INACTIF : e-mail de confirmation non envoyé à ${email} (SMTP non configuré).`
+      `Mailer INACTIF : e-mail de confirmation non envoyé à ${maskEmail(email)} (SMTP non configuré).`
     );
     return false;
   }

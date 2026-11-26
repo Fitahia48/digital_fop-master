@@ -64,6 +64,16 @@
       "enum": ["fr", "en", "mg"],
       "default": "fr"
     },
+    "doit_changer_mot_de_passe": {
+      "type": "boolean",
+      "default": false,
+      "private": false
+    },
+    "statut_compte": {
+      "type": "string",
+      "enum": ["en_attente", "actif", "rejete"],
+      "default": "en_attente"
+    },
     "documents_modified": {
       "type": "relation",
       "relation": "oneToMany",

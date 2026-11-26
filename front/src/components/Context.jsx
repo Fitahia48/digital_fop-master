@@ -5,6 +5,8 @@ export const userContext = createContext(
         setUser:() => null,
         isAdmin: false,
         setIsAdmin: () => null,
+        isSuperAdmin: false,
+        setIsSuperAdmin: () => null,
         selectedDomaine: null,
         setSelectedDomaine: () => null,
     }
@@ -13,10 +15,11 @@ export const userContext = createContext(
 function Context({children}) {
     const [user, setUser] = useState({})
     const [isAdmin, setIsAdmin] = useState(false)
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false)
     const [selectedDomaine, setSelectedDomaine] = useState(null);
   return (
    <>
-   <userContext.Provider value={{user, setUser, isAdmin, setIsAdmin, selectedDomaine, setSelectedDomaine}}>
+   <userContext.Provider value={{user, setUser, isAdmin, setIsAdmin, isSuperAdmin, setIsSuperAdmin, selectedDomaine, setSelectedDomaine}}>
         {children}
    </userContext.Provider>
    </>

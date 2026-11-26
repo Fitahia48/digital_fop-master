@@ -15,6 +15,10 @@ const axiosInstance = axios.create({
 // garde son storage historique (« user » → { access, refresh }) : le refresh
 // part en body (refreshToken) OU repose sur le cookie, selon ce qui existe.
 const REFRESH_URL = "/api/v1/auth/jwt/refresh/";
+// Un 401 sur la connexion signifie « identifiants refusés » : le rejouer ne
+// peut pas réussir et doublait inutilement l'appel (deux POST visibles en
+// console). Ces routes sont exclues du retry automatique.
+const NO_RETRY_URLS = ["/api/v1/auth/jwt/create/", REFRESH_URL];
 const REFRESH_MARGIN_MS = 4 * 60 * 1000; // renouvelle 4 min avant l'expiration
 
 const readStoredUser = () => {
@@ -157,9 +161,9 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
-    const isRefreshCall = original?.url?.includes(REFRESH_URL);
+    const isNoRetryCall = NO_RETRY_URLS.some((url) => original?.url?.includes(url));
 
-    if (status === 401 && original && !original._retried && !isRefreshCall) {
+    if (status === 401 && original && !original._retried && !isNoRetryCall) {
       original._retried = true;
 
       const newToken = await refreshAccessToken();

@@ -40,6 +40,8 @@ import RightColumn from './components/RightColumn';
 import TransparencePage from './components/TransparencePage';
 import DocumentFiche from './components/DocumentFiche';
 import AProposPage from './components/AProposPage';
+import MonProfil from './components/MonProfil';
+import AdminAccounts from './components/AdminAccounts';
 // Page unique à onglets des statistiques (chargée en lazy : Chart.js et les
 // graphiques ne sont téléchargés qu'à l'ouverture de la page).
 const AdminStats = lazy(() => import('./components/AdminStats'));
@@ -85,7 +87,7 @@ const MargeEnteteHorsConnexion = () => {
 let visiteurPingue = false;
 
 const App = () => {
-    const { user, setUser, isAdmin, setIsAdmin } = useContext(userContext)
+    const { user, setUser, isAdmin, setIsAdmin, setIsSuperAdmin } = useContext(userContext)
     const [token] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('user') || 'null')
@@ -109,12 +111,14 @@ const App = () => {
             try {
                 const res = await axiosInstance.get('/api/v1/auth/users/me/');
                 setIsAdmin(Boolean(res.data.is_staff || res.data.is_superuser));
+                setIsSuperAdmin(Boolean(res.data.is_superadmin));
             } catch (err) {
                 const status = err.response?.status;
                 // 401 = plus de session valide : on repasse en visiteur anonyme.
                 if (status === 401) {
                     setUser({})
                     setIsAdmin(false)
+                    setIsSuperAdmin(false)
                     return;
                 }
                 console.error('Erreur lors de la récupération du profil :', err);
@@ -131,6 +135,7 @@ const App = () => {
         const onExpired = () => {
             setUser({})
             setIsAdmin(false)
+            setIsSuperAdmin(false)
         }
         window.addEventListener('auth:session-expired', onExpired)
         return () => window.removeEventListener('auth:session-expired', onExpired)
@@ -224,6 +229,25 @@ const App = () => {
                         <Route path="/a-propos" element={<AProposPage />} />
                         <Route path="/activate/:uid/:token" element={<ActivateAccountPage />} />
                         <Route path="/admin/faq" element={<ProtectedRoute isAuthenticated={user.refresh}><AdminFaq /></ProtectedRoute>} />
+                        {/* Profil de l'administrateur connecté : accessible même
+                            avec un mot de passe provisoire (seule zone autorisée). */}
+                        <Route
+                            path="/portail-gestion/profil"
+                            element={<ProtectedRoute isAuthenticated={user.refresh}><MonProfil /></ProtectedRoute>}
+                        />
+                        {/* Gestion des comptes : le serveur répond 403 à tout
+                            non-super-administrateur (double verrou avec la page). */}
+                        <Route
+                            path="/portail-gestion/administrateurs"
+                            element={<ProtectedRoute isAuthenticated={user.refresh}><AdminAccounts /></ProtectedRoute>}
+                        />
+                        {/* Inscription publique fermée : les anciennes URL
+                            (marque-pages, liens externes) reviennent à la connexion. */}
+                        <Route path="/inscription" element={<Navigate to={LOGIN_PATH} replace />} />
+                        <Route path="/inscription/" element={<Navigate to={LOGIN_PATH} replace />} />
+                        <Route path="/register" element={<Navigate to={LOGIN_PATH} replace />} />
+                        <Route path="/signup" element={<Navigate to={LOGIN_PATH} replace />} />
+                        <Route path="/creer-compte" element={<Navigate to={LOGIN_PATH} replace />} />
                         <Route path='*' element={<Accueil />} />
                     </Routes>
                     </main>

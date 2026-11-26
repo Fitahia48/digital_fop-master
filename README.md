@@ -1,4 +1,4 @@
-#  Bibliothèque Numérique DEAJ — MTeFoP
+#  Bibliothèque Numérique — MTeFoP
 
 Application web de **bibliothèque numérique** du Ministère du Travail, de l'Emploi et de la Fonction Publique (MTeFoP) de Madagascar.
 
@@ -55,13 +55,6 @@ digital_fop-master/
 ---
 
 ##  Base de données
-
-Le backend Strapi supporte **3 bases de données** configurables via la variable `DATABASE_CLIENT` :
-
-### SQLite (par défaut — développement)
-Aucune installation nécessaire. Le fichier de base est créé automatiquement dans :
-```
-strapi-backend/.tmp/data.db
 ```
 
 ### PostgreSQL (recommandé pour la production)
@@ -151,7 +144,7 @@ FRONTEND_URL=http://localhost:5173
 Lancer le backend en mode développement :
 
 ```bash
-npm run dev
+npm run develop
 ```
 
 > Le panneau d'administration Strapi est accessible sur : **http://localhost:1337/admin**
@@ -178,13 +171,40 @@ npm run dev
 
 ---
 
+##  Accès et Connexion Administrateur
+
+Le projet dispose de deux interfaces de gestion et d'administration :
+
+### 1. Portail de Gestion (Frontend React)
+* **URL d'accès :** [http://localhost:5173/portail-gestion/connexion](http://localhost:5173/portail-gestion/connexion)
+* **Rôle :** Espace de gestion réservé aux administrateurs pour administrer les textes juridiques, les corps, les domaines, visualiser les statistiques et gérer les abonnés.
+* **Fonctionnalités :**
+  - **Connexion sécurisée :** Redirection automatique vers le tableau de bord (`/dashboard`).
+  - **Mot de passe oublié :** Réinitialisation par e-mail via `/resetpassword`.
+* **Identifiants administrateur par défaut (créés via `create-admin.cjs`) :**
+
+| Identifiant (Email) | Mot de passe | Rôle |
+|---|---|---|
+| `admin.test@mtefop.mg` | `TestAdmin2026!` | Administrateur |
+| `admin@digitalfop.mg` | `Admin2026!` | Administrateur |
+| `rahasafitahiandraibe@gmail.com` | `Admin2026!` | Administrateur |
+
+---
+
+### 2. Panneau d'administration Strapi (Backend CMS)
+* **URL d'accès :** [http://localhost:1337/admin](http://localhost:1337/admin)
+* **Rôle :** Gestion complète du CMS Strapi (modèles de données, médiathèque, configuration des rôles et permissions, gestion directe de la base de données).
+* **Super Administrateur Strapi :** `rahasafitahiandraibe@gmail.com` / `Admin2026!`
+
+---
+
 ##  Scripts disponibles
 
 ### Backend (`strapi-backend/`)
 
 | Commande | Description |
 |---|---|
-| `npm run dev` | Démarrer en mode développement |
+| `npm run develop` | Démarrer en mode développement |
 | `npm run build` | Compiler pour la production |
 | `npm run start` | Démarrer en mode production |
 

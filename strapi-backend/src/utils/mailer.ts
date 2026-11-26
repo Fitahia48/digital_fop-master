@@ -11,8 +11,8 @@
  *   résumé d'envoi structuré renvoyé à l'appelant.
  * - Délivrabilité : en-tête List-Unsubscribe (lien personnel du jeton) sur
  *   les alertes de publication, version texte brute toujours fournie.
- * - Logs : adresses e-mail masquées (j***@gmail.com) hors affichage console
- *   de développement.
+ * - Logs : adresses e-mail masquées (j***@gmail.com), y compris dans l'aperçu
+ *   console de développement ; les jetons UUID y sont également masqués.
  *
  * Utilisé par les lifecycle hooks (alertes de publication) et les controllers
  * custom (subscribe / unsubscribe). Fire-and-forget : ne rejette jamais.
@@ -68,6 +68,21 @@ export const maskEmail = (email?: string | null): string => {
   if (at <= 0) return '***';
   return `${raw.charAt(0)}***${raw.slice(at)}`;
 };
+
+/**
+ * Retire toute adresse e-mail d'un message d'erreur SMTP avant journalisation.
+ * Les réponses serveur peuvent citer le destinataire ; on ne veut jamais
+ * d'adresse complète dans les logs ni dans le journal d'envoi.
+ */
+export const redactEmails = (value: unknown): string =>
+  String(value ?? '').replace(/[^\s<>()",';:]+@[^\s<>()",';:]+/g, '[adresse masquée]');
+
+/** Masque les jetons UUID (confirmation / désabonnement) dans un aperçu console. */
+const redactTokens = (value: string): string =>
+  value.replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    '***jeton***'
+  );
 
 const banner = (lines: string[]) => {
   const line = '═'.repeat(78);
@@ -226,17 +241,17 @@ interface MailOptions {
  */
 const logMailToConsole = (options: MailOptions) => {
   const line = '─'.repeat(60);
-  const bcc = options.bcc ? ` (cci : ${options.bcc})` : '';
+  const bcc = options.bcc ? ` (cci : ${maskEmail(options.bcc)})` : '';
   console.log(
     [
       '',
       line,
       '📧 MAIL NON ENVOYÉ (développement — aucun SMTP configuré)',
-      `À      : ${options.to || '(non défini)'}${bcc}`,
+      `À      : ${options.to ? maskEmail(options.to) : '(non défini)'}${bcc}`,
       `Langue : ${options.lang || 'fr'}`,
       `Sujet  : ${options.subject}`,
       line,
-      options.text || (options.html ? '[contenu HTML]' : ''),
+      redactTokens(options.text || (options.html ? '[contenu HTML]' : '')),
       line,
       '',
     ].join('\n')
@@ -293,7 +308,7 @@ const sendMailOnce = async (options: MailOptions): Promise<SendResult> => {
       return { ok: true, attempts };
     } catch (err) {
       lastErr = err;
-      lastError = (err as Error).message || String(err);
+      lastError = redactEmails((err as Error).message || String(err));
       const transient = isTransientError(err);
       console.error(
         `Mailer : échec essai ${attempt}/${RETRY_ATTEMPTS}${transient ? ' (temporaire)' : ' (permanent)'} → ${maskEmail(options.to)} : ${lastError}`
@@ -303,7 +318,7 @@ const sendMailOnce = async (options: MailOptions): Promise<SendResult> => {
     }
   }
   // Aide lisible une seule fois, après épuisement des essais (adresse masquée).
-  console.error(`Mailer : envoi abandonné → ${maskEmail(options.to)} — cause : ${explainSmtpError(lastErr)}`);
+  console.error(`Mailer : envoi abandonné → ${maskEmail(options.to)} — cause : ${redactEmails(explainSmtpError(lastErr))}`);
   return { ok: false, attempts, error: lastError };
 };
 
@@ -312,7 +327,7 @@ const sendMail = async (options: MailOptions): Promise<boolean> =>
   (await sendMailOnce(options)).ok;
 
 /** Rend un gabarit puis envoie le mail correspondant. */
-const sendTemplatedMail = async (
+export const sendTemplatedMail = async (
   to: string,
   lang: string | null | undefined,
   templateName: string,
@@ -432,6 +447,10 @@ export const sendNewPublicationEmail = async (
   // Sujet : titre BRUT (tronqué, sans entité HTML) — seul le corps reçoit le titre échappé.
   const titreSubject = subjectTitle(titre);
   const titreHtml = escapeHtml(titre);
+  const totalBatches = Math.ceil(normalized.length / BATCH_SIZE);
+  console.log(
+    `📧 [${type}] « ${subjectTitle(titre).slice(0, 60)} » — envoi à ${normalized.length} abonné(s) confirmé(s), ${totalBatches} lot(s) de ${BATCH_SIZE} max.`
+  );
 
   for (let i = 0; i < normalized.length; i += BATCH_SIZE) {
     const batch = normalized.slice(i, i + BATCH_SIZE);
@@ -482,6 +501,16 @@ export const sendNewPublicationEmail = async (
         if (r.error && summary.errors.length < 5) summary.errors.push(r.error);
       }
     }
+
+    // Journal par lot : succès et échecs, sans aucune adresse.
+    const batchSent = results.filter((r) => r.ok).length;
+    const batchFailed = results.length - batchSent;
+    const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+    const firstError = results.find((r) => !r.ok && r.error)?.error;
+    console.log(
+      `📧 [${type}] lot ${batchIndex}/${totalBatches} — ${batchSent} envoyé(s), ${batchFailed} échec(s)` +
+        (firstError ? ` — cause : ${String(firstError).slice(0, 160)}` : '')
+    );
 
     // Pause entre les lots pour respecter les quotas SMTP (pas après le dernier).
     if (BATCH_PAUSE_MS > 0 && i + BATCH_SIZE < normalized.length) {

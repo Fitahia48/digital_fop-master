@@ -3,6 +3,12 @@
  *
  * Toutes publiques (auth: false) : le contrôle d'accès est fait dans le contrôleur
  * (login par mot de passe, /users/me résout le Bearer ou le refresh du body).
+ *
+ * L'INSCRIPTION PUBLIQUE est une DEMANDE de compte : POST /v1/auth/users et
+ * /v1/auth/users/ créent un compte au statut « en_attente » (nom, prénom,
+ * e-mail, mot de passe). Il ne peut pas se connecter avant confirmation par un
+ * super-administrateur. La route U&P native /api/auth/local/register reste
+ * refusée (allow_register = false posé au démarrage, cf. src/index.ts).
  */
 export default {
   routes: [

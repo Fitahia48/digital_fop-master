@@ -1,19 +1,6 @@
 import axiosInstance from '../../components/AxiosConfig'
 
-// Register user — POST /api/v1/auth/users/ (module auth-compat : garde la
-// validation legacy { password: [...] } / { email: [...] } et crée un compte
-// non confirmé + email d'activation, comme l'ancien backend).
-const register = async (userData) => {
-    const config = {
-        headers:{
-            "Content-type": "application/json"
-        }
-    }
-    const response = await axiosInstance.post('/api/v1/auth/users/',userData,config)
-    return response.data
-}
-
-//Login user — POST /api/v1/auth/jwt/create/ (auth-compat → Users & Permissions)
+// Login user — POST /api/v1/auth/jwt/create/ (auth-compat → Users & Permissions)
 // Réponse : { access, refresh, redirect_url } (forme legacy conservée côté Strapi).
 const login = async (userData) => {
     const response = await axiosInstance.post("/api/v1/auth/jwt/create/", userData);
@@ -24,9 +11,18 @@ const login = async (userData) => {
     return response.data;
 };
 
+// Inscription publique — crée un compte admin en_attente
+// POST /api/v1/auth/users/ crée un compte rôle admin, statut en_attente
+// Le compte ne peut pas se connecter avant confirmation par super-admin
+// Le serveur ignore le champ role (toujours "admin")
+// Réponse : { user, confirmation_message }
+const register = async (userData) => {
+    const response = await axiosInstance.post("/api/v1/auth/users/", userData);
+    return response.data;
+};
 
 //Logout — retire le storage local et révoque la session Strapi (best effort)
-const logout = ()=>{
+const logout = ()=> {
     // Le refresh token doit être lu AVANT de purger le storage : l'appel est
     // envoyé avec (sans quoi la session reste active côté Strapi). Le cookie
     // httpOnly fait aussi office de repli.
@@ -42,28 +38,27 @@ const logout = ()=>{
     return localStorage.removeItem("user")
 }
 
-
 //reset Password
 const resetPassword = async (userData) => {
     const config = {
-        headers:{
+        headers: {
             "Content-type": "application/json"
         }
     }
-    const response = await axiosInstance.post('/api/v1/auth/users/reset_password/',userData,config)
+    const response = await axiosInstance.post('/api/v1/auth/users/reset_password/', userData, config)
     return response.data
 }
 
-//reset Password
+//reset Password Confirm
 const resetPasswordConfirm = async (userData) => {
     const config = {
-        headers:{
+        headers: {
             "Content-type": "application/json"
         }
     }
-    const response = await axiosInstance.post('/api/v1/auth/users/reset_password_confirm/',userData,config)
+    const response = await axiosInstance.post('/api/v1/auth/users/reset_password_confirm/', userData, config)
     return response.data
 }
 
-const authService = {register, login, logout, resetPassword, resetPasswordConfirm}
+const authService = { login, logout, register, resetPassword, resetPasswordConfirm }
 export default authService

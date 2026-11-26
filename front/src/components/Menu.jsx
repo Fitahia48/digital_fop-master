@@ -14,7 +14,7 @@ const Menu = ({ onSelectDomaine }) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const { user, setUser, isAdmin, setIsAdmin } = useContext(userContext)
+  const { user, setUser, isAdmin, setIsAdmin, isSuperAdmin, setIsSuperAdmin } = useContext(userContext)
 
   const handleRevoirGuide = () => {
     SetisMenuOpen(false)
@@ -30,8 +30,11 @@ const Menu = ({ onSelectDomaine }) => {
     dispatch(logout()) // vide le localStorage + révoque le refresh token (best effort)
     setUser('')
     setIsAdmin(false) // pas d'état admin fantôme après déconnexion
+    setIsSuperAdmin(false)
     dispatch(reset())
-    navigate("/")
+    // Après déconnexion, retour à l'écran de connexion (replace : pas de retour
+    // arrière vers une page de la session terminée).
+    navigate("/portail-gestion/connexion", { replace: true })
   }
 
   // Thèmes du select « Accès par thème ». La liste est rechargée aussi quand la
@@ -120,6 +123,24 @@ const Menu = ({ onSelectDomaine }) => {
       type: 'link'
     },
     {
+      // Profil : tout administrateur connecté peut modifier SES informations et
+      // son mot de passe (identité lue dans le jeton côté serveur).
+      id: 'profil',
+      labelKey: 'menu.mon_profil',
+      route: '/portail-gestion/profil',
+      authOnly: true,
+      type: 'link'
+    },
+    {
+      // Gestion des comptes : super-administrateur uniquement.
+      id: 'administrateurs',
+      labelKey: 'menu.administrateurs',
+      route: '/portail-gestion/administrateurs',
+      authOnly: true,
+      superAdminOnly: true,
+      type: 'link'
+    },
+    {
       id: 'revoir-guide',
       labelKey: 'menu.revoir_guide',
       route: null,
@@ -148,9 +169,14 @@ const Menu = ({ onSelectDomaine }) => {
   // Filtrage selon l'authentification (sans changer les règles) —
   // adminOnly en plus : l'élément n'apparaît que pour un administrateur.
   const authItems = menuItems.filter(
-    item => (!item.authOnly || user?.refresh) && (!item.adminOnly || isAdmin)
+    item =>
+      (!item.authOnly || user?.refresh) &&
+      (!item.adminOnly || isAdmin) &&
+      (!item.superAdminOnly || isSuperAdmin)
   );
-  const unauthItems = menuItems.filter(item => !item.authOnly && !item.adminOnly);
+  const unauthItems = menuItems.filter(
+    item => !item.authOnly && !item.adminOnly && !item.superAdminOnly
+  );
 
   // Rendu d'un élément selon son type
   const renderItem = (item) => {

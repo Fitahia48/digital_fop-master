@@ -16,6 +16,47 @@ import { legacyUserProfile, resolveUserFromCtx } from '../utils/legacy';
 
 const UP_USER_UID = 'plugin::users-permissions.user';
 
+/*
+ * Limitation des tentatives de connexion (5 échecs / 15 min / adresse IP).
+ *
+ * Compteur en mémoire, mono-instance — même approche que
+ * `chatbot.isRateLimited` (api/faq/services/chatbot.ts). Suffisant pour une
+ * seule instance Strapi ; en cas de plusieurs instances, chaque instance
+ * compte séparément (protection dégradée, jamais absente).
+ *
+ * Le message renvoyé est TOUJOURS générique (429) : il ne révèle ni l'existence
+ * du compte, ni le nombre exact de tentatives restantes, et ne journalise
+ * jamais l'e-mail saisi.
+ */
+const LOGIN_MAX_FAILURES = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginFailures = new Map<string, number[]>();
+
+const loginKey = (ctx: any): string => String(ctx?.request?.ip ?? ctx?.ip ?? 'inconnu');
+
+const recentFailures = (key: string, now = Date.now()): number[] =>
+  (loginFailures.get(key) || []).filter((t) => now - t < LOGIN_WINDOW_MS);
+
+const isLoginRateLimited = (key: string): boolean =>
+  recentFailures(key).length >= LOGIN_MAX_FAILURES;
+
+const recordLoginFailure = (key: string): void => {
+  const now = Date.now();
+  const kept = recentFailures(key, now);
+  kept.push(now);
+  loginFailures.set(key, kept);
+  // Garde-fou mémoire : purge des entrées dont la fenêtre est expirée.
+  if (loginFailures.size > 5000) {
+    for (const [entryKey] of loginFailures) {
+      if (recentFailures(entryKey, now).length === 0) loginFailures.delete(entryKey);
+    }
+  }
+};
+
+const clearLoginFailures = (key: string): void => {
+  loginFailures.delete(key);
+};
+
 /** Génère la paire access + refresh pour un usager (mode refresh). */
 const issueTokenPair = async (userId: number | string) => {
   const sessionManager = strapi.sessionManager('users-permissions');
@@ -32,14 +73,23 @@ const issueTokenPair = async (userId: number | string) => {
 export default {
   // ─── POST /api/v1/auth/jwt/create — login ───────────────────────────────────
   async login(ctx: any) {
+    const rateLimitKey = loginKey(ctx);
+    if (isLoginRateLimited(rateLimitKey)) {
+      ctx.status = 429;
+      ctx.body = { detail: 'Trop de tentatives de connexion. Réessayez dans quelques minutes.' };
+      return;
+    }
+
     try {
       const { email, password } = ctx.request.body || {};
       if (!email || !password) {
         throw new ValidationError('Email et mot de passe requis.');
       }
 
+      // Même normalisation qu'à l'inscription : un espace avant/après l'adresse
+      // (copier-coller) ne doit pas produire un faux « identifiants incorrects ».
       const user = await strapi.db.query(UP_USER_UID).findOne({
-        where: { email: String(email).toLowerCase() },
+        where: { email: String(email).trim().toLowerCase() },
         populate: ['role'],
       });
       if (!user) throw new UnauthorizedError('Identifiants incorrects.');
@@ -47,15 +97,38 @@ export default {
       if (user.confirmed === false) {
         throw new UnauthorizedError('Compte non activé. Veuillez vérifier vos e-mails pour activer votre compte.');
       }
+      // Statut de la demande de compte : un compte « en_attente » ne peut pas se
+      // connecter avant confirmation par un super-administrateur, un compte
+      // « rejete » est définitivement refusé. Les comptes antérieurs à l'ajout du
+      // champ (statut NULL) restent autorisés.
+      if (user.statut_compte === 'en_attente') {
+        throw new UnauthorizedError(
+          'Votre compte est en attente de confirmation par un super-administrateur.'
+        );
+      }
+      if (user.statut_compte === 'rejete') {
+        throw new UnauthorizedError('Votre demande de création de compte a été rejetée.');
+      }
 
       const userService = strapi.plugin('users-permissions').service('user');
       const passwordOk = await userService.validatePassword(password, user.password);
       if (!passwordOk) throw new UnauthorizedError('Identifiants incorrects.');
 
       const tokens = await issueTokenPair(user.id);
-      ctx.body = { ...tokens, redirect_url: '/dashboard' };
+      clearLoginFailures(rateLimitKey);
+
+      // Mot de passe provisoire (compte créé par un super-administrateur ou par
+      // le script create-super-admin) : le front redirige vers le profil, et
+      // les endpoints d'administration répondent 403 tant qu'il n'est pas changé.
+      const mustChangePassword = user.doit_changer_mot_de_passe === true;
+      ctx.body = {
+        ...tokens,
+        redirect_url: mustChangePassword ? '/portail-gestion/profil' : '/dashboard',
+        doit_changer_mot_de_passe: mustChangePassword,
+      };
     } catch (err: any) {
       if (err instanceof UnauthorizedError || err instanceof ValidationError || err instanceof ApplicationError) {
+        if (err instanceof UnauthorizedError) recordLoginFailure(rateLimitKey);
         ctx.status = (err as any).status ?? 401;
         ctx.body = { detail: err.message };
         return;
@@ -179,97 +252,82 @@ export default {
     }
   },
 
-  // ─── POST /api/v1/auth/users — inscription administrateur (inactif + email) ──
+  // ─── POST /api/v1/auth/users — demande de création de compte ────────────────
+  // Reçoit nom, prénom, e-mail et mot de passe. Le compte est créé au statut
+  // « en_attente » : il ne peut pas se connecter tant qu'un super-administrateur
+  // ne l'a pas confirmé (e-mail de confirmation envoyé à ce moment-là).
   async register(ctx: any) {
+    const invalide = (field: string, message: string) => {
+      ctx.status = 400;
+      ctx.body = { detail: message, [field]: [message] };
+    };
+
     try {
-      const { nom, prenom, email, password, re_password, langue_preferee } = ctx.request.body || {};
-      if (!email || !password) {
-        throw new ValidationError('Email et mot de passe requis.');
+      const body = ctx.request.body || {};
+      const email = String(body.email ?? '').trim().toLowerCase();
+      const nom = String(body.nom ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      const prenom = String(body.prenom ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      const password = String(body.password ?? '');
+
+      if (!prenom) return invalide('prenom', 'Le prénom est requis.');
+      if (!nom) return invalide('nom', 'Le nom est requis.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return invalide('email', 'Adresse e-mail invalide.');
       }
-      if (re_password && password !== re_password) {
-        ctx.status = 400;
-        ctx.body = { detail: 'Les mots de passe ne correspondent pas.', password: ['Les mots de passe ne correspondent pas.'] };
-        return;
-      }
-      if (String(password).length < 8) {
-        ctx.status = 400;
-        ctx.body = { detail: 'Le mot de passe doit contenir au moins 8 caractères.', password: ['Le mot de passe doit contenir au moins 8 caractères.'] };
-        return;
+      if (password.length < 6) {
+        return invalide('password', 'Le mot de passe doit contenir au moins 6 caractères.');
       }
 
-      const normalizedEmail = String(email).trim().toLowerCase();
-      const existing = await strapi.db.query(UP_USER_UID).count({ where: { email: normalizedEmail } });
+      const existing = await strapi.db.query(UP_USER_UID).count({ where: { email } });
       if (existing > 0) {
-        ctx.status = 400;
-        ctx.body = { detail: 'Un utilisateur avec cet email existe déjà.', email: ['Un utilisateur avec cet email existe déjà.'] };
-        return;
+        return invalide('email', 'Un compte avec cette adresse e-mail existe déjà.');
       }
 
-      // Rôle Administrateur (ou repli sur Authenticated)
-      let role = await strapi.db.query('plugin::users-permissions.role').findOne({
-        where: { type: 'administrateur' },
-      });
+      // Seuls les administrateurs possèdent un compte : la demande est rattachée
+      // au rôle « Administrateur », puis validée (ou rejetée) par un
+      // super-administrateur depuis la gestion des comptes.
+      const role = await strapi.db
+        .query('plugin::users-permissions.role')
+        .findOne({ where: { type: 'administrateur' } });
       if (!role) {
-        role = await strapi.db.query('plugin::users-permissions.role').findOne({
-          where: { name: 'Administrateur' },
-        });
-      }
-      if (!role) {
-        role = await strapi.db.query('plugin::users-permissions.role').findOne({
-          where: { type: 'authenticated' },
-        });
+        console.error('[auth-compat] register error: rôle « administrateur » introuvable');
+        ctx.status = 500;
+        ctx.body = { detail: 'Erreur serveur.' };
+        return;
       }
 
       const userService = strapi.plugin('users-permissions').service('user');
       const created = await userService.add({
-        username: normalizedEmail,
-        email: normalizedEmail,
+        username: email,
+        email,
         provider: 'local',
         password,
-        confirmed: false, // inactif jusqu'à la confirmation par email
+        // Pas de flux d'activation par lien : le compte reste bloqué par
+        // statut_compte tant qu'un super-administrateur ne l'a pas confirmé.
+        confirmed: true,
         blocked: false,
-        role: role?.id,
-        nom: nom || '',
-        prenom: prenom || '',
-        is_staff: true,
-        is_superuser: false,
+        role: role.id,
+        nom,
+        prenom,
+        langue_preferee: 'fr',
       });
 
-      // Émission du jeton d'activation
-      const token = strapi.plugin('users-permissions').service('jwt').issue({
-        id: created.id,
-        email: normalizedEmail,
+      // `user.add` applique le défaut du schéma (« en_attente ») : on le fixe
+      // explicitement pour que le statut soit toujours celui attendu.
+      await strapi.db.query(UP_USER_UID).update({
+        where: { id: created.id },
+        data: { statut_compte: 'en_attente' },
       });
 
-      // Envoi de l'email d'activation
-      const { sendActivationEmail } = await import('../../../utils/mailer');
-      const uidBase64 = Buffer.from(String(created.id)).toString('base64');
-      const emailSent = await sendActivationEmail(
-        normalizedEmail,
-        uidBase64,
-        token,
-        langue_preferee || 'fr'
-      ).catch((err: any) => {
-        console.warn("Erreur envoi email d'activation:", err.message);
-        return false;
-      });
+      // Journal sans donnée personnelle : ni e-mail ni mot de passe.
+      console.log(`[auth-compat] Demande de compte enregistrée (#${created.id})`);
 
       ctx.status = 201;
       ctx.body = {
-        id: created.id,
-        nom,
-        prenom,
-        email: normalizedEmail,
-        is_active: false,
-        email_sent: emailSent,
-        detail: 'Compte administrateur créé avec succès ! Un e-mail de confirmation vous a été envoyé pour activer votre compte.',
+        detail:
+          'Votre demande a été envoyée. Elle doit être confirmée par un super-administrateur.',
       };
     } catch (err: any) {
-      if (err instanceof ValidationError || err instanceof ApplicationError) {
-        ctx.status = 400;
-        ctx.body = { detail: err.message };
-        return;
-      }
       console.error('[auth-compat] register error:', err.message);
       ctx.status = 500;
       ctx.body = { detail: 'Erreur serveur.' };

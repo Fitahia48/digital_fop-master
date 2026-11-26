@@ -1590,6 +1590,8 @@ export interface PluginUsersPermissionsUser
       'oneToMany',
       'api::document.document'
     >;
+    doit_changer_mot_de_passe: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
     email: Schema.Attribute.Email &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
@@ -1621,6 +1623,8 @@ export interface PluginUsersPermissionsUser
       'manyToOne',
       'plugin::users-permissions.role'
     >;
+    statut_compte: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'en_attente'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

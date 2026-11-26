@@ -8,8 +8,9 @@ import { notifyDocumentPublication } from '../../../../utils/notify';
  *   ne déclenche RIEN ;
  * - afterUpdate  : uniquement lors d'un passage EXPLICITE vers « validée »
  *   (`params.data.etat_notice === 'validee'` — route etat-notice ou panneau) ;
- * - anti-doublon : `notifie_le` (posé dans notify.ts, jamais réinitialisé) —
- *   retour brouillon puis « validée » → AUCUN second envoi ;
+ * - anti-doublon : `notifie_le` (posé dans notify.ts) — retour brouillon puis
+ *   « validée » → AUCUN second envoi ; il n'est libéré qu'en cas d'échec TOTAL
+ *   de l'envoi (aucun abonné servi), pour permettre une reprise sans doublon ;
  * - scripts : aucun envoi (pas de contexte HTTP, ou en-tête x-no-notify).
  *
  * Un échec d'envoi ne bloque jamais la création ni la mise à jour.

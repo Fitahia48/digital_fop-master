@@ -110,6 +110,21 @@ async function main() {
     const allActionsAuth = upService.getActions({ defaultEnable: false });
     const allActionsAdmin = upService.getActions({ defaultEnable: true });
 
+    // ─── Inscription publique : fermée pour TOUS les rôles ──────────────────
+    // Les comptes sont créés par un super-administrateur (module
+    // admin-accounts) ou par `npm run create-super-admin`. L'action
+    // `auth.register` ne doit être accordée à aucun rôle, même si
+    // `allow_register` est déjà à false (double verrou).
+    const REGISTER_ACTION = 'plugin::users-permissions.auth.register';
+    const disableAction = (permissions: Record<string, any>, action: string): void => {
+      const [type, controller, actionName] = action.split('.');
+      const target = permissions[type]?.controllers?.[controller]?.[actionName];
+      if (target) target.enabled = false;
+    };
+    for (const permissions of [allActionsPublic, allActionsAuth, allActionsAdmin]) {
+      disableAction(permissions, REGISTER_ACTION);
+    }
+
     const publicRole = await app.db
       .query('plugin::users-permissions.role')
       .findOne({ where: { type: 'public' } });
@@ -119,6 +134,9 @@ async function main() {
     const adminRole = await app.db
       .query('plugin::users-permissions.role')
       .findOne({ where: { name: 'Administrateur' } });
+    const superAdminRole = await app.db
+      .query('plugin::users-permissions.role')
+      .findOne({ where: { type: 'super_admin' } });
 
     for (const action of [...AUTH_PUBLIC_ACTIONS, ...PUBLIC_ACTIONS]) {
       enableAction(allActionsPublic, action);
@@ -156,6 +174,11 @@ async function main() {
           adminRole ? 'rôle présent, toutes les actions seront activées' : 'rôle introuvable'
         }`
       );
+      console.log(
+        `[assign-permissions] Super-administrateur (dry-run): ${
+          superAdminRole ? 'rôle présent, toutes les actions seront activées' : 'rôle absent (créé par create-super-admin)'
+        }`
+      );
       return;
     }
 
@@ -173,6 +196,17 @@ async function main() {
       );
     } else {
       console.warn('[assign-permissions] Rôle "Administrateur" introuvable — ignoré.');
+    }
+
+    // Le super-administrateur reçoit les mêmes actions que l'Administrateur
+    // (la gestion des comptes est contrôlée dans le contrôleur, pas par une
+    // permission U&P). Le rôle peut ne pas encore exister : il est créé par
+    // `npm run create-super-admin`.
+    if (superAdminRole) {
+      await roleService.updateRole(superAdminRole.id, { permissions: allActionsAdmin });
+      console.log(
+        `[assign-permissions] Rôle Super-administrateur (id=${superAdminRole.id}) mis à jour (toutes les actions).`
+      );
     }
   } finally {
     await app.destroy();

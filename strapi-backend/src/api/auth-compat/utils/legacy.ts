@@ -5,24 +5,35 @@
  * (user.validatePassword, sessionManager('users-permissions')), comme le font
  * les contrôleurs du plugin eux-mêmes.
  */
+import { isAdminUser, isSuperAdminUser } from '../../../utils/roles';
 
-/** Forme legacy du profil usager (colonnes SQL historiques + is_staff/is_superuser dérivés du rôle). */
+/**
+ * Forme legacy du profil usager (colonnes SQL historiques + is_staff/is_superuser
+ * dérivés du rôle + rôle exposé en lecture seule).
+ *
+ * - `is_staff`     : administrateur (rôle « Administrateur » ou supérieur) ;
+ * - `is_superuser` : super-administrateur uniquement ;
+ * - `is_superadmin` : alias explicite pour le front ;
+ * - `doit_changer_mot_de_passe` : vrai tant que le mot de passe provisoire n'a
+ *   pas été remplacé (l'accès reste alors limité au profil).
+ */
 export const legacyUserProfile = (user: any) => {
   const role = user?.role;
-  const roleName = typeof role === 'object' && role !== null ? role.name : undefined;
-  const isAdmin =
-    (typeof roleName === 'string' && roleName.trim().toLowerCase() === 'administrateur') ||
-    user?.is_staff === true ||
-    user?.is_superuser === true;
+  const isAdmin = isAdminUser(user);
+  const isSuperAdmin = isSuperAdminUser(user);
   return {
     id: user.id,
     nom: user.nom ?? null,
     prenom: user.prenom ?? null,
     email: user.email,
+    role: typeof role === 'object' && role !== null ? role.name ?? null : null,
+    role_type: typeof role === 'object' && role !== null ? role.type ?? null : null,
     is_staff: isAdmin,
-    is_superuser: isAdmin,
+    is_superuser: isSuperAdmin,
+    is_superadmin: isSuperAdmin,
     is_active: user.confirmed !== false && user.blocked !== true,
     langue_preferee: user.langue_preferee ?? 'fr',
+    doit_changer_mot_de_passe: user.doit_changer_mot_de_passe === true,
     date_joined: user.createdAt ?? null,
   };
 };
