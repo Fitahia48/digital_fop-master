@@ -183,18 +183,9 @@ Le projet dispose de deux interfaces de gestion et d'administration :
   - **Mot de passe oublié :** Réinitialisation par e-mail via `/resetpassword`.
 * **Identifiants administrateur par défaut (créés via `create-admin.cjs`) :**
 
-| Identifiant (Email) | Mot de passe | Rôle |
-|---|---|---|
-| `admin.test@mtefop.mg` | `TestAdmin2026!` | Administrateur |
-| `admin@digitalfop.mg` | `Admin2026!` | Administrateur |
-| `rahasafitahiandraibe@gmail.com` | `Admin2026!` | Administrateur |
 
 ---
-
-### 2. Panneau d'administration Strapi (Backend CMS)
-* **URL d'accès :** [http://localhost:1337/admin](http://localhost:1337/admin)
-* **Rôle :** Gestion complète du CMS Strapi (modèles de données, médiathèque, configuration des rôles et permissions, gestion directe de la base de données).
-* **Super Administrateur Strapi :** `rahasafitahiandraibe@gmail.com` / `Admin2026!`
+`
 
 ---
 
@@ -275,7 +266,6 @@ front/src/
 
 ##  Variables d'environnement importantes
 
->  Ne jamais versionner le fichier `.env` sur Git. Utiliser `.env.example` comme modèle.
 
 | Variable | Description |
 |---|---|
