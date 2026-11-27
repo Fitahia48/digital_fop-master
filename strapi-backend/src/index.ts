@@ -187,6 +187,67 @@ const seedFaq = async (strapi: Core.Strapi) => {
   }
 };
 
+const DOCUMENT_UID = 'api::document.document';
+
+/**
+ * Publication unique des notices restées en « brouillon ».
+ *
+ * Constat : la liste du front (GET /api/documents/) ne renvoie au public que
+ * les notices `etat_notice = 'validee'`. Or le panneau d'administration Strapi
+ * créait chaque document en « brouillon » (valeur par défaut du schéma) et
+ * aucune interface ne permet de valider une notice : les documents ajoutés
+ * depuis Strapi existaient en base (Postgres) et dans le panneau, mais
+ * n'apparaissaient JAMAIS dans « Afficher les documents ».
+ *
+ * Correctifs : le défaut du schéma est passé à « validee » (tout nouveau
+ * document est donc visible immédiatement) ; cette migration publie en plus,
+ * une seule fois, les notices déjà créées en « brouillon ».
+ *
+ * - idempotente : un drapeau en base (store « document-notices ») empêche
+ *   toute réexécution, donc un brouillon volontaire créé plus tard n'est
+ *   jamais publié par un redémarrage ;
+ * - silencieuse côté abonnés : l'écriture passe par la couche `db.query`
+ *   (pas de lifecycle afterUpdate) → aucun e-mail de publication n'est émis
+ *   pour ces documents déjà existants.
+ */
+const publierNoticesEnAttente = async (strapi: Core.Strapi) => {
+  const DRAPEAU = 'notices-brouillon-publiees-v1';
+  const store = strapi.store({ type: 'core', name: 'document-notices' } as any);
+  try {
+    if (await store.get({ key: DRAPEAU })) return;
+
+    const enAttente = (await strapi.documents(DOCUMENT_UID).findMany({
+      filters: { etat_notice: 'brouillon' } as any,
+      limit: -1,
+    })) as any[];
+
+    let publies = 0;
+    for (const row of enAttente) {
+      try {
+        await strapi.db.query(DOCUMENT_UID).update({
+          where: { id: row.id },
+          data: { etat_notice: 'validee' } as any,
+        });
+        publies += 1;
+      } catch (err) {
+        strapi.log.warn(
+          `[documents] notice #${row.id} non publiée : ${(err as Error).message}`
+        );
+      }
+    }
+
+    await store.set({ key: DRAPEAU, value: { date: new Date().toISOString(), publies } });
+    if (publies > 0) {
+      strapi.log.info(
+        `[documents] ${publies} notice(s) « brouillon » publiée(s) : elles sont désormais visibles dans « Afficher les documents »`
+      );
+    }
+  } catch (err) {
+    // Ne bloque jamais le démarrage : au pire la migration retentera au boot suivant.
+    strapi.log.warn(`[documents] publication des brouillons impossible : ${(err as Error).message}`);
+  }
+};
+
 const A_PROPOS_FR = {
   titre: 'À propos',
   // Citation exacte — décret n°2024-055 du 20 janvier 2024, article 2.
@@ -313,6 +374,7 @@ export default {
    * empreintes de visiteurs (rétention, voir utils/comptage.ts).
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    await publierNoticesEnAttente(strapi);
     await seedAPropos(strapi);
     await seedFaq(strapi);
     planifierPurgeEmpreintes(strapi);

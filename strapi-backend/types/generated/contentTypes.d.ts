@@ -685,7 +685,7 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
     etat_notice: Schema.Attribute.Enumeration<
       ['brouillon', 'a_valider', 'validee']
     > &
-      Schema.Attribute.DefaultTo<'brouillon'>;
+      Schema.Attribute.DefaultTo<'validee'>;
     fichier: Schema.Attribute.Media;
     inclus_journal: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
