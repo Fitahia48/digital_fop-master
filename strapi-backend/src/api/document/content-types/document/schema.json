@@ -63,11 +63,6 @@
     "statut_verifie_le": {
       "type": "datetime"
     },
-    "etat_notice": {
-      "type": "enumeration",
-      "enum": ["brouillon", "a_valider", "validee"],
-      "default": "validee"
-    },
     "notifie_le": {
       "type": "datetime",
       "required": false

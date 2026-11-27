@@ -14,30 +14,10 @@ import {
   faBookOpen,
   faCalendarAlt,
   faPen,
-  faCircleCheck,
-  faTriangleExclamation,
   faLink,
 } from '@fortawesome/free-solid-svg-icons';
 
 /** P1 — Fiche documentaire à URL stable : /documents/:id */
-
-const ETAT_BADGES = {
-  brouillon: {
-    icon: faTriangleExclamation,
-    style: 'bg-gray-100 text-gray-700 border-gray-300',
-    key: 'fiche.etat_brouillon',
-  },
-  a_valider: {
-    icon: faTriangleExclamation,
-    style: 'bg-amber-100 text-amber-800 border-amber-300',
-    key: 'fiche.etat_a_valider',
-  },
-  validee: {
-    icon: faCircleCheck,
-    style: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    key: 'fiche.etat_validee',
-  },
-};
 
 const relationBadge = (type) => ({
   abroge: {
@@ -146,7 +126,6 @@ const DocumentFiche = () => {
 
   const file = fileAvailability(doc);
   const statut = normalizeStatus(doc.status);
-  const etat = ETAT_BADGES[doc.etat_notice] || ETAT_BADGES.brouillon;
   const statutStyles = {
     en_vigueur: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     abroge: 'bg-red-100 text-red-800 border-red-300',

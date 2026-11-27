@@ -64,9 +64,8 @@ Strapi, sans toucher au code**. Aucune image sur cette page (texte + icônes).
    ultérieur si elle est encore vide. Si le décret n'est pas encore importé,
    sélectionner le document manuellement dans le Content Manager (le seed ne
    crée jamais le document lui-même : aucune donnée inventée).
-   ⚠️ Le lien « Consulter le texte » n'est rendu que si la notice est à
-   `etat_notice = "validee"` (règle P1 : les brouillons renvoient 404 au
-   public) ; sinon la page affiche la référence sans lien cliquable.
+   Le lien « Consulter le texte » est rendu dès que la relation
+   `document_legal` est renseignée (toute notice est publique).
 
 ## 4. Vérifications techniques
 
@@ -86,8 +85,6 @@ cd front && npm run build                  # build Vite/PWA
       `apropos.document_en_attente`).
 - [ ] Renseigner les contacts officiels du ministère et les liens utiles
       (ex. site du gouvernement) dans le panneau d'administration.
-- [ ] Passer la notice du décret n°2024-055 à `etat_notice = "validee"` pour
-      activer le lien vers la fiche `/documents/:id`.
 
 ## 6. E-mails — configuration Gmail SMTP locale et test
 
@@ -254,8 +251,7 @@ boîte mail ». Un nouvel essai régénère le jeton et renvoie le mail.
   montage** de l'application par `front/src/App.jsx` (garde anti React.StrictMode),
   erreurs ignorées silencieusement.
 - `POST /api/documents/:id/visit` et `POST /api/corps/:id/visit` : 1 comptage
-  par visiteur / texte (ou corps) / jour ; un document dont `etat_notice` n'est
-  pas `validee` n'est **pas** compté pour un public.
+  par visiteur / texte (ou corps) / jour.
 - `src/middlewares/track-visit.ts` ne gère **plus que la présence temps réel**
   (`visitor_presence`, compteur admin « en ligne ») — plus aucun comptage par GET.
 - `GET /api/visit-statistics` (admin, verrou inchangé) : `visits_today` =

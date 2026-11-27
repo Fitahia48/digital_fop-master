@@ -168,7 +168,6 @@ export const buildInternalDocs = async (query: string, opts: InternalSearchOpts 
     const pageSize = Math.min(Math.max(parseInt(String(opts.page_size ?? 20), 10) || 20, 1), 50);
 
     const filters: Record<string, any> = {
-      $and: [{ etat_notice: 'validee' }],
       $or: [
         { objet: { $containsi: query } },
         { numero: { $containsi: query } },

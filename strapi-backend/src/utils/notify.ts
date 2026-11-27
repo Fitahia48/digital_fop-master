@@ -3,13 +3,11 @@
  * lifecycles `document` et `actualite`.
  *
  * Décisions produit (ÉTAPE 2) :
- *  - document  : envoi UNIQUEMENT à la publication — création en état
- *    « validée » OU passage vers « validée » (afterUpdate) ;
+ *  - document  : envoi à la création (toute notice est publiée immédiatement) ;
  *  - actualité : envoi à la création uniquement (pas de brouillon) ;
  *  - anti-doublon : attribut nullable `notifie_le` posé AVANT l'envoi, puis
  *    libéré UNIQUEMENT si aucun abonné n'a été servi (échec total) ; il reste
- *    posé après un succès, même partiel → un seul envoi réussi par publication,
- *    même si le document repasse en brouillon puis « validée » ;
+ *    posé après un succès, même partiel → un seul envoi réussi par publication ;
  *  - aucun envoi depuis un script : lifecycles désactivés (migrate-data.ts),
  *    script in-process (aucun contexte HTTP) ou en-tête `x-no-notify: 1`
  *    (import via API type import-deaj-2026.ts) ;
@@ -250,9 +248,9 @@ const dispatch = async (
   })();
 };
 
-/** Document : appelé par afterCreate (créé validé) et afterUpdate (passage à « validée »). */
+/** Document : appelé par afterCreate (toute notice est publiée immédiatement). */
 export const notifyDocumentPublication = async (doc: any): Promise<void> => {
-  if (!doc || doc.etat_notice !== 'validee' || doc.notifie_le) return;
+  if (!doc || doc.notifie_le) return;
   await dispatch({
     uid: 'api::document.document',
     documentId: doc.documentId,

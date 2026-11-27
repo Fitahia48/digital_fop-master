@@ -1,15 +1,13 @@
 /**
- * P1 — Migration idempotente des types de documents + états de notice.
+ * P1 — Migration idempotente des types de documents.
  *
  * 1. Normalise les valeurs de `documents.type` vers la liste contrôlée
  *    (fautes, casse, accents, pluriels → forme canonique).
  * 2. Ne touche JAMAIS aux valeurs inconnues : elles sont listées en fin de
  *    rapport pour examen manuel (aucune donnée perdue, aucune invention).
- * 3. Pose `etat_notice = 'brouillon'` sur toute notice dont l'état est vide
- *    (les documents migrés depuis l'ancienne table n'ont pas ce champ).
  *
  * Idempotence : réexécution sans effet une fois appliquée (les valeurs sont
- * déjà canoniques et `etat_notice` déjà renseigné).
+ * déjà canoniques).
  *
  * CLI :
  *   --dry-run (défaut) : affiche le plan, n'écrit rien ;
@@ -49,7 +47,6 @@ async function main() {
     })) as any[];
 
     let toFixTypes = 0;
-    let toFixEtat = 0;
     const unknownValues = new Map<string, { count: number; ids: number[] }>();
 
     for (const row of rows) {
@@ -68,29 +65,22 @@ async function main() {
       }
 
       const needsType = canon !== null && canon !== rawType;
-      const needsEtat = !row.etat_notice;
       if (needsType) toFixTypes += 1;
-      if (needsEtat) toFixEtat += 1;
 
-      if (needsType || needsEtat) {
+      if (needsType) {
         if (APPLY) {
           await app.documents(UID).update({
             documentId: row.documentId,
-            data: {
-              ...(needsType ? { type: canon } : {}),
-              ...(needsEtat ? { etat_notice: 'brouillon' as const } : {}),
-            } as any,
+            data: { type: canon } as any,
           });
-        } else if (needsType) {
+        } else {
           console.log(`  [dry-run] doc #${row.id} : type "${rawType}" → "${canon}"`);
         }
       }
     }
 
     console.log(`[p1-migrate] documents analysés : ${rows.length}`);
-    console.log(
-      `[p1-migrate] types à normaliser : ${toFixTypes} ; etat_notice à poser (brouillon) : ${toFixEtat}`
-    );
+    console.log(`[p1-migrate] types à normaliser : ${toFixTypes}`);
 
     if (unknownValues.size > 0) {
       console.log('\n[p1-migrate] ⚠️ VALEURS DE TYPE INCONNUES (non modifiées — à examiner manuellement) :');

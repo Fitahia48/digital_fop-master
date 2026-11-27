@@ -76,38 +76,6 @@ const parsePagination = (query: any) => {
   return { page, pageSize, offset: (page - 1) * pageSize };
 };
 
-/**
- * P1 — Contrôle de publication côté serveur.
- *
- * Seules les notices « validees » sont visibles du public (visiteur anonyme ou
- * simple usager). Les notices en brouillon / à valider ne sont lisibles que par
- * l'Administrateur (rôle habilité), quel que soit le paramétrage des permissions
- * U&P : le contrôle est ici, pas seulement dans le front.
- *
- * @returns le fragment de filtre à appliquer, ou `null` pour « pas de filtre ».
- */
-const publicationFilter = async (ctx: any): Promise<Record<string, any> | null> => {
-  const user = getRequestUser(ctx);
-  if (isAdminUser(user)) return null; // admin : tout
-  return { etat_notice: 'validee' };
-};
-
-/** Fusionne un filtre existant avec la contrainte de publication. */
-const withPublicationFilter = (
-  filters: Record<string, any>,
-  pub: Record<string, any> | null
-): Record<string, any> =>
-  pub
-    ? {
-        $and: [
-          ...((filters.$and as any[]) || []),
-          pub,
-          ...((filters.$or ? [] : []) as any[]),
-        ],
-        ...(filters.$or ? { $or: filters.$or } : {}),
-      }
-    : filters;
-
 /** Forme legacy d'une ligne document (médias en URL, domaine_nom dérivé). */
 const legacyDocument = (doc: any) => ({
   ...doc,
@@ -143,8 +111,7 @@ export default factories.createCoreController(UID, () => ({
       const q = ctx.request.query || {};
       const { page, pageSize, offset } = parsePagination(q);
 
-      const pub = await publicationFilter(ctx);
-      const filters: Record<string, any> = withPublicationFilter({}, pub);
+      const filters: Record<string, any> = {};
       if (q.type) filters.type = { $containsi: q.type };
       if (q.domaine || q.domaine_id) filters.domaine = { id: Number(q.domaine || q.domaine_id) };
       if (q.status) {
@@ -209,15 +176,6 @@ export default factories.createCoreController(UID, () => ({
         return;
       }
 
-      // P1 : une notice non validée n'est visible que d'un rôle habilité —
-      // impossible d'accéder à un brouillon en devinant l'URL.
-      const pub = await publicationFilter(ctx);
-      if (pub && doc.etat_notice !== 'validee') {
-        ctx.status = 404;
-        ctx.body = { detail: 'Document non trouvé.' };
-        return;
-      }
-
       const [sources, cibles] = await Promise.all([
         strapi.documents(REL_UID).findMany({
           filters: { document_source: { documentId: doc.documentId } } as any,
@@ -275,9 +233,9 @@ export default factories.createCoreController(UID, () => ({
       }
 
       const inclus = String(b.inclus_journal || b.inclusJournal || 'false').toLowerCase() === 'true';
-      // P1 : une nouvelle notice démarre TOUJOURS en « brouillon » pour les
-      // utilisateurs non-admins. Pour les admins, la notice est directement
-      // « validée » afin qu'elle soit visible immédiatement après création.
+      // Toute notice ajoutée est directement publiée (plus d'état de notice,
+      // plus de brouillon) : elle est visible immédiatement dans « Afficher les
+      // documents ».
       //
       // Simplification du circuit : le formulaire d'ajout propose deux choix
       // (« En vigueur » / « Abrogé »). La valeur reçue est validée et limitée
@@ -286,8 +244,6 @@ export default factories.createCoreController(UID, () => ({
       // inchangé en base : aucun document existant (non_verifie / modifie) n'est réécrit.
       const requestedStatus = normalizeStatus(b.status, 'en_vigueur');
       const status = requestedStatus === 'abroge' ? ('abroge' as const) : ('en_vigueur' as const);
-      const creatingUser = getRequestUser(ctx);
-      const etatNotice = isAdminUser(creatingUser) ? 'validee' : 'brouillon';
       const data: Record<string, any> = {
         type: b.type,
         objet: b.objet,
@@ -295,7 +251,6 @@ export default factories.createCoreController(UID, () => ({
         date: b.date ? String(b.date).trim() : null,
         conseil: b.conseil || 'Autre',
         status,
-        etat_notice: etatNotice,
         mots_cles: Array.isArray(b.mots_cles)
           ? b.mots_cles
           : typeof b.mots_cles === 'string' && b.mots_cles.trim()
@@ -463,11 +418,6 @@ export default factories.createCoreController(UID, () => ({
       const doc = await findDocByDocumentId(ctx.params.documentId);
       if (!doc) return ctx.notFound('Document non trouvé');
 
-      // Un texte non consultable par le public (brouillon / à valider) ne se
-      // compte pas — même filtre que findOne (publicationFilter).
-      const pub = await publicationFilter(ctx);
-      if (pub && doc.etat_notice !== 'validee') return ctx.notFound('Document non trouvé');
-
       const counted = await enregistrerConsultation(ctx, 'document', Number(doc.id));
       ctx.body = {
         counted,
@@ -505,9 +455,8 @@ export default factories.createCoreController(UID, () => ({
   // GET /api/documents/most-visited
   async mostVisited(ctx: any) {
     try {
-      const pub = await publicationFilter(ctx);
       const rows = (await strapi.documents(UID).findMany({
-        filters: withPublicationFilter({}, pub),
+        filters: {},
         sort: [{ visits: 'desc' }],
         limit: 10,
         populate: ['domaine'],
@@ -575,11 +524,9 @@ export default factories.createCoreController(UID, () => ({
         return;
       }
 
-      const pub = await publicationFilter(ctx);
-
       if (searchBy === 'type') {
         const rows = (await strapi.documents(UID).findMany({
-          filters: withPublicationFilter({ type: { $containsi: query } }, pub),
+          filters: { type: { $containsi: query } },
           fields: ['type'],
           limit: -1,
         })) as any[];
@@ -588,10 +535,7 @@ export default factories.createCoreController(UID, () => ({
       }
 
       if (searchBy === 'objet' || searchBy === 'numero') {
-        const filters: Record<string, any> = withPublicationFilter(
-          { [searchBy]: { $containsi: query } },
-          pub
-        );
+        const filters: Record<string, any> = { [searchBy]: { $containsi: query } };
         if (type) filters.type = { $containsi: type };
         const rows = (await strapi.documents(UID).findMany({
           filters,
@@ -704,32 +648,4 @@ export default factories.createCoreController(UID, () => ({
     }
   },
 
-  // PATCH /api/documents/:documentId/etat-notice (admin)
-  // État éditorial de la notice : brouillon → à valider → validée.
-  // Indépendant du statut juridique (règle P1 : les deux circuits sont séparés).
-  async setEtatNotice(ctx: any) {
-    try {
-      const user = getRequestUser(ctx);
-      if (!isAdminUser(user)) {
-        throw new ForbiddenError('Accès réservé aux administrateurs.');
-      }
-      const { etat } = ctx.request.body || {};
-      if (!['brouillon', 'a_valider', 'validee'].includes(String(etat))) {
-        return ctx.badRequest('État invalide. Valeurs autorisées : brouillon, a_valider, validee.');
-      }
-
-      const doc = await findDocByDocumentId(ctx.params.documentId);
-      if (!doc) return ctx.notFound('Document non trouvé.');
-
-      await strapi.documents(UID).update({
-        documentId: doc.documentId,
-        data: { etat_notice: etat as any, last_modified_by: user.id, last_modified_at: new Date() },
-      });
-
-      ctx.body = { message: 'État de la notice mis à jour.', etat_notice: etat };
-    } catch (err) {
-      if (err instanceof ForbiddenError) throw err;
-      return ctx.internalServerError((err as Error).message);
-    }
-  },
 }));

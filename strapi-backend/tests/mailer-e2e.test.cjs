@@ -356,7 +356,7 @@ test('T1 — Inscription : confirme l\'abonné, les non confirmés reçoivent ri
   // C (non confirmé) : pas de mail de publication après la création suivante
   const docBefore = await api(`/api/documents/?page_size=1`);
   assert.ok(docBefore.data && Array.isArray(docBefore.data.results));
-  const draft = await createDraftInPanel({
+  const draft = await createDocumentInPanel({
     type: 'note',
     objet: `T1 draft ${Date.now()}`,
     numero: `T1-D${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -371,7 +371,7 @@ test('T1 — Inscription : confirme l\'abonné, les non confirmés reçoivent ri
 
 // ─── Scénario 2 — Document publié par le formulaire admin ───────────────────
 
-test('T2 — Document publié (admin, état validee) : A et B UN e-mail chacun, lien qui ouvre la bonne fiche, C/D rien', async (t) => {
+test('T2 — Document publié (admin) : A et B UN e-mail chacun, lien qui ouvre la bonne fiche, C/D rien', async (t) => {
   await expectServerReady(t);
 
   const titre = `relatif à l'Etat & aux agents — T2 ${Date.now()}`;
@@ -407,48 +407,6 @@ test('T2 — Document publié (admin, état validee) : A et B UN e-mail chacun, 
     pubs.every((m) => m.listUnsubscribe),
     'en-tête List-Unsubscribe présent sur les deux mails'
   );
-});
-
-// ─── Scénario 3 — Brouillon puis passage à validee ─────────────────────────
-
-test('T3 — Brouillon sans mail ; passage validee : mail à A/B ; nouveau passage → AUCUN second envoi', async (t) => {
-  await expectServerReady(t);
-
-  const doc = await createDraftInPanel({
-    type: 'note',
-    objet: `T3 draft ${Date.now()}`,
-    numero: `T3-D${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    date: '2026-01-01',
-  });
-
-  // draft → APRES : pas de mail (nulle part)
-  await waitUntil(async () => capturedMessages().length, 25000);
-  const afterDraft = await capturedMessages();
-  const pubsAfterDraft = afterDraft.filter((m) => m.html && /publication/i.test(m.subject));
-  assert.strictEqual(pubsAfterDraft.length, 0);
-
-  // panneau Strapi : passer à « validee »
-  const val = await setEtatInPanel(doc.id, 'validee');
-  assert.ok(val && val.ok);
-
-  // publication → 1 mail à A et à B seulement (2 messages)
-  await waitUntil(
-    async () => capturedMessages().filter((m) => m.html && /document/i.test(m.subject)).length >= 2,
-    25000
-  );
-  const msgs = await capturedMessages();
-  const pubs = msgs.filter((m) => m.html && /document/i.test(m.subject));
-  assert.strictEqual(pubs.length, 2);
-  assert.ok(pubs.every((m) => m.to.includes('a.abonne@test.local') || m.to.includes('b.abonne@test.local')));
-  assert.strictEqual(pubs.some((m) => m.to.includes('c.abonne@test.local')), false);
-
-  // retour en brouillon puis validee → AUCUN second envoi
-  setEtatInPanel(doc.id, 'brouillon');
-  setEtatInPanel(doc.id, 'validee');
-  await sleep(1500);
-  const finalCount = await capturedMessages();
-  const pubs2 = finalCount.filter((m) => m.html && /document/i.test(m.subject));
-  assert.strictEqual(pubs2.length, 0, 'Aucun second envoi quand le document repasse en brouillon en cours de vie');
 });
 
 // ─── Scénario 4 — Actualité ─────────────────────────────────────────────────
@@ -729,39 +687,28 @@ test('T10b — En-tête x-no-notify sur une création HTTP : aucun e-mail', asyn
 
 /**
  * Crée un document en tant qu'administrateur (même circuit que le formulaire
- * admin du front : controller custom avec contrôle de rôle → état validee).
+ * admin du front). Toute notice est publiée immédiatement.
  */
 async function createDocumentInAdmin(data) {
   const r = await api(`/api/documents/`, { method: 'POST', token: adminToken, body: data });
   assert.strictEqual(r.status, 201, `création admin → 201 : ${r.data?.detail || r.data?.error}`);
   const doc = r.data;
-  // vérification du filtrage public : un non-administrateur ne voit ce document
-  // que S'IL EST VALIDÉ (règle P1)
+  // Toute notice créée est visible du public.
   const anonyme = await api(`/api/documents/${doc.id}/`);
-  if (doc.etat_notice === 'validee') assert.strictEqual(anonyme.status, 200);
-  else assert.strictEqual(anonyme.status, 404, 'brouillon/refusé au public');
+  assert.strictEqual(anonyme.status, 200);
   return doc;
 };
 
 /**
- * Simule la création dans le CONTENU manager (panneau Strapi) : état par défaut
- * « brouillon » → LE SERVER VIENT DE LA COUCHE INFRA (pas de lifecycle).
+ * Simule la création dans le CONTENT manager (panneau Strapi).
  */
-async function createDraftInPanel(data) {
+async function createDocumentInPanel(data) {
   const r = await api(
     `/api/content-manager/collection-types/api::document.document`,
     { method: 'POST', token: panelToken, body: data }
   );
   assert.strictEqual(r.status, 201, `create panneau → 201 : ${r.data?.detail || r.data?.error}`);
-  return { id: r.data.id, etat_notice: 'brouillon' };
-};
-
-async function setEtatInPanel(id, etat) {
-  const r = await api(
-    `/api/content-manager/collection-types/api::document.document/${id}/`,
-    { method: 'PATCH', token: panelToken, body: { etat_notice: etat } }
-  );
-  return { ok: r.status === 200 };
+  return r.data;
 };
 
 async function createActuInAdmin(data) {

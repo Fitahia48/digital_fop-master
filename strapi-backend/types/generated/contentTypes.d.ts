@@ -682,10 +682,6 @@ export interface ApiDocumentDocument extends Struct.CollectionTypeSchema {
     date_entree_vigueur: Schema.Attribute.Date;
     date_journal: Schema.Attribute.Date;
     domaine: Schema.Attribute.Relation<'manyToOne', 'api::domaine.domaine'>;
-    etat_notice: Schema.Attribute.Enumeration<
-      ['brouillon', 'a_valider', 'validee']
-    > &
-      Schema.Attribute.DefaultTo<'validee'>;
     fichier: Schema.Attribute.Media;
     inclus_journal: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;

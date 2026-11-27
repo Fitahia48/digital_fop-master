@@ -82,10 +82,7 @@ export const getStatsPubliques = async (ctx: any) => {
   }
 
   try {
-    // Seules les notices « validées » sont publiques (même filtre que la
-    // liste de documents côté visiteur anonyme).
     const rows = (await strapi.documents(UID).findMany({
-      filters: { etat_notice: 'validee' },
       fields: ['type', 'numero', 'objet', 'visits', 'telechargements'],
       limit: -1,
     })) as LigneDocument[];

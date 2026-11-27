@@ -12,7 +12,7 @@ async function main() {
 
     console.log(`Found ${docs.length} documents:`);
     for (const doc of docs) {
-      console.log(`  ID: ${doc.id}, numero: '${doc.numero}', etat_notice: '${doc.etat_notice}'`);
+      console.log(`  ID: ${doc.id}, numero: '${doc.numero}', type: '${doc.type}'`);
     }
   } finally {
     await app.destroy();

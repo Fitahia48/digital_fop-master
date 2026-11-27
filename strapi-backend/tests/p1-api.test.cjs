@@ -111,17 +111,11 @@ describe('P1 — Fiche documentaire à URL stable (endpoint legacy)', () => {
       );
   });
 
-  test('liste anonyme : aucune notice non validée ne fuit au public', async (t) => {
+  test('liste anonyme : accessible et paginée', async (t) => {
     requireServer(t);
     const res = await api('/api/documents/?page_size=10');
     assert.strictEqual(res.status, 200);
     assert.ok(Array.isArray(res.data.results));
-    // Règle P1 : seules les notices « validees » sont publiques. En base dev,
-    // toutes les notices migrées sont « brouillon » → le public n'en voit AUCUNE
-    // (c'est voulu : la validation éditoriale reste à faire par le ministère).
-    for (const d of res.data.results) {
-      assert.strictEqual(d.etat_notice, 'validee');
-    }
   });
 
   test('GET /api/documents/ (admin) : les notices existent et portent les champs P1', async (t) => {
@@ -143,7 +137,6 @@ describe('P1 — Fiche documentaire à URL stable (endpoint legacy)', () => {
     assert.strictEqual(Number(res.data.id), Number(id));
     // Champs P1 présents dans la réponse
     assert.ok('status' in res.data);
-    assert.ok('etat_notice' in res.data);
     assert.ok('relations_actives' in res.data);
     assert.ok('relations_passives' in res.data);
   });
@@ -190,10 +183,6 @@ describe('P1 — Statut juridique simplifié (choix direct du formulaire)', () =
     assert.strictEqual(res.status, 201);
     createdId = res.data.id;
     assert.strictEqual(res.data.status, 'en_vigueur', 'statut choisi enregistré');
-    // etat_notice : décision produit documentée dans le controller create —
-    // une notice créée par un admin est directement « validée » (visible
-    // immédiatement) ; un non-admin resterait en « brouillon ».
-    assert.strictEqual(res.data.etat_notice, 'validee', 'notice admin validée immédiatement');
   });
 
   test('création : statut « abroge » accepté, puis repli sur « en_vigueur » si valeur invalide', async (t) => {
@@ -313,8 +302,6 @@ describe('P1 — Statut juridique simplifié (choix direct du formulaire)', () =
 
   test("document sans PDF : aucune URL de fichier morte n'est exposée", async (t) => {
     requireServer(t);
-    // Consultation AVEC un rôle habilité (une notice brouillon est masquée au
-    // public — testé séparément ci-dessus).
     const res = await api(`/api/documents/${createdId}/`, { token: adminToken });
     assert.strictEqual(res.status, 200);
     const file = res.data.pdf_file || res.data.fichier;

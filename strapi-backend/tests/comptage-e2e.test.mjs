@@ -188,12 +188,6 @@ if (phase === 'A') {
   const r = compteurs();
   verifie(r.visiteursJour === c2.visiteursJour && r.doc11 === c2.doc11, 'A7 : aucun comptage produit par les robots');
 
-  // 7. Brouillon non consultable → 404, non compté
-  const bro = await post('/api/documents/14/visit');
-  verifie(bro.status === 404, 'A8 : document brouillon → 404', `status=${bro.status}`);
-  const br = compteurs();
-  verifie(br.doc14 === av.doc14, 'A8 : brouillon → visits inchangés', `${av.doc14} → ${br.doc14}`);
-
   // 8. Verrous d'accès (inchangés)
   const statsAnon = await get('/api/visit-statistics/');
   verifie(

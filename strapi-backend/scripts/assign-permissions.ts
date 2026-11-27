@@ -90,10 +90,10 @@ const AUTH_CUSTOM_ACTIONS = ['api::search.search.getSearchHistory'];
 /*
  * P1 — Validation juridique : L'ATTRIBUTION DE PERMISSION NE SUFFIT PAS.
  *
- * Les handlers `document.updateStatus`, `document.statutHistorique` et
- * `document.setEtatNotice` contrôlent le rôle dans le code (canValidateLegalStatus
- * / isAdminUser, src/utils/errors.ts) : une permission U&P active donnerait
- * l'accès à TOUT rôle qui la possède. On n'attribue donc ces actions qu'au rôle
+ * Les handlers `document.updateStatus` et `document.statutHistorique` contrôlent
+ * le rôle dans le code (canValidateLegalStatus, src/utils/errors.ts) : une
+ * permission U&P active donnerait l'accès à TOUT rôle qui la possède. On
+ * n'attribue donc ces actions qu'au rôle
  * Administrateur (bloc ci-dessous via allActionsAdmin), jamais à Public/Authenticated.
  * La matrice est documentée : seul « Administrateur » peut confirmer ou modifier
  * le statut juridique d'un texte.

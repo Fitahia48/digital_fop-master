@@ -86,14 +86,6 @@ export default {
       config: { policies: [], middlewares: [] }, // habilité (contrôle dans le handler)
     },
 
-    // ─── État éditorial de la notice (admin) ────────────────────────────────
-    {
-      method: 'PATCH',
-      path: '/documents/:documentId/etat-notice',
-      handler: 'document.setEtatNotice',
-      config: { policies: [], middlewares: [] }, // admin
-    },
-
     // ─── Mise à jour (le front appelle PATCH ; le core ne définit que PUT) ──
     // Réutilise le handler core `document.update` → action déjà attribuée
     // (Administrateur), aucune permission supplémentaire requise.

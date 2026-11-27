@@ -19,6 +19,9 @@ import PdfViewer from "./PdfViewer";
 import SearchResultsSkeleton from "./SearchResultsSkeleton";
 import './AfficherDocs.css';
 
+// Nombre de documents par page dans la liste « Afficher les documents ».
+const DOCUMENTS_PAGE_SIZE = 5;
+
 const Documents = ({ isAdmin }) => {
   const [data, setData] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -162,7 +165,10 @@ const Documents = ({ isAdmin }) => {
       setLoading(true);
       setFetchError(false);
       try {
-        const params = selectedDomaine ? { domaine: selectedDomaine } : {};
+        const params = {
+          page_size: DOCUMENTS_PAGE_SIZE,
+          ...(selectedDomaine ? { domaine: selectedDomaine } : {}),
+        };
         const response = await axiosInstance.get("/api/documents/", { params });
         setDocuments(response.data.results || []);
         setNextPage(response.data.next || false);
@@ -309,7 +315,10 @@ const Documents = ({ isAdmin }) => {
     setSearchPage(1);
     setLastCriteria(null);
     setFetchError(false);
-    const params = selectedDomaine ? { domaine: selectedDomaine } : {};
+    const params = {
+      page_size: DOCUMENTS_PAGE_SIZE,
+      ...(selectedDomaine ? { domaine: selectedDomaine } : {}),
+    };
     fetchDocumentsWithParams(params);
   };
 
@@ -965,7 +974,7 @@ const Documents = ({ isAdmin }) => {
                             {isAdmin && (
                               <>
                                 <span className="w-full border-t border-gray-100 my-0.5" aria-hidden="true" />
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-nowrap items-center gap-2">
                                   {renderAdminActions(doc)}
                                 </div>
                               </>

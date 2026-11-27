@@ -165,7 +165,6 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
         type: 'Décret',
         numero: '2024-055',
         objet: 'Objet du décret simulé',
-        etat_notice: 'validee',
       },
       liens_utiles: [{ libelle: 'Site du ministère', url: 'https://www.mtefpls.gov.mg' }],
     };

@@ -4,7 +4,7 @@
  * Flux d'une question :
  *  1. récupération : FAQ (toutes locales utiles) + documents via la recherche
  *     existante (buildInternalDocs) — même politique d'accès que le reste de
- *     l'application (notices « etat_notice = validee » uniquement) ;
+ *     l'application ;
  *  2. injection dans le prompt système + l'historique conversationnel ;
  *  3. Gemini 2.5 Flash répond en une seule requête stateless (pas de session
  *     serveur, aucune conversation persistée) ;
