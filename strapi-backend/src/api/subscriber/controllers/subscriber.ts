@@ -315,7 +315,7 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
     try {
       const { token } = ctx.params;
       const rows = (await strapi.documents('api::subscriber.subscriber').findMany({
-        filters: { confirm_token: { $eq: token }, is_confirmed: { $eq: false } },
+        filters: { confirm_token: { $eq: token } },
         limit: 1,
       })) as any[];
 
@@ -323,9 +323,18 @@ export default factories.createCoreController('api::subscriber.subscriber', () =
         return ctx.badRequest('Lien de confirmation invalide ou déjà utilisé.');
       }
 
+      // Jeton retrouvé mais abonnement déjà confirmé (lien rouvert, double clic,
+      // préchargement du lien par un client mail) : ce n'est pas une erreur.
+      if (rows[0].is_confirmed) {
+        ctx.body = { detail: 'Votre abonnement est déjà confirmé. Merci !' };
+        return;
+      }
+
+      // Le jeton est CONSERVÉ (pas remis à null) : c'est ce qui permet de
+      // reconnaître un lien déjà utilisé et de répondre sans erreur au 2e clic.
       await strapi.documents('api::subscriber.subscriber').update({
         documentId: rows[0].documentId,
-        data: { is_confirmed: true, confirm_token: null as any },
+        data: { is_confirmed: true },
       });
 
       ctx.body = { detail: 'Votre abonnement a bien été confirmé. Merci !' };
