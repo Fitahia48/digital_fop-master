@@ -142,6 +142,13 @@ export const getPoliteReply = (
   };
 };
 
+/** URL absolue d'un média Strapi (objet populate) ou valeur brute (chaîne legacy). */
+const mediaUrl = (media: any): string | null => {
+  if (!media) return null;
+  if (typeof media === 'object') return media.url ?? null;
+  return String(media);
+};
+
 interface InternalSearchOpts {
   page?: number | string;
   page_size?: number | string;
@@ -183,7 +190,10 @@ export const buildInternalDocs = async (query: string, opts: InternalSearchOpts 
 
     const rows = await strapi.documents('api::document.document').findMany({
       filters,
-      populate: ['domaine'],
+      // Les fichiers sont des relations média : sans populate (puis sans
+      // aplatissement en URL) le front les voit absents et affiche à tort
+      // « Non disponible » dans les résultats de recherche.
+      populate: ['domaine', 'fichier', 'pdf_file'],
       limit: -1,
     });
 
@@ -201,10 +211,13 @@ export const buildInternalDocs = async (query: string, opts: InternalSearchOpts 
     const dateOf = (d: any) => (d.date ? new Date(d.date).getTime() : 0);
     rows.sort((a: any, b: any) => rank(a) - rank(b) || dateOf(b) - dateOf(a));
 
-    // Aplatir domaine → domaine_nom (format attendu par le front)
+    // Aplatir domaine → domaine_nom et médias → URL (format attendu par le front)
     const flat = rows.map((d: any) => ({
       ...d,
+      fichier: mediaUrl(d.fichier),
+      pdf_file: mediaUrl(d.pdf_file),
       domaine_nom: d.domaine?.nom ?? null,
+      telechargeable: d.telechargeable ?? true,
     }));
 
     const total = flat.length;
